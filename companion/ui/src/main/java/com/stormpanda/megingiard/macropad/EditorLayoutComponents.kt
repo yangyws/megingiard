@@ -181,7 +181,6 @@ internal fun EditorLayoutChipsBar(
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
     onChangeGridCols: ((Int) -> Unit)? = null,
-    onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
     onEditLayout: () -> Unit,
     onDuplicateLayout: () -> Unit,
@@ -338,46 +337,12 @@ internal fun EditorLayoutChipsBar(
             }
         }
 
-        // Layout mode chips (自由模式 ↔ 表格模式) + Action Toolbar on the right
-        val isGrid = activeLayout?.isGridMode == true
+        // Action toolbar (Add Button / Background / Lock / Touchpad / Grid OR Columns in Table mode)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AppSelectableChip(
-                    text = stringResource(R.string.layout_settings_mode_free),
-                    selected = !isGrid,
-                    onClick = { if (isGrid) onLayoutModeChange(PadLayoutMode.FREE) },
-                    leadingIcon = { contentColor ->
-                        Icon(
-                            imageVector = Icons.Rounded.OpenWith,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    },
-                )
-                AppSelectableChip(
-                    text = stringResource(R.string.layout_settings_mode_grid),
-                    selected = isGrid,
-                    onClick = { if (!isGrid) onLayoutModeChange(PadLayoutMode.GRID) },
-                    leadingIcon = { contentColor ->
-                        Icon(
-                            imageVector = Icons.Rounded.GridView,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    },
-                )
-            }
-
-            // Action toolbar (Add Button / Background / Lock / Touchpad / Grid OR Columns in Table mode)
             EditorToolbar(
                 profile = profile,
                 layout = activeLayout,

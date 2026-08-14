@@ -28,9 +28,11 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Grid4x4
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Mouse
+import androidx.compose.material.icons.rounded.OpenWith
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +42,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.stormpanda.megingiard.ui.AppSelectableChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -968,8 +971,9 @@ private fun EditorBody(
             )
         }
 
-        // 2b. Profile Action Toolbar (Macros button row)
+        // 2b. Profile Action Toolbar (Mode chips + Macros button)
         item(key = "profile_toolbar") {
+            val isGrid = layout?.isGridMode == true
             Row(
                 modifier =
                     Modifier
@@ -977,15 +981,56 @@ private fun EditorBody(
                         .background(colors.surface)
                         .padding(horizontal = MPE_PADDING)
                         .padding(top = 4.dp, bottom = MPE_PADDING),
-                horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AppSelectableChip(
+                        text = stringResource(R.string.layout_settings_mode_free),
+                        selected = !isGrid,
+                        onClick = {
+                            if (isGrid && layout != null) {
+                                val updated = layout.withLayoutMode(PadLayoutMode.FREE)
+                                MacroPadState.updateLayout(updated)
+                            }
+                        },
+                        leadingIcon = { contentColor ->
+                            Icon(
+                                imageVector = Icons.Rounded.OpenWith,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                    )
+                    AppSelectableChip(
+                        text = stringResource(R.string.layout_settings_mode_grid),
+                        selected = isGrid,
+                        onClick = {
+                            if (!isGrid && layout != null) {
+                                val updated = layout.withLayoutMode(PadLayoutMode.GRID)
+                                MacroPadState.updateLayout(updated)
+                            }
+                        },
+                        leadingIcon = { contentColor ->
+                            Icon(
+                                imageVector = Icons.Rounded.GridView,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                    )
+                }
+
                 EditorActionChip(
                     label = stringResource(R.string.macropad_editor_manage_macros),
                     icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
                     accentColor = accentColor,
                     onClick = onManageMacros,
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -1000,7 +1045,7 @@ private fun EditorBody(
             )
         }
 
-        // 4. Layout management bar (layouts + mode chips + toolbar)
+        // 4. Layout management bar (layouts + toolbar)
         item(key = "layouts") {
             EditorLayoutChipsBar(
                 layouts = profile.layouts,
@@ -1017,11 +1062,6 @@ private fun EditorBody(
                 onChangeGridCols = { newCols ->
                     val currentLayout = layout ?: return@EditorLayoutChipsBar
                     MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
-                },
-                onLayoutModeChange = { newLayoutMode ->
-                    val curLayout = layout ?: return@EditorLayoutChipsBar
-                    val updated = curLayout.withLayoutMode(newLayoutMode)
-                    MacroPadState.updateLayout(updated)
                 },
                 onSelectLayout = onSelectLayout,
                 onEditLayout = onEditLayout,
