@@ -26,12 +26,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,7 +95,18 @@ internal fun IconPickerDialog(
     val colors = LocalAppColors.current
     var query by remember { mutableStateOf("") }
     var pendingIcon by remember { mutableStateOf(selectedIcon) }
-    val results = remember(query) { MaterialIconRegistry.searchIcons(query) }
+    val results by
+        produceState(initialValue = ALL_ROUNDED_ICON_NAMES, key1 = query) {
+            if (query.isBlank()) {
+                value = ALL_ROUNDED_ICON_NAMES
+            } else {
+                delay(60)
+                value =
+                    withContext(Dispatchers.Default) {
+                        MaterialIconRegistry.searchIcons(query)
+                    }
+            }
+        }
 
     Column(
         modifier =
