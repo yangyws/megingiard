@@ -484,6 +484,7 @@ internal fun PadSurface(
                 PadLiveTableGrid(
                     profile = profile,
                     layout = layout,
+                    canvasSize = canvasSizeState.value,
                     accentColor = accentColor,
                     pressedIds = pressedIds,
                     runningMacroIds = runningMacroIds,

@@ -10,17 +10,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,13 +33,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 
 private const val TAG = "PadTableComponents"
@@ -204,80 +207,62 @@ internal fun PadTableGridLines(layout: PadLayout) {
 internal fun PadLiveTableGrid(
     profile: PadProfile,
     layout: PadLayout,
+    canvasSize: IntSize,
     accentColor: Color,
     pressedIds: Set<String>,
     runningMacroIds: Set<String>,
     isPeekActive: Boolean,
 ) {
+    val density = LocalDensity.current
     val cols = layout.effectiveGridCols
     val rows = layout.effectiveGridRows
+    val w = canvasSize.width.toFloat()
+    val h = canvasSize.height.toFloat()
+
+    if (w <= 0f || h <= 0f) return
+
+    val cellW = w / cols
+    val cellH = h / rows
+
+    val visibleButtons =
+        remember(layout, cols, rows, isPeekActive) {
+            val base = layout.buttons.filter { it.isWithinGrid(cols, rows) }
+            if (isPeekActive) base.filter { it.action is PadAction.BackgroundPeek } else base
+        }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Layout(
-            content = {
-                val visibleButtons =
-                    remember(layout, cols, rows, isPeekActive) {
-                        val base = layout.buttons.filter { it.isWithinGrid(cols, rows) }
-                        if (isPeekActive) base.filter { it.action is PadAction.BackgroundPeek } else base
-                    }
-
-                visibleButtons.forEach { button ->
-                    val isPressed = button.id in pressedIds
-                    val isRunning =
-                        button.action is PadAction.Macro &&
-                            (button.action as PadAction.Macro).macroId in runningMacroIds
-                    val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(button.action, profile)
-
-                    PadTableCell(
-                        button = button,
-                        layout = layout,
-                        accentColor = accentColor,
-                        shape = RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS),
-                        isPressed = isPressed,
-                        isRunning = isRunning,
-                        isDeviceDisabled = isDeviceDisabled,
-                        isPickedUp = false,
-                        isDragSource = false,
-                        isDropTarget = false,
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxSize(),
-        ) { measurables, constraints ->
-            val totalW = constraints.maxWidth
-            val totalH = constraints.maxHeight
-            val cellW = totalW.toFloat() / cols
-            val cellH = totalH.toFloat() / rows
-
-            val visibleButtons =
-                layout.buttons.filter { it.isWithinGrid(cols, rows) }.let { list ->
-                    if (isPeekActive) list.filter { it.action is PadAction.BackgroundPeek } else list
-                }
-
-            var idx = 0
-            val placeables = mutableListOf<Triple<androidx.compose.ui.layout.Placeable, Int, Int>>()
-
-            visibleButtons.forEach { button ->
-                val col = button.gridCol!!
-                val row = button.gridRow!!
+        visibleButtons.forEach { button ->
+            key(button.id) {
+                val col = button.gridCol ?: 0
+                val row = button.gridRow ?: 0
                 val cs = button.effectiveColSpan
                 val rs = button.effectiveRowSpan
+                val left = (cellW * col).roundToInt()
+                val top = (cellH * row).roundToInt()
+                val widthDp = with(density) { (cellW * cs).toDp() }
+                val heightDp = with(density) { (cellH * rs).toDp() }
+                val isPressed = button.id in pressedIds
+                val isRunning =
+                    button.action is PadAction.Macro &&
+                        (button.action as PadAction.Macro).macroId in runningMacroIds
+                val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(button.action, profile)
 
-                val targetW = (cellW * cs).roundToInt().coerceAtLeast(0)
-                val targetH = (cellH * rs).roundToInt().coerceAtLeast(0)
-
-                if (idx < measurables.size) {
-                    val placeable = measurables[idx++].measure(Constraints.fixed(targetW, targetH))
-                    val x = (cellW * col).roundToInt()
-                    val y = (cellH * row).roundToInt()
-                    placeables.add(Triple(placeable, x, y))
-                }
-            }
-
-            layout(totalW, totalH) {
-                placeables.forEach { (placeable, x, y) ->
-                    placeable.placeRelative(x, y)
-                }
+                PadTableCell(
+                    button = button,
+                    layout = layout,
+                    accentColor = accentColor,
+                    shape = RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS),
+                    isPressed = isPressed,
+                    isRunning = isRunning,
+                    isDeviceDisabled = isDeviceDisabled,
+                    isPickedUp = false,
+                    isDragSource = false,
+                    isDropTarget = false,
+                    modifier =
+                        Modifier
+                            .absoluteOffset { IntOffset(left, top) }
+                            .size(widthDp, heightDp),
+                )
             }
         }
 
