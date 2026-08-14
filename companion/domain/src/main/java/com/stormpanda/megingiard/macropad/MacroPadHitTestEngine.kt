@@ -392,6 +392,7 @@ class MacroPadHitTestEngine(
         profile: PadProfile,
     ) {
         val mapped = pointerMap.remove(pointerId) ?: return
+        _pressedIds.value = _pressedIds.value - mapped
         val btn = buttons.firstOrNull { it.id == mapped } ?: return
 
         when {
@@ -408,7 +409,6 @@ class MacroPadHitTestEngine(
             }
 
             else -> {
-                _pressedIds.value = _pressedIds.value - mapped
                 injectActionUp(btn.action)
             }
         }

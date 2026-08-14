@@ -330,11 +330,11 @@ internal fun PadSurface(
 
                                         // Always release pointers when fingers are lifted or touch is cancelled,
                                         // even if another component has consumed the event.
-                                        if (!change.pressed && change.previousPressed) {
+                                        if (!change.pressed) {
                                             if (engine.isPointerTracked(id)) {
                                                 engine.onRelease(id, layout.buttons, profile)
                                                 change.consume()
-                                            } else if (bgTouchpadActive) {
+                                            } else if (bgTouchpadActive && change.previousPressed) {
                                                 bgTouchpadProcessor.onRelease(id, change.position.x, change.position.y, w, h)
                                                 change.consume()
                                             }

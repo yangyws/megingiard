@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,8 @@ private const val TAG = "PadTableComponents"
 internal val PTC_TABLE_ICON_SIZE = 24.dp
 internal val PTC_TABLE_ADD_ICON_SIZE = 20.dp
 internal val PTC_TABLE_CONTENT_PADDING = 2.dp
-internal const val PTC_TABLE_FILL_ALPHA = 0.18f
+internal const val PTC_TABLE_FILL_ALPHA_IDLE = 0.12f
+internal const val PTC_TABLE_FILL_ALPHA_PRESSED = 0.38f
 internal const val PTC_TABLE_EMPTY_ICON_ALPHA = 0.5f
 internal val PTC_TABLE_DROP_BORDER_WIDTH = 2.5.dp
 internal const val PTC_TABLE_DRAG_SOURCE_ALPHA = 0.4f
@@ -58,13 +60,11 @@ internal val PTC_TABLE_GRID_LINE_WIDTH = 1.dp
 internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x33FFFFFF)
 internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 
-private const val PTC_PRESSED_ALPHA = 0.80f
-private const val PTC_NORMAL_ALPHA = 0.25f
-private const val PTC_PULSE_LOW = 0.30f
-private const val PTC_PULSE_HIGH = 0.80f
+private const val PTC_PULSE_LOW = 0.20f
+private const val PTC_PULSE_HIGH = 0.65f
 private const val PTC_PULSE_HALF_PERIOD_MS = 600
-private const val PTC_PRESS_ANIM_MS = 80
-private const val PTC_RELEASE_ANIM_MS = 160
+private const val PTC_PRESS_ANIM_MS = 60
+private const val PTC_RELEASE_ANIM_MS = 140
 
 @Composable
 internal fun PadTableCell(
@@ -84,17 +84,17 @@ internal fun PadTableCell(
     val text =
         resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
 
-    val alphaTarget = if (isPressed) PTC_PRESSED_ALPHA else PTC_NORMAL_ALPHA
-    val animDuration = if (isPressed) PTC_PRESS_ANIM_MS else PTC_RELEASE_ANIM_MS
     val pressedAlpha by animateFloatAsState(
-        targetValue = alphaTarget,
-        animationSpec = tween(animDuration),
+        targetValue = if (isPressed) 1.0f else 0.0f,
+        animationSpec = tween(if (isPressed) PTC_PRESS_ANIM_MS else PTC_RELEASE_ANIM_MS),
         label = "cellAlpha",
     )
-    val cellAlpha =
-        if (isRunning) {
+
+    val isPulseActive = isRunning
+    val runningAlphaState =
+        if (isPulseActive) {
             val infiniteTransition = rememberInfiniteTransition(label = "cellPulse")
-            val runningAlpha by infiniteTransition.animateFloat(
+            infiniteTransition.animateFloat(
                 initialValue = PTC_PULSE_LOW,
                 targetValue = PTC_PULSE_HIGH,
                 animationSpec =
@@ -104,19 +104,14 @@ internal fun PadTableCell(
                     ),
                 label = "cellRunningAlpha",
             )
-            runningAlpha
         } else {
-            pressedAlpha
+            null
         }
 
-    val effectiveBg =
-        when {
-            isPickedUp -> PTC_TABLE_SELECTED_BG
-            isPressed -> bg.copy(alpha = cellAlpha)
-            else -> bg.copy(alpha = bg.alpha * PTC_TABLE_FILL_ALPHA)
-        }
+    val hasGlyph = button.imageAssetId != null || button.iconName != null
+    val showsLabel = button.showLabel && button.label.isNotBlank()
 
-    BoxWithConstraints(
+    Box(
         modifier =
             modifier
                 .graphicsLayer {
@@ -128,7 +123,17 @@ internal fun PadTableCell(
                         }
                 }
                 .clip(shape)
-                .background(effectiveBg)
+                .drawBehind {
+                    val alpha =
+                        if (runningAlphaState != null) {
+                            runningAlphaState.value
+                        } else {
+                            PTC_TABLE_FILL_ALPHA_IDLE + pressedAlpha * (PTC_TABLE_FILL_ALPHA_PRESSED - PTC_TABLE_FILL_ALPHA_IDLE)
+                        }
+                    val effectiveBg =
+                        if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = (bg.alpha * alpha).coerceIn(0f, 1f))
+                    drawRect(effectiveBg)
+                }
                 .then(
                     if (isPickedUp || isDropTarget) {
                         Modifier.border(
@@ -142,10 +147,6 @@ internal fun PadTableCell(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        val cellFaceSize = minOf(maxWidth, maxHeight) - PTC_TABLE_CONTENT_PADDING * 2
-        val hasGlyph = button.imageAssetId != null || button.iconName != null
-        val showsLabel = button.showLabel && button.label.isNotBlank()
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -155,7 +156,7 @@ internal fun PadTableCell(
                 btn = button,
                 size = PTC_TABLE_ICON_SIZE,
                 tint = text,
-                faceSize = cellFaceSize,
+                faceSize = 48.dp,
                 faceReserve = if (showsLabel) PTC_TABLE_LABEL_RESERVE else 0.dp,
                 fallback = {
                     if (button.label.isNotBlank()) {
