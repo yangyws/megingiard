@@ -81,6 +81,8 @@ internal fun IconPickerDialog(
     accentColor: Color,
     filled: Boolean,
     onFilledChange: (Boolean) -> Unit,
+    enlargeIcon: Boolean = false,
+    onEnlargeIconChange: ((Boolean) -> Unit)? = null,
     onSelect: (String?) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -109,7 +111,7 @@ internal fun IconPickerDialog(
             }
         }
 
-        // ── Search bar + filled toggle ──────────────────────────────────────────
+        // ── Search bar + filled / enlarge toggles ───────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier =
@@ -149,6 +151,30 @@ internal fun IconPickerDialog(
                     color = colors.onSurface,
                     style = MaterialTheme.typography.labelMedium,
                 )
+            }
+            if (onEnlargeIconChange != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .clickable { onEnlargeIconChange(!enlargeIcon) }
+                            .padding(start = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = enlargeIcon,
+                        onCheckedChange = onEnlargeIconChange,
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = accentColor,
+                                uncheckedColor = colors.onSurfaceSecondary,
+                            ),
+                    )
+                    Text(
+                        text = stringResource(R.string.button_settings_enlarge_icon),
+                        color = colors.onSurface,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
         }
 

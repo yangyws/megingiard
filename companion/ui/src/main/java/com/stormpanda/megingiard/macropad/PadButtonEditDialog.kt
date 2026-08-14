@@ -474,32 +474,6 @@ internal fun ButtonEditDialog(
                             )
                         }
                     }
-
-                    if (PadGlyphRules.showsEnlargeIcon(iconName, imageAssetId)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.button_settings_enlarge_icon),
-                                    color = colors.onSurface,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Text(
-                                    text = stringResource(R.string.button_settings_enlarge_icon_desc),
-                                    color = colors.onSurfaceSecondary,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            Switch(
-                                checked = enlargeIcon,
-                                onCheckedChange = { enlargeIcon = it },
-                                colors = appSwitchColors(),
-                            )
-                        }
-                    }
                 }
 
                 SectionLabel(stringResource(R.string.macropad_editor_action), accentColor)
@@ -940,6 +914,8 @@ internal fun ButtonEditDialog(
                 accentColor = accentColor,
                 filled = iconFilled,
                 onFilledChange = { iconFilled = it },
+                enlargeIcon = enlargeIcon,
+                onEnlargeIconChange = { enlargeIcon = it },
                 onSelect = { name ->
                     iconName = name
                     showIconPicker = false
