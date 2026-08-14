@@ -1,11 +1,5 @@
 package com.stormpanda.megingiard.macropad
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,10 +52,6 @@ internal val PTC_TABLE_GRID_LINE_WIDTH = 1.dp
 internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x33FFFFFF)
 internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 
-private const val PTC_PULSE_LOW = 0.20f
-private const val PTC_PULSE_HIGH = 0.65f
-private const val PTC_PULSE_HALF_PERIOD_MS = 600
-
 @Composable
 internal fun PadTableCell(
     button: PadButton,
@@ -80,24 +70,6 @@ internal fun PadTableCell(
     val text =
         resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
 
-    val isPulseActive = isRunning
-    val runningAlphaState =
-        if (isPulseActive) {
-            val infiniteTransition = rememberInfiniteTransition(label = "cellPulse")
-            infiniteTransition.animateFloat(
-                initialValue = PTC_PULSE_LOW,
-                targetValue = PTC_PULSE_HIGH,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(PTC_PULSE_HALF_PERIOD_MS, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                label = "cellRunningAlpha",
-            )
-        } else {
-            null
-        }
-
     val hasGlyph = button.imageAssetId != null || button.iconName != null
     val showsLabel = button.showLabel && button.label.isNotBlank()
 
@@ -114,14 +86,7 @@ internal fun PadTableCell(
                 }
                 .clip(shape)
                 .drawBehind {
-                    val alpha =
-                        if (runningAlphaState != null) {
-                            runningAlphaState.value
-                        } else if (isPressed) {
-                            PTC_TABLE_FILL_ALPHA_PRESSED
-                        } else {
-                            PTC_TABLE_FILL_ALPHA_IDLE
-                        }
+                    val alpha = if (isPressed) PTC_TABLE_FILL_ALPHA_PRESSED else PTC_TABLE_FILL_ALPHA_IDLE
                     val effectiveBg =
                         if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = (bg.alpha * alpha).coerceIn(0f, 1f))
                     drawRect(effectiveBg)
