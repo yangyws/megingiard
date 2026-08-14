@@ -500,35 +500,6 @@ internal fun ButtonEditDialog(
                     }
                 }
 
-                if (PadGlyphRules.showsEnlargeIcon(iconName, imageAssetId)) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { enlargeIcon = !enlargeIcon },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.button_settings_enlarge_icon),
-                                color = colors.onSurface,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                text = stringResource(R.string.button_settings_enlarge_icon_desc),
-                                color = colors.onSurfaceSecondary,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        Switch(
-                            checked = enlargeIcon,
-                            onCheckedChange = { enlargeIcon = it },
-                            colors = appSwitchColors(),
-                        )
-                    }
-                }
-
                 SectionLabel(stringResource(R.string.macropad_editor_action), accentColor)
                 ActionPicker(
                     current = action,
