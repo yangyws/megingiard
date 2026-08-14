@@ -241,6 +241,7 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_grid_cols_count">%1$d Spalten</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d Spalte</string>
     <string name="macropad_editor_grid_size">Rastergröße</string>
+    <string name="macropad_editor_thick_borders">Rahmenstil</string>
     <string name="layout_settings_grid_cols">Spalten</string>
     <string name="layout_settings_grid_rows">Zeilen</string>
     <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
@@ -1333,6 +1334,8 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="button_settings_full_bleed_icon_desc">Symbol randlos auf die gesamte Schaltfläche skalieren</string>
     <string name="button_settings_show_label">Beschriftung anzeigen</string>
     <string name="button_settings_show_label_desc">Beschriftungstext auf der Schaltfläche anzeigen</string>
+    <string name="button_settings_show_label_bg">Texthintergrund</string>
+    <string name="button_settings_show_label_bg_desc">Dunklen Hintergrund hinter der Beschriftung anzeigen</string>
     <string name="crop_image_fit_whole">Ganz</string>
     <string name="crop_image_fit_fill">Ausfüllen</string>
 </resources>

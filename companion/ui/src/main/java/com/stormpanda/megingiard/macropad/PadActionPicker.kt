@@ -83,15 +83,43 @@ internal fun ActionPicker(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // ── Action Group horizontal scroll row + trailing content (e.g. Show Label switch) ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        // ── Action Group horizontal scroll row ──
+        if (trailingContent != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                LazyRow(
+                    state = groupListState,
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    items(availableGroups, key = { it.name }) { group ->
+                        val isSelected = group == currentGroup
+                        AppSelectableChip(
+                            text = stringResource(group.labelResId()),
+                            selected = isSelected,
+                            onClick = {
+                                val defaultCategory =
+                                    group.actions().firstOrNull { category ->
+                                        category.isEnabled(enableKeyboard, enableGamepad, enableMouse, hasMacros)
+                                    }
+                                if (defaultCategory != null) {
+                                    onChange(defaultCategory.defaultAction())
+                                }
+                            },
+                        )
+                    }
+                }
+
+                trailingContent.invoke()
+            }
+        } else {
             LazyRow(
                 state = groupListState,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
@@ -112,8 +140,6 @@ internal fun ActionPicker(
                     )
                 }
             }
-
-            trailingContent?.invoke()
         }
 
         // ── Secondary category horizontal scroll row (when group has > 1 action category) ──

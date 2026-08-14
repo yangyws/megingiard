@@ -480,6 +480,7 @@
     <string name="macropad_editor_grid_cols_count">%1$d 欄</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d 欄</string>
     <string name="macropad_editor_grid_size">網格尺寸</string>
+    <string name="macropad_editor_thick_borders">黑粗邊框</string>
     <string name="layout_settings_grid_cols">欄數</string>
     <string name="layout_settings_grid_rows">列數</string>
     <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
@@ -1167,6 +1168,8 @@
     <string name="button_settings_full_bleed_icon_desc">直接跟按鈕滿版顯示</string>
     <string name="button_settings_show_label">顯示文字</string>
     <string name="button_settings_show_label_desc">在按鈕表面顯示標籤文字</string>
+    <string name="button_settings_show_label_bg">文字底色</string>
+    <string name="button_settings_show_label_bg_desc">在文字背後顯示半透明深色底色</string>
     <string name="crop_image_fit_whole">完整</string>
     <string name="crop_image_fit_fill">填滿</string>
 </resources>

@@ -336,6 +336,18 @@ object MacroPadState {
         MacroPadSettings.saveMacroPadData()
     }
 
+    fun updateProfileAssociation(
+        profileId: String,
+        association: ProfileAssociation?,
+    ) {
+        AppLog.d(TAG, "updateProfileAssociation id=$profileId association='$association'")
+        _profiles.value =
+            _profiles.value.map {
+                if (it.id == profileId) it.copy(association = association) else it
+            }
+        MacroPadSettings.saveMacroPadData()
+    }
+
     fun setActiveProfileId(id: String?) {
         AppLog.i(TAG, "setActiveProfileId: $id")
         _activeProfileId.value = id

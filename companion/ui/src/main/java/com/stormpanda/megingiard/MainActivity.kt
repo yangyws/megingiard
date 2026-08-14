@@ -203,7 +203,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -734,13 +734,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setActivityFocusMode(keepPrimaryFocus: Boolean) {
-        if (keepPrimaryFocus) {
-            AppLog.d(TAG, "FLAG_NOT_FOCUSABLE added (macropad use surface)")
-            window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        } else {
-            AppLog.d(TAG, "FLAG_NOT_FOCUSABLE cleared (interactive app overlay)")
-            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        }
+        AppLog.d(TAG, "setActivityFocusMode keepPrimaryFocus=$keepPrimaryFocus")
+        // Use FLAG_NOT_TOUCH_MODAL without FLAG_NOT_FOCUSABLE so the secondary display Activity
+        // maintains a valid focused window in InputDispatcher, preventing 5s "does not have a focused window" ANRs.
+        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
     }
 
     /**

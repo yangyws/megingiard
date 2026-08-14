@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CropSquare
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridOff
@@ -181,6 +182,7 @@ internal fun EditorToolbar(
     onManageTouchpadSettings: () -> Unit,
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
+    onToggleGridBorders: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -210,6 +212,13 @@ internal fun EditorToolbar(
                 icon = Icons.Rounded.GridView,
                 accentColor = accentColor,
                 onClick = { onManageGridSize?.invoke() },
+            )
+            EditorToolbarIconButton(
+                label = stringResource(R.string.macropad_editor_thick_borders),
+                icon = Icons.Rounded.CropSquare,
+                accentColor = accentColor,
+                onClick = { onToggleGridBorders?.invoke() },
+                isActive = layout.gridShowBorders,
             )
         }
     } else {

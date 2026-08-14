@@ -1170,6 +1170,9 @@ private fun PadTableGrid(
                         sourceButton != null &&
                         dOver != pCell
 
+                val cellWPx = if (cols > 0) gridSize.width.toFloat() / cols else 0f
+                val cellHPx = if (rows > 0) gridSize.height.toFloat() / rows else 0f
+
                 uniqueButtons.forEach { button ->
                     val col = button.gridCol!!
                     val row = button.gridRow!!
@@ -1179,12 +1182,21 @@ private fun PadTableGrid(
                     val isPickedUp = isPressedButton && TableCellPressRules.showsMoveArmedFrame(pressPhase)
                     val isSource = isPickedUp && dragMoved
 
+                    val widthDp = with(density) { (cellWPx * button.effectiveColSpan).toDp() }
+                    val heightDp = with(density) { (cellHPx * button.effectiveRowSpan).toDp() }
+                    val faceSize =
+                        if (cellWPx > 0f && cellHPx > 0f) {
+                            minOf(widthDp, heightDp)
+                        } else {
+                            48.dp * minOf(button.effectiveColSpan, button.effectiveRowSpan)
+                        }
+
                     PadTableCell(
                         button = button,
                         layout = layout,
                         accentColor = accentColor,
                         shape = cellShape,
-                        faceSize = 48.dp * minOf(button.effectiveColSpan, button.effectiveRowSpan),
+                        faceSize = faceSize,
                         isPickedUp = isPickedUp,
                         isDragSource = isSource,
                         isDropTarget = false,
@@ -1209,7 +1221,23 @@ private fun PadTableGrid(
                         if (row in 0 until rows && col in 0 until cols) cellShapes[row][col] else RoundedCornerShape(4.dp)
 
                     Box(
-                        modifier = Modifier.clip(cellShape),
+                        modifier =
+                            Modifier
+                                .then(
+                                    if (layout.gridShowBorders) {
+                                        Modifier
+                                            .padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
+                                            .border(
+                                                width = PTC_TABLE_THICK_BORDER_WIDTH,
+                                                color = PTC_TABLE_THICK_BORDER_COLOR,
+                                                shape = cellShape,
+                                            )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .background(PTC_TABLE_BASE_BG, cellShape)
+                                .clip(cellShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         MaterialSymbol(

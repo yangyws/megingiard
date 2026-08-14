@@ -1043,6 +1043,10 @@ private fun EditorBody(
                     MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
                 },
                 onManageGridSize = onManageGridSize,
+                onToggleGridBorders = {
+                    val currentLayout = layout ?: return@EditorLayoutChipsBar
+                    MacroPadState.updateLayout(currentLayout.copy(gridShowBorders = !currentLayout.gridShowBorders))
+                },
                 onLayoutModeChange = { newLayoutMode ->
                     val curLayout = layout ?: return@EditorLayoutChipsBar
                     val updated = curLayout.withLayoutMode(newLayoutMode)

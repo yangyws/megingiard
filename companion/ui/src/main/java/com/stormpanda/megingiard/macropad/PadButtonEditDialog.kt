@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -185,6 +186,7 @@ internal fun ButtonEditDialog(
     val initIconName = button?.iconName ?: initialAction?.editorDefaultIconName()
     var label by remember { mutableStateOf(initLabel) }
     var showLabel by remember { mutableStateOf(button?.showLabel ?: true) }
+    var showLabelBg by remember { mutableStateOf(button?.showLabelBg ?: false) }
     var iconName by remember { mutableStateOf(initIconName) }
     var showIconPicker by remember { mutableStateOf(false) }
     var imageAssetId by remember { mutableStateOf(button?.imageAssetId) }
@@ -291,20 +293,8 @@ internal fun ButtonEditDialog(
         action = newAction
         if (newAction is PadAction.ScrollWheel) {
             buttonSize = ButtonSize.SIZE_1X2
-            label = ""
-            iconName = null
-            return
-        }
-        if (newAction is PadAction.TrackpointMove) {
-            label = ""
-            iconName = null
+        } else if (newAction is PadAction.TrackpointMove) {
             buttonShape = ButtonShape.CIRCLE
-            return
-        }
-        if (newAction is PadAction.AppLauncher) {
-            label = ""
-            iconName = null
-            return
         }
         // For Macro: fill label from the macro name if the label field is still blank.
         if (newAction is PadAction.Macro && label.isBlank()) {
@@ -377,6 +367,7 @@ internal fun ButtonEditDialog(
                                     button?.copy(
                                         label = label,
                                         showLabel = showLabel,
+                                        showLabelBg = showLabelBg,
                                         iconName = iconName,
                                         iconFilled = iconFilled,
                                         imageAssetId = imageAssetId,
@@ -393,11 +384,12 @@ internal fun ButtonEditDialog(
                                         buttonBgColor = buttonBgColor,
                                         colSpan = colSpan,
                                         rowSpan = rowSpan,
-                                        invisible = invisible,
+                                        invisible = if (isTableLayout) false else invisible,
                                     ) ?: PadButton(
                                         id = UUID.randomUUID().toString(),
                                         label = label,
                                         showLabel = showLabel,
+                                        showLabelBg = showLabelBg,
                                         iconName = iconName,
                                         iconFilled = iconFilled,
                                         imageAssetId = imageAssetId,
@@ -416,7 +408,7 @@ internal fun ButtonEditDialog(
                                         buttonBgColor = buttonBgColor,
                                         colSpan = colSpan,
                                         rowSpan = rowSpan,
-                                        invisible = invisible,
+                                        invisible = if (isTableLayout) false else invisible,
                                     )
                                 AppLog.d(TAG, "Confirm button edit: id=${result.id} label=${result.label} action=${result.action}")
                                 onConfirm(result)
@@ -455,10 +447,8 @@ internal fun ButtonEditDialog(
             ) {
                 val iconsFilled = iconFilled
 
-                // Label input and shape — hidden for ScrollWheel, TrackpointMove, and AppLauncher
-                if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher) {
-                    // ── Label + Icon selector row ──────────────────────────────────────────
-                    Row(
+                // ── Label + Icon selector row ──────────────────────────────────────────
+                Row(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -506,7 +496,6 @@ internal fun ButtonEditDialog(
                             )
                         }
                     }
-                }
 
                 SectionLabel(stringResource(R.string.macropad_editor_action), accentColor)
                 ActionPicker(
@@ -515,20 +504,46 @@ internal fun ButtonEditDialog(
                     enableKeyboard = enableKeyboard,
                     enableGamepad = enableGamepad,
                     enableMouse = enableMouse,
-                    trailingContent =
-                        if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher) {
-                            {
+                    trailingContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { showLabel = !showLabel }
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                            ) {
+                                Checkbox(
+                                    checked = showLabel,
+                                    onCheckedChange = { showLabel = it },
+                                    colors =
+                                        CheckboxDefaults.colors(
+                                            checkedColor = accentColor,
+                                            uncheckedColor = colors.onSurfaceSecondary,
+                                        ),
+                                )
+                                Text(
+                                    text = stringResource(R.string.button_settings_show_label),
+                                    color = colors.onSurface,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                            if (showLabel) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier =
                                         Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .clickable { showLabel = !showLabel }
+                                            .clickable { showLabelBg = !showLabelBg }
                                             .padding(horizontal = 4.dp, vertical = 2.dp),
                                 ) {
                                     Checkbox(
-                                        checked = showLabel,
-                                        onCheckedChange = { showLabel = it },
+                                        checked = showLabelBg,
+                                        onCheckedChange = { showLabelBg = it },
                                         colors =
                                             CheckboxDefaults.colors(
                                                 checkedColor = accentColor,
@@ -536,15 +551,14 @@ internal fun ButtonEditDialog(
                                             ),
                                     )
                                     Text(
-                                        text = stringResource(R.string.button_settings_show_label),
+                                        text = stringResource(R.string.button_settings_show_label_bg),
                                         color = colors.onSurface,
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 }
                             }
-                        } else {
-                            null
-                        },
+                        }
+                    },
                     onEditMacro = { macro ->
                         actionBeforeEdit = action
                         onEditMacro?.invoke(macro)
@@ -1065,28 +1079,30 @@ internal fun ButtonEditDialog(
                     onPaletteClick = { activePaletteDialogTarget = ButtonColorPickerTarget.BG },
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.layout_settings_invisible_buttons),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = stringResource(R.string.layout_settings_invisible_buttons_desc),
-                            color = colors.onSurfaceSecondary,
-                            style = MaterialTheme.typography.bodySmall,
+                if (!isTableLayout) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.layout_settings_invisible_buttons),
+                                color = colors.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                text = stringResource(R.string.layout_settings_invisible_buttons_desc),
+                                color = colors.onSurfaceSecondary,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Switch(
+                            checked = invisible,
+                            onCheckedChange = { invisible = it },
+                            colors = appSwitchColors(),
                         )
                     }
-                    Switch(
-                        checked = invisible,
-                        onCheckedChange = { invisible = it },
-                        colors = appSwitchColors(),
-                    )
                 }
             }
         }
@@ -1104,6 +1120,9 @@ internal fun ButtonEditDialog(
                 onFullBleedIconChange = { fullBleedIcon = it },
                 onSelect = { name ->
                     iconName = name
+                    if (name != null) {
+                        imageAssetId = null
+                    }
                     showIconPicker = false
                 },
                 onDismiss = { showIconPicker = false },
@@ -1113,11 +1132,25 @@ internal fun ButtonEditDialog(
 
         val sourceToCrop = cropSource
         if (sourceToCrop != null) {
+            val configuration = LocalConfiguration.current
+            val screenW = configuration.screenWidthDp.toFloat()
+            val screenH = configuration.screenHeightDp.toFloat().coerceAtLeast(1f)
+            val screenAspect = screenW / screenH
+            val cols = activeLayout?.effectiveGridCols ?: 4
+            val rows = activeLayout?.effectiveGridRows ?: 4
+
+            val buttonCropAspect =
+                if (isTableLayout) {
+                    val cellAspect = screenAspect * (rows.toFloat() / cols.toFloat())
+                    (cellAspect * (colSpan.toFloat() / rowSpan.toFloat().coerceAtLeast(1f))).coerceAtLeast(0.1f)
+                } else {
+                    (buttonSize.cols.toFloat() / buttonSize.rows.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
+                }
             ImageCropDialog(
                 bitmap = sourceToCrop,
-                aspectRatio = 1f,
+                aspectRatio = buttonCropAspect,
                 showFitToggle = true,
-                initialFit = CropFitMode.FIT,
+                initialFit = CropFitMode.FILL,
                 onDismiss = { cropSource = null },
                 onConfirmBitmap = { cropped ->
                     cropSource = null
@@ -1125,6 +1158,7 @@ internal fun ButtonEditDialog(
                         val id = PadIconStore.put(context, cropped)
                         if (id != null) {
                             imageAssetId = id
+                            iconName = null
                         }
                     }
                 },

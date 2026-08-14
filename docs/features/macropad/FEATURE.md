@@ -286,19 +286,26 @@ Each button supports one of the following actions:
 
 - **Custom Button Face Images (`imageAssetId`)**:
   - Each button MAY be assigned a custom bitmap image asset (`imageAssetId: String?`), managed via `PadIconStore`.
-  - When set, the button face renders the custom image cropped to a square or rounded rectangle via `PadButtonGlyph`.
-  - In `PadButtonEditDialog`, an **ImagePickerSlot** is placed beside the Material Symbol picker. Tapping it opens the SAF image picker, followed by `ImageCropDialog` (1:1 square crop modal with `CropFitMode.FIT` or `CropFitMode.FILL`).
+  - When set, the button face renders the custom image cropped to the button face bounds via `PadButtonGlyph` with `ContentScale.Crop` (or `ContentScale.FillBounds` when `fullBleedIcon = true`).
+  - In `PadButtonEditDialog`, an **ImagePickerSlot** is placed beside the Material Symbol picker. Tapping it opens the SAF image picker, followed by `ImageCropDialog`.
+  - **Dynamic Physical Crop Aspect Ratio**: The crop framing box dynamically adapts to the exact physical screen aspect ratio and grid configuration:
+    - In **Table Mode**: Aspect ratio is computed from display proportions and grid dimensions (`screenAspect * (rows / cols) * (colSpan / rowSpan)`).
+    - In **Free Mode**: Aspect ratio matches the button dimensions (`buttonSize.cols / buttonSize.rows`).
+    - Default crop mode is `CropFitMode.FILL`, ensuring zero margin/black border baking.
+  - **Mutual Exclusivity**: Choosing a custom image clears any existing Material Symbol icon (`iconName = null`), and selecting an icon from `IconPickerDialog` clears any custom image (`imageAssetId = null`).
   - Cropped thumbnails are downscaled to 256×256 px, compressed to WebP lossy (90 quality), content-addressed via a 16-hex-character SHA-256 hash, and stored under `filesDir/padicons/<hash>.webp`.
   - The custom image slot features a clear (✕) button to remove the custom image at any time.
 - **Icon Appearance Controls (`iconFilled`, `enlargeIcon`, `fullBleedIcon`)**:
   - **Filled (`iconFilled`, 填色)**: Toggles Material Symbol solid filled vs. outline ligature rendering.
-  - **Enlarge Icon (`enlargeIcon`, 放大)**: Scales the glyph up proportionally to the button face bounds (`ENLARGED_EM_FRACTION = 1.0f`) while maintaining aspect ratio.
-  - **Full Bleed (`fullBleedIcon`, 填滿)**: Stretches the glyph or custom image to completely fill the entire button/cell bounds (`ContentScale.FillBounds` / `graphicsLayer(scaleX, scaleY)` non-uniform stretch) edge-to-edge.
+  - **Enlarge Icon (`enlargeIcon`, 放大)**: Scales the glyph up proportionally to the button face bounds (`ENLARGED_EM_FRACTION = 0.76f`) while maintaining aspect ratio.
+  - **Full Bleed (`fullBleedIcon`, 填滿)**: Stretches the glyph or custom image to completely fill the entire button/cell bounds (`FULL_BLEED_EM_FRACTION = 0.92f` / `ContentScale.FillBounds`) edge-to-edge. In thick border mode, inset padding is removed for full bleed icons and custom images so content reaches the black border.
   - All three options are accessible via checkboxes in `IconPickerDialog`.
-- **Show Label Switch (`showLabel`, 顯示文字)**:
-  - An inline switch placed in the Action Group header row allows enabling or disabling button label text rendering directly on the button face.
+- **Show Label Switch (`showLabel`, 顯示文字) & Text Background (`showLabelBg`, 文字底色)**:
+  - Inline checkboxes placed in the Action Picker trailing content row allow enabling or disabling button label text rendering (`showLabel`, defaults to true) and toggling whether a dark background scrim is rendered behind the label text (`showLabelBg`, defaults to false).
 - **Action Picker (`PadActionPicker`)**:
   - Action groups (Keyboard, Gamepad, Mouse, Macro, Mirror, Navigation, App) and multi-action category rows are rendered as swipeable horizontal `LazyRow` chip bars (`AppSelectableChip`) with smooth auto-scroll (`animateScrollToItem`).
+- **Table Mode Base Tile Color**:
+  - In both Live Mode (`PadLiveTableGrid`) and Table Editor Canvas (`PadCanvas`), all empty grid cells display the solid base button tile color (`#26262C`, pressed `#3E3E48`) and respect the thick border mode outlines. Cell face sizes are calculated dynamically from measured grid bounds.
 
 ### FR-P11: Default Icons and Labels for Special Action Buttons
 

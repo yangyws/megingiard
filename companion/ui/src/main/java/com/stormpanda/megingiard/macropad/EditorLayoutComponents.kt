@@ -182,6 +182,7 @@ internal fun EditorLayoutChipsBar(
     onManageTouchpadSettings: () -> Unit,
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
+    onToggleGridBorders: (() -> Unit)? = null,
     onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
     onEditLayout: () -> Unit,
@@ -240,7 +241,7 @@ internal fun EditorLayoutChipsBar(
                             onClick = { onSelectLayout(layout.id) },
                             leadingIcon = { contentColor ->
                                 Icon(
-                                    imageVector = if (gridMode != GridMode.OFF) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
+                                    imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
                                     contentDescription = null,
                                     tint = contentColor,
                                     modifier = Modifier.size(14.dp),
@@ -400,6 +401,7 @@ internal fun EditorLayoutChipsBar(
                 onManageTouchpadSettings = onManageTouchpadSettings,
                 onChangeGridCols = onChangeGridCols,
                 onManageGridSize = onManageGridSize,
+                onToggleGridBorders = onToggleGridBorders,
             )
         }
     }

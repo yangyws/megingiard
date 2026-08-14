@@ -12,12 +12,12 @@ object PadGlyphRules {
     /**
      * Glyph em size as a fraction of the button face when [PadButton.enlargeIcon] is on.
      */
-    const val ENLARGED_EM_FRACTION = 1.0f
+    const val ENLARGED_EM_FRACTION = 0.76f
 
     /**
      * Glyph em size as a fraction of the button face when [PadButton.fullBleedIcon] is on.
      */
-    const val FULL_BLEED_EM_FRACTION = 1.0f
+    const val FULL_BLEED_EM_FRACTION = 0.92f
 
     /**
      * Whether a new button created on a layout in [PadLayoutMode.GRID] starts enlarged.

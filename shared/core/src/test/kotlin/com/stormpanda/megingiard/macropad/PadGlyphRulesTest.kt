@@ -27,15 +27,15 @@ class PadGlyphRulesTest {
 
     @Test
     fun testGlyphSizeDp() {
-        assertEquals(44f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 120f, enlarge = false), 0f)
-        assertEquals(60f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = true), 0f)
-        assertEquals(100f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 100f, enlarge = true), 0f)
-        assertEquals(60f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = false, fullBleed = true), 0f)
-        assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = null, enlarge = true), 0f)
-        assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = 0f, enlarge = true), 0f)
-        assertEquals(46f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 64f, enlarge = true, reserveDp = 18f), 0f)
-        assertEquals(24f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 26f, enlarge = true, reserveDp = 18f), 0f)
-        assertEquals(24f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 10f, enlarge = true), 0f)
-        assertEquals(64f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 64f, enlarge = true, reserveDp = -10f), 0f)
+        assertEquals(44f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 120f, enlarge = false), 0.01f)
+        assertEquals(45.6f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = true), 0.01f)
+        assertEquals(76f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 100f, enlarge = true), 0.01f)
+        assertEquals(55.2f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = false, fullBleed = true), 0.01f)
+        assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = null, enlarge = true), 0.01f)
+        assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = 0f, enlarge = true), 0.01f)
+        assertEquals(34.96f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 64f, enlarge = true, reserveDp = 18f), 0.01f)
+        assertEquals(24f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 26f, enlarge = true, reserveDp = 18f), 0.01f)
+        assertEquals(24f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 10f, enlarge = true), 0.01f)
+        assertEquals(48.64f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 64f, enlarge = true, reserveDp = -10f), 0.01f)
     }
 }

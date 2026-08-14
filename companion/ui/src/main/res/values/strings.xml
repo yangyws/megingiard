@@ -550,6 +550,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_grid_cols_count">%1$d Columns</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d Column</string>
     <string name="macropad_editor_grid_size">Grid Size</string>
+    <string name="macropad_editor_thick_borders">Border Style</string>
     <string name="layout_settings_grid_cols">Columns</string>
     <string name="layout_settings_grid_rows">Rows</string>
     <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
@@ -1328,6 +1329,8 @@ Open Settings to create a layout.</string>
     <string name="button_settings_full_bleed_icon_desc">Scale icon to completely fill the button edge-to-edge</string>
     <string name="button_settings_show_label">Show label</string>
     <string name="button_settings_show_label_desc">Display label text on the button face</string>
+    <string name="button_settings_show_label_bg">Text background</string>
+    <string name="button_settings_show_label_bg_desc">Display dark background behind label text</string>
     <string name="crop_image_fit_whole">Whole</string>
     <string name="crop_image_fit_fill">Fill</string>
 </resources>
