@@ -180,6 +180,7 @@ internal fun EditorToolbar(
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
     onChangeGridCols: ((Int) -> Unit)? = null,
+    onManageGridSize: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -187,8 +188,6 @@ internal fun EditorToolbar(
     val bgLabel = stringResource(R.string.macropad_editor_change_background)
 
     if (layout?.isGridMode == true) {
-        var showGridSizeOverlay by remember { mutableStateOf(false) }
-
         Row(
             modifier = modifier,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -210,19 +209,7 @@ internal fun EditorToolbar(
                 label = stringResource(R.string.macropad_editor_grid_size),
                 icon = Icons.Rounded.GridView,
                 accentColor = accentColor,
-                onClick = { showGridSizeOverlay = true },
-            )
-        }
-
-        if (showGridSizeOverlay) {
-            InlineGridSizeOverlay(
-                layout = layout,
-                accentColor = accentColor,
-                onConfirm = { cols, rows ->
-                    MacroPadState.updateLayout(layout.copy(gridCols = cols, gridRows = rows))
-                    showGridSizeOverlay = false
-                },
-                onDismiss = { showGridSizeOverlay = false },
+                onClick = { onManageGridSize?.invoke() },
             )
         }
     } else {

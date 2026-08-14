@@ -181,6 +181,7 @@ internal fun EditorLayoutChipsBar(
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
     onChangeGridCols: ((Int) -> Unit)? = null,
+    onManageGridSize: (() -> Unit)? = null,
     onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
     onEditLayout: () -> Unit,
@@ -398,6 +399,7 @@ internal fun EditorLayoutChipsBar(
                 onManageBackground = onManageBackground,
                 onManageTouchpadSettings = onManageTouchpadSettings,
                 onChangeGridCols = onChangeGridCols,
+                onManageGridSize = onManageGridSize,
             )
         }
     }

@@ -147,6 +147,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
     var isCanvasLocked by remember { mutableStateOf(true) }
     var showCopyLayoutProfileDialog by remember { mutableStateOf(false) }
     var showCopyButtonLayoutDialog by remember { mutableStateOf(false) }
+    var showGridSizeDialog by remember { mutableStateOf(false) }
     var showEditorHelp by remember { mutableStateOf(false) }
 
     // Intercept system Back when an overlay is visible, so Back closes the overlay
@@ -158,11 +159,15 @@ fun MacroPadEditor(onDone: () -> Unit) {
             showNewProfileDialog || showRenameProfileDialog || showDeleteProfileConfirm ||
             showEditLayoutDialog || showBackgroundSettingsDialog || showTouchpadSettingsDialog || showReorderProfilesOverlay ||
             showReorderLayoutsOverlay ||
-            showCopyLayoutProfileDialog || showCopyButtonLayoutDialog
+            showCopyLayoutProfileDialog || showCopyButtonLayoutDialog || showGridSizeDialog
     BackHandler(enabled = anyOverlayVisible) {
         when {
             showMacroListEditor -> {
                 showMacroListEditor = false
+            }
+
+            showGridSizeDialog -> {
+                showGridSizeDialog = false
             }
 
             showAddButton -> {
@@ -292,6 +297,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
                     onToggleCanvasLock = { isCanvasLocked = !isCanvasLocked },
                     onManageBackground = { showBackgroundSettingsDialog = true },
                     onManageTouchpadSettings = { showTouchpadSettingsDialog = true },
+                    onManageGridSize = { showGridSizeDialog = true },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -638,6 +644,20 @@ fun MacroPadEditor(onDone: () -> Unit) {
             )
         }
 
+        // Grid size dialog (Table Mode overall columns & rows adjustment modal)
+        if (showGridSizeDialog && activeLayout != null) {
+            val curLayout = activeLayout!!
+            InlineGridSizeOverlay(
+                layout = curLayout,
+                accentColor = colors.accent,
+                onConfirm = { cols, rows ->
+                    MacroPadState.updateLayout(curLayout.copy(gridCols = cols, gridRows = rows))
+                    showGridSizeDialog = false
+                },
+                onDismiss = { showGridSizeDialog = false },
+            )
+        }
+
         // Render ReorderProfilesOverlay
         AnimatedVisibility(
             visible = showReorderProfilesOverlay,
@@ -899,6 +919,7 @@ private fun EditorBody(
     onToggleCanvasLock: () -> Unit,
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
+    onManageGridSize: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -1021,6 +1042,7 @@ private fun EditorBody(
                     val currentLayout = layout ?: return@EditorLayoutChipsBar
                     MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
                 },
+                onManageGridSize = onManageGridSize,
                 onLayoutModeChange = { newLayoutMode ->
                     val curLayout = layout ?: return@EditorLayoutChipsBar
                     val updated = curLayout.withLayoutMode(newLayoutMode)
