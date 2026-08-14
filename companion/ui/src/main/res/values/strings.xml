@@ -546,6 +546,9 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_unlock">Unlock Buttons</string>
     <string name="macropad_editor_lock">Lock Buttons</string>
     <string name="macropad_editor_change_background">Change Background</string>
+    <string name="macropad_editor_grid_cols">Columns</string>
+    <string name="macropad_editor_grid_cols_count">%1$d Columns</string>
+    <string name="macropad_editor_grid_cols_count_single">%1$d Column</string>
 
     <!-- MacroPad editor section headers -->
     <string name="macropad_editor_section_layout">Layout</string>

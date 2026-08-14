@@ -1016,10 +1016,11 @@ private fun EditorBody(
             )
         }
 
-        // 3. Action toolbar (Add Button / Grid toggle)
+        // 3. Action toolbar (Add Button / Grid toggle / Columns in Table mode)
         item(key = "toolbar") {
             EditorToolbar(
                 profile = profile,
+                layout = layout,
                 accentColor = accentColor,
                 gridMode = gridMode,
                 isCanvasLocked = isCanvasLocked,
@@ -1035,6 +1036,10 @@ private fun EditorBody(
                 },
                 onManageBackground = onManageBackground,
                 onManageTouchpadSettings = onManageTouchpadSettings,
+                onChangeGridCols = { newCols ->
+                    val currentLayout = layout ?: return@EditorToolbar
+                    MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
+                },
                 modifier =
                     Modifier
                         .background(colors.surface)

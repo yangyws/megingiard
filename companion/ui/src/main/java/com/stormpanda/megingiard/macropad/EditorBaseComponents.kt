@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridOff
@@ -24,12 +25,18 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.TripOrigin
+import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -162,6 +169,7 @@ internal fun EditorToolbarIconButton(
 @Composable
 internal fun EditorToolbar(
     profile: PadProfile,
+    layout: PadLayout?,
     accentColor: Color,
     gridMode: GridMode,
     isCanvasLocked: Boolean,
@@ -170,59 +178,129 @@ internal fun EditorToolbar(
     onGridModeChange: () -> Unit,
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
+    onChangeGridCols: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val gridIcon =
-        when (gridMode) {
-            GridMode.OFF -> Icons.Rounded.GridOff
-            GridMode.RECTANGULAR -> Icons.Rounded.Grid4x4
-            GridMode.RADIAL -> Icons.Rounded.TripOrigin
-        }
-    val gridLabel = stringResource(R.string.macropad_editor_grid_toggle)
+    val colors = LocalAppColors.current
     val buttonLabel = stringResource(R.string.macropad_editor_toolbar_button)
     val bgLabel = stringResource(R.string.macropad_editor_change_background)
-    val touchpadLabel = stringResource(R.string.macropad_editor_touchpad_settings)
 
-    val lockIcon = if (isCanvasLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen
-    val lockLabel = if (isCanvasLocked) stringResource(R.string.macropad_editor_unlock) else stringResource(R.string.macropad_editor_lock)
+    if (layout?.isGridMode == true) {
+        var colsMenuExpanded by remember { mutableStateOf(false) }
+        val currentCols = layout.effectiveGridCols
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        EditorToolbarIconButton(
-            label = buttonLabel,
-            icon = Icons.Rounded.Add,
-            accentColor = accentColor,
-            onClick = onAddButton,
-        )
-        EditorToolbarIconButton(
-            label = bgLabel,
-            icon = Icons.Rounded.Wallpaper,
-            accentColor = accentColor,
-            onClick = onManageBackground,
-        )
-        EditorToolbarIconButton(
-            label = lockLabel,
-            icon = lockIcon,
-            accentColor = accentColor,
-            onClick = onToggleCanvasLock,
-            isActive = !isCanvasLocked,
-        )
-        EditorToolbarIconButton(
-            label = touchpadLabel,
-            icon = Icons.Rounded.Mouse,
-            accentColor = accentColor,
-            onClick = onManageTouchpadSettings,
-        )
-        EditorToolbarIconButton(
-            label = gridLabel,
-            icon = gridIcon,
-            accentColor = accentColor,
-            onClick = onGridModeChange,
-            isActive = gridMode != GridMode.OFF,
-        )
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EditorToolbarIconButton(
+                label = buttonLabel,
+                icon = Icons.Rounded.Add,
+                accentColor = accentColor,
+                onClick = onAddButton,
+            )
+            EditorToolbarIconButton(
+                label = bgLabel,
+                icon = Icons.Rounded.Wallpaper,
+                accentColor = accentColor,
+                onClick = onManageBackground,
+            )
+            Box {
+                EditorToolbarIconButton(
+                    label = stringResource(R.string.macropad_editor_grid_cols),
+                    icon = Icons.Rounded.ViewColumn,
+                    accentColor = accentColor,
+                    onClick = { colsMenuExpanded = true },
+                )
+                DropdownMenu(
+                    expanded = colsMenuExpanded,
+                    onDismissRequest = { colsMenuExpanded = false },
+                ) {
+                    for (c in 1..8) {
+                        val isSelected = c == currentCols
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text =
+                                        if (c == 1) {
+                                            stringResource(R.string.macropad_editor_grid_cols_count_single, c)
+                                        } else {
+                                            stringResource(R.string.macropad_editor_grid_cols_count, c)
+                                        },
+                                    color = if (isSelected) accentColor else colors.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            leadingIcon = {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        tint = accentColor,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            },
+                            onClick = {
+                                colsMenuExpanded = false
+                                onChangeGridCols?.invoke(c)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        val gridIcon =
+            when (gridMode) {
+                GridMode.OFF -> Icons.Rounded.GridOff
+                GridMode.RECTANGULAR -> Icons.Rounded.Grid4x4
+                GridMode.RADIAL -> Icons.Rounded.TripOrigin
+            }
+        val gridLabel = stringResource(R.string.macropad_editor_grid_toggle)
+        val touchpadLabel = stringResource(R.string.macropad_editor_touchpad_settings)
+        val lockIcon = if (isCanvasLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen
+        val lockLabel = if (isCanvasLocked) stringResource(R.string.macropad_editor_unlock) else stringResource(R.string.macropad_editor_lock)
+
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EditorToolbarIconButton(
+                label = buttonLabel,
+                icon = Icons.Rounded.Add,
+                accentColor = accentColor,
+                onClick = onAddButton,
+            )
+            EditorToolbarIconButton(
+                label = bgLabel,
+                icon = Icons.Rounded.Wallpaper,
+                accentColor = accentColor,
+                onClick = onManageBackground,
+            )
+            EditorToolbarIconButton(
+                label = lockLabel,
+                icon = lockIcon,
+                accentColor = accentColor,
+                onClick = onToggleCanvasLock,
+                isActive = !isCanvasLocked,
+            )
+            EditorToolbarIconButton(
+                label = touchpadLabel,
+                icon = Icons.Rounded.Mouse,
+                accentColor = accentColor,
+                onClick = onManageTouchpadSettings,
+            )
+            EditorToolbarIconButton(
+                label = gridLabel,
+                icon = gridIcon,
+                accentColor = accentColor,
+                onClick = onGridModeChange,
+                isActive = gridMode != GridMode.OFF,
+            )
+        }
     }
 }
 

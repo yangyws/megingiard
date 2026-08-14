@@ -237,6 +237,9 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_unlock">Tasten entsperren</string>
     <string name="macropad_editor_lock">Tasten sperren</string>
     <string name="macropad_editor_change_background">Hintergrund ändern</string>
+    <string name="macropad_editor_grid_cols">Spalten</string>
+    <string name="macropad_editor_grid_cols_count">%1$d Spalten</string>
+    <string name="macropad_editor_grid_cols_count_single">%1$d Spalte</string>
 
     <!-- MacroPad action picker labels -->
     <string name="macropad_action_keyboard_key">Tastaturtaste</string>
