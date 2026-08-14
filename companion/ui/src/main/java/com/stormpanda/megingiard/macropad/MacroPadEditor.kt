@@ -316,7 +316,14 @@ fun MacroPadEditor(onDone: () -> Unit) {
                     },
                     onConfirm = { newBtn ->
                         val layout = MacroPadState.activeLayout.value ?: return@ButtonEditDialog
-                        MacroPadState.updateLayout(layout.copy(buttons = layout.buttons + newBtn))
+                        val cols = layout.effectiveGridCols
+                        val rows = layout.effectiveGridRows
+                        val (fc, fr) = if (layout.isGridMode) (GridLayoutMath.firstFreeCell(layout) ?: (0 to 0)) else (0 to 0)
+                        val safeCol = (newBtn.gridCol ?: fc).coerceIn(0, (cols - newBtn.effectiveColSpan).coerceAtLeast(0))
+                        val safeRow = (newBtn.gridRow ?: fr).coerceIn(0, (rows - newBtn.effectiveRowSpan).coerceAtLeast(0))
+                        val bounded = newBtn.copy(gridCol = safeCol, gridRow = safeRow)
+                        val updatedLayout = layout.copy(buttons = layout.buttons + bounded)
+                        MacroPadState.updateLayout(if (layout.isGridMode) updatedLayout.withCellsAssigned() else updatedLayout)
                         showAddButton = false
                     },
                     onDismiss = { showAddButton = false },
@@ -349,9 +356,13 @@ fun MacroPadEditor(onDone: () -> Unit) {
                     },
                     onConfirm = { updated ->
                         val layout = MacroPadState.activeLayout.value ?: return@ButtonEditDialog
-                        MacroPadState.updateLayout(
-                            layout.copy(buttons = layout.buttons.map { if (it.id == updated.id) updated else it }),
-                        )
+                        val cols = layout.effectiveGridCols
+                        val rows = layout.effectiveGridRows
+                        val safeCol = (updated.gridCol ?: 0).coerceIn(0, (cols - updated.effectiveColSpan).coerceAtLeast(0))
+                        val safeRow = (updated.gridRow ?: 0).coerceIn(0, (rows - updated.effectiveRowSpan).coerceAtLeast(0))
+                        val bounded = updated.copy(gridCol = safeCol, gridRow = safeRow)
+                        val updatedLayout = layout.copy(buttons = layout.buttons.map { if (it.id == bounded.id) bounded else it })
+                        MacroPadState.updateLayout(if (layout.isGridMode) updatedLayout.withCellsAssigned() else updatedLayout)
                         editingButtonActive = false
                         editingButton = null
                     },

@@ -998,10 +998,18 @@ fun PadLayout.withCellsAssigned(): PadLayout {
 
     val cols = effectiveGridCols
     val rows = effectiveGridRows
-    val taken =
-        buttons
-            .filter { it.isWithinGrid(cols, rows) }
-            .mapTo(mutableSetOf()) { it.gridCol!! to it.gridRow!! }
+    val taken = mutableSetOf<Pair<Int, Int>>()
+    for (button in buttons) {
+        val c = button.gridCol ?: continue
+        val r = button.gridRow ?: continue
+        if (button.isWithinGrid(cols, rows)) {
+            for (dc in 0 until button.effectiveColSpan) {
+                for (dr in 0 until button.effectiveRowSpan) {
+                    taken.add((c + dc) to (r + dr))
+                }
+            }
+        }
+    }
 
     val freeCells =
         sequence {

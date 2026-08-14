@@ -516,10 +516,11 @@ internal fun ButtonEditDialog(
 
                 if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove) {
                     if (isTableLayout && activeLayout != null) {
-                        val bId = button?.id ?: ""
-                        val canIncCol = bId.isBlank() || GridLayoutMath.canSpanButton(activeLayout, bId, colSpan + 1, rowSpan)
+                        val maxCols = activeLayout.effectiveGridCols
+                        val maxRows = activeLayout.effectiveGridRows
+                        val canIncCol = colSpan < maxCols
                         val canDecCol = colSpan > 1
-                        val canIncRow = bId.isBlank() || GridLayoutMath.canSpanButton(activeLayout, bId, colSpan, rowSpan + 1)
+                        val canIncRow = rowSpan < maxRows
                         val canDecRow = rowSpan > 1
 
                         Row(
