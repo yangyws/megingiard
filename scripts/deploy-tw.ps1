@@ -8,7 +8,7 @@ if (!(Test-Path $adbExe)) {
 Write-Host "========================================="
 Write-Host " [1/4] Running Pure Core Unit Tests..."
 Write-Host "========================================="
-./gradlew :core:test
+./gradlew :shared:core:test
 if ($LASTEXITCODE -ne 0) {
     Write-Error "[ERROR] Unit tests failed! Deployment aborted."
     exit 1
@@ -17,7 +17,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "========================================="
 Write-Host " [2/4] Building Debug APK..."
 Write-Host "========================================="
-./gradlew :app:assembleDebug
+./gradlew :companion:ui:assembleDebug
 if ($LASTEXITCODE -ne 0) {
     Write-Error "[ERROR] APK build failed! Deployment aborted."
     exit 1
@@ -30,9 +30,9 @@ $backupDir = "D:\test-apk"
 if (!(Test-Path $backupDir)) {
     New-Item -ItemType Directory -Path $backupDir -Force
 }
-$apkFile = Get-ChildItem -Path "app\build\outputs\apk" -Recurse -Filter "*.apk" | Select-Object -First 1
+$apkFile = Get-ChildItem -Path "companion\ui\build\outputs\apk" -Recurse -Filter "*.apk" | Select-Object -First 1
 if ($null -eq $apkFile) {
-    Write-Error "[ERROR] Built APK file not found under app\build\outputs\apk!"
+    Write-Error "[ERROR] Built APK file not found under companion\ui\build\outputs\apk!"
     exit 1
 }
 Copy-Item $apkFile.FullName "$backupDir\megingiard-tw-debug.apk" -Force
