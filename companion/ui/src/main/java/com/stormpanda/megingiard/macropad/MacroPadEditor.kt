@@ -233,6 +233,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
             containerColor = colors.appBackground,
             topBar = {
                 EditorTopBar(
+                    layout = activeLayout,
                     onDone = onDone,
                     onHelpClick = { showEditorHelp = true },
                 )
@@ -743,10 +744,12 @@ fun MacroPadEditor(onDone: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorTopBar(
+    layout: PadLayout?,
     onDone: () -> Unit,
     onHelpClick: () -> Unit,
 ) {
     val colors = LocalAppColors.current
+    val isGrid = layout?.isGridMode == true
 
     TopAppBar(
         title = {
@@ -766,6 +769,50 @@ private fun EditorTopBar(
             }
         },
         actions = {
+            if (layout != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(end = 4.dp),
+                ) {
+                    AppSelectableChip(
+                        text = stringResource(R.string.layout_settings_mode_free),
+                        selected = !isGrid,
+                        onClick = {
+                            if (isGrid) {
+                                val updated = layout.withLayoutMode(PadLayoutMode.FREE)
+                                MacroPadState.updateLayout(updated)
+                            }
+                        },
+                        leadingIcon = { contentColor ->
+                            Icon(
+                                imageVector = Icons.Rounded.OpenWith,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                    )
+                    AppSelectableChip(
+                        text = stringResource(R.string.layout_settings_mode_grid),
+                        selected = isGrid,
+                        onClick = {
+                            if (!isGrid) {
+                                val updated = layout.withLayoutMode(PadLayoutMode.GRID)
+                                MacroPadState.updateLayout(updated)
+                            }
+                        },
+                        leadingIcon = { contentColor ->
+                            Icon(
+                                imageVector = Icons.Rounded.GridView,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                    )
+                }
+            }
             HelpIconButton(onClick = onHelpClick)
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface),
@@ -971,9 +1018,8 @@ private fun EditorBody(
             )
         }
 
-        // 2b. Profile Action Toolbar (Mode chips + Macros button)
+        // 2b. Profile Action Toolbar (Macros button row)
         item(key = "profile_toolbar") {
-            val isGrid = layout?.isGridMode == true
             Row(
                 modifier =
                     Modifier
@@ -981,56 +1027,15 @@ private fun EditorBody(
                         .background(colors.surface)
                         .padding(horizontal = MPE_PADDING)
                         .padding(top = 4.dp, bottom = MPE_PADDING),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppSelectableChip(
-                        text = stringResource(R.string.layout_settings_mode_free),
-                        selected = !isGrid,
-                        onClick = {
-                            if (isGrid && layout != null) {
-                                val updated = layout.withLayoutMode(PadLayoutMode.FREE)
-                                MacroPadState.updateLayout(updated)
-                            }
-                        },
-                        leadingIcon = { contentColor ->
-                            Icon(
-                                imageVector = Icons.Rounded.OpenWith,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        },
-                    )
-                    AppSelectableChip(
-                        text = stringResource(R.string.layout_settings_mode_grid),
-                        selected = isGrid,
-                        onClick = {
-                            if (!isGrid && layout != null) {
-                                val updated = layout.withLayoutMode(PadLayoutMode.GRID)
-                                MacroPadState.updateLayout(updated)
-                            }
-                        },
-                        leadingIcon = { contentColor ->
-                            Icon(
-                                imageVector = Icons.Rounded.GridView,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        },
-                    )
-                }
-
                 EditorActionChip(
                     label = stringResource(R.string.macropad_editor_manage_macros),
                     icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
                     accentColor = accentColor,
                     onClick = onManageMacros,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
