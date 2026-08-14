@@ -3,7 +3,6 @@ package com.stormpanda.megingiard.macropad
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -13,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -63,8 +61,6 @@ internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 private const val PTC_PULSE_LOW = 0.20f
 private const val PTC_PULSE_HIGH = 0.65f
 private const val PTC_PULSE_HALF_PERIOD_MS = 600
-private const val PTC_PRESS_ANIM_MS = 60
-private const val PTC_RELEASE_ANIM_MS = 140
 
 @Composable
 internal fun PadTableCell(
@@ -83,12 +79,6 @@ internal fun PadTableCell(
     val bg = resolveColorOption(button.buttonBgColor ?: layout.buttonBgColor, accentColor, MP_AMBIENT_NEUTRAL_BG)
     val text =
         resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
-
-    val pressedAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 1.0f else 0.0f,
-        animationSpec = tween(if (isPressed) PTC_PRESS_ANIM_MS else PTC_RELEASE_ANIM_MS),
-        label = "cellAlpha",
-    )
 
     val isPulseActive = isRunning
     val runningAlphaState =
@@ -127,8 +117,10 @@ internal fun PadTableCell(
                     val alpha =
                         if (runningAlphaState != null) {
                             runningAlphaState.value
+                        } else if (isPressed) {
+                            PTC_TABLE_FILL_ALPHA_PRESSED
                         } else {
-                            PTC_TABLE_FILL_ALPHA_IDLE + pressedAlpha * (PTC_TABLE_FILL_ALPHA_PRESSED - PTC_TABLE_FILL_ALPHA_IDLE)
+                            PTC_TABLE_FILL_ALPHA_IDLE
                         }
                     val effectiveBg =
                         if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = (bg.alpha * alpha).coerceIn(0f, 1f))
