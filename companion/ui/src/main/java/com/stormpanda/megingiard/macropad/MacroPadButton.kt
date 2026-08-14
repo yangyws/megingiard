@@ -284,6 +284,7 @@ internal fun PadButton(
                     btn = btn,
                     effectiveTextTint = effectiveTextTint,
                     iconSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
+                    faceSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
                     isTrackpoint = isTrackpoint,
                     effectiveContentAccent = effectiveContentAccent,
                 )
@@ -296,7 +297,8 @@ internal fun PadButton(
 internal fun PadButtonContent(
     btn: PadButton,
     effectiveTextTint: Color,
-    iconSize: Dp,
+    iconSize: Dp? = null,
+    faceSize: Dp? = null,
     isTrackpoint: Boolean = btn.action is PadAction.TrackpointMove,
     effectiveContentAccent: Color = effectiveTextTint,
 ) {
@@ -316,9 +318,9 @@ internal fun PadButtonContent(
     } else {
         PadButtonGlyph(
             btn = btn,
-            size = iconSize,
+            size = iconSize ?: 24.dp,
             tint = effectiveTextTint,
-            faceSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
+            faceSize = faceSize,
             fallback = {
                 Text(
                     text = btn.label,

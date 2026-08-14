@@ -1184,6 +1184,7 @@ private fun PadTableGrid(
                         layout = layout,
                         accentColor = accentColor,
                         shape = cellShape,
+                        faceSize = 48.dp * minOf(button.effectiveColSpan, button.effectiveRowSpan),
                         isPickedUp = isPickedUp,
                         isDragSource = isSource,
                         isDropTarget = false,

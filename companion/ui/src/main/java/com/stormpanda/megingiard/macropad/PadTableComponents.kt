@@ -58,6 +58,7 @@ internal fun PadTableCell(
     layout: PadLayout,
     accentColor: Color,
     shape: Shape,
+    faceSize: Dp = 48.dp,
     isPressed: Boolean = false,
     isRunning: Boolean = false,
     isDeviceDisabled: Boolean = false,
@@ -69,9 +70,6 @@ internal fun PadTableCell(
     val bg = resolveColorOption(button.buttonBgColor ?: layout.buttonBgColor, accentColor, MP_AMBIENT_NEUTRAL_BG)
     val text =
         resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
-
-    val hasGlyph = button.imageAssetId != null || button.iconName != null
-    val showsLabel = button.showLabel && button.label.isNotBlank()
 
     Box(
         modifier =
@@ -104,41 +102,14 @@ internal fun PadTableCell(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(PTC_TABLE_CONTENT_PADDING),
-        ) {
-            PadButtonGlyph(
-                btn = button,
-                size = PTC_TABLE_ICON_SIZE,
-                tint = text,
-                faceSize = 48.dp,
-                faceReserve = if (showsLabel) PTC_TABLE_LABEL_RESERVE else 0.dp,
-                fallback = {
-                    if (button.label.isNotBlank()) {
-                        Text(
-                            text = button.label,
-                            color = text,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                },
-            )
-            if (showsLabel && hasGlyph) {
-                Text(
-                    text = button.label,
-                    color = text,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
+        PadButtonContent(
+            btn = button,
+            effectiveTextTint = text,
+            iconSize = PTC_TABLE_ICON_SIZE,
+            faceSize = faceSize,
+            isTrackpoint = false,
+            effectiveContentAccent = accentColor,
+        )
     }
 }
 
@@ -199,6 +170,7 @@ internal fun PadLiveTableGrid(
                 val top = (cellH * row).roundToInt()
                 val widthDp = with(density) { (cellW * cs).toDp() }
                 val heightDp = with(density) { (cellH * rs).toDp() }
+                val faceSize = minOf(widthDp, heightDp)
                 val isPressed = button.id in pressedIds
                 val isRunning =
                     button.action is PadAction.Macro &&
@@ -210,6 +182,7 @@ internal fun PadLiveTableGrid(
                     layout = layout,
                     accentColor = accentColor,
                     shape = RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS),
+                    faceSize = faceSize,
                     isPressed = isPressed,
                     isRunning = isRunning,
                     isDeviceDisabled = isDeviceDisabled,
