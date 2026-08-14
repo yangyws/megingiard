@@ -222,27 +222,31 @@ object GridLayoutMath {
         }
 
     /**
-     * Checks whether [buttonId] in [layout] can be resized to [newColSpan] x [newRowSpan]
+     * Checks whether [button] (or button with [buttonId]) in [layout] can be resized to [newColSpan] x [newRowSpan]
      * without going outside grid bounds or overlapping with another button.
      */
     fun canSpanButton(
         layout: PadLayout,
-        buttonId: String,
+        button: PadButton?,
         newColSpan: Int,
         newRowSpan: Int,
     ): Boolean {
         if (!layout.isGridMode) return true
-        val button = layout.buttons.firstOrNull { it.id == buttonId } ?: return false
-        val col = button.gridCol ?: return false
-        val row = button.gridRow ?: return false
         val cols = layout.effectiveGridCols
         val rows = layout.effectiveGridRows
 
         if (newColSpan < 1 || newRowSpan < 1) return false
+        if (newColSpan > cols || newRowSpan > rows) return false
+
+        val btnId = button?.id ?: ""
+        val targetButton = layout.buttons.firstOrNull { it.id == btnId } ?: button
+        val col = targetButton?.gridCol ?: firstFreeCell(layout)?.first ?: 0
+        val row = targetButton?.gridRow ?: firstFreeCell(layout)?.second ?: 0
+
         if (col + newColSpan > cols || row + newRowSpan > rows) return false
 
         for (other in layout.buttons) {
-            if (other.id == buttonId) continue
+            if (other.id == btnId) continue
             val oc = other.gridCol ?: continue
             val or = other.gridRow ?: continue
             if (!other.isWithinGrid(cols, rows)) continue
@@ -256,6 +260,13 @@ object GridLayoutMath {
         }
         return true
     }
+
+    fun canSpanButton(
+        layout: PadLayout,
+        buttonId: String,
+        newColSpan: Int,
+        newRowSpan: Int,
+    ): Boolean = canSpanButton(layout, layout.buttons.firstOrNull { it.id == buttonId }, newColSpan, newRowSpan)
 
     /**
      * Checks whether moving the button at cell [from] to cell [to] in [layout] is valid

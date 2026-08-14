@@ -354,6 +354,9 @@ internal fun PadSurface(
                                                             h,
                                                             layout.buttons,
                                                             isPeekActive,
+                                                            isGridMode = layout.isGridMode,
+                                                            cols = layout.effectiveGridCols,
+                                                            rows = layout.effectiveGridRows,
                                                         )
                                                     if (isHit) {
                                                         val disabledBtn =
@@ -366,6 +369,9 @@ internal fun PadSurface(
                                                                 layout.buttons,
                                                                 profile,
                                                                 isPeekActive,
+                                                                isGridMode = layout.isGridMode,
+                                                                cols = layout.effectiveGridCols,
+                                                                rows = layout.effectiveGridRows,
                                                             )
                                                         if (disabledBtn != null) {
                                                             val reason =
@@ -435,12 +441,13 @@ internal fun PadSurface(
                         }
                     },
         ) {
-            if (bgBitmap != null && !transparentBackground) {
+            val bg = bgBitmap
+            if (bg != null && !transparentBackground) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val cw = size.width
                     val ch = size.height
-                    val iw = bgBitmap!!.width.toFloat()
-                    val ih = bgBitmap!!.height.toFloat()
+                    val iw = bg.width.toFloat()
+                    val ih = bg.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
                         val userScale = layout.bgImageScale
                         val ox = layout.bgImageOffsetX
@@ -456,7 +463,7 @@ internal fun PadSurface(
                         val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
 
                         drawImage(
-                            image = bgBitmap!!,
+                            image = bg,
                             dstOffset =
                                 IntOffset(
                                     ((cw - ws * userScale) / 2f + clampedX).toInt(),
@@ -473,28 +480,39 @@ internal fun PadSurface(
                 }
             }
 
-            // Render buttons (filtered by peek state)
-            val visibleButtons =
-                if (isPeekActive) {
-                    layout.buttons.filter { it.action is PadAction.BackgroundPeek }
-                } else {
-                    layout.buttons
-                }
-            visibleButtons.forEach { btn ->
-                val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(btn.action, profile)
-                val isPressed = btn.id in pressedIds
-                val isRunning =
-                    btn.action is PadAction.Macro &&
-                        (btn.action as PadAction.Macro).macroId in runningMacroIds
-                PadButton(
-                    btn = btn,
+            if (layout.isGridMode) {
+                PadLiveTableGrid(
+                    profile = profile,
                     layout = layout,
-                    isPressed = isPressed,
-                    canvasSize = canvasSizeState.value,
                     accentColor = accentColor,
-                    isDeviceDisabled = isDeviceDisabled,
-                    isRunning = isRunning,
+                    pressedIds = pressedIds,
+                    runningMacroIds = runningMacroIds,
+                    isPeekActive = isPeekActive,
                 )
+            } else {
+                // Render buttons (filtered by peek state)
+                val visibleButtons =
+                    if (isPeekActive) {
+                        layout.buttons.filter { it.action is PadAction.BackgroundPeek }
+                    } else {
+                        layout.buttons
+                    }
+                visibleButtons.forEach { btn ->
+                    val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(btn.action, profile)
+                    val isPressed = btn.id in pressedIds
+                    val isRunning =
+                        btn.action is PadAction.Macro &&
+                            (btn.action as PadAction.Macro).macroId in runningMacroIds
+                    PadButton(
+                        btn = btn,
+                        layout = layout,
+                        isPressed = isPressed,
+                        canvasSize = canvasSizeState.value,
+                        accentColor = accentColor,
+                        isDeviceDisabled = isDeviceDisabled,
+                        isRunning = isRunning,
+                    )
+                }
             }
         }
     }

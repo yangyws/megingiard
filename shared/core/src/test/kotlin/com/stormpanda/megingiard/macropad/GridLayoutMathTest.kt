@@ -65,4 +65,43 @@ class GridLayoutMathTest {
         assertEquals(2, movedBtn1?.gridCol)
         assertEquals(2, movedBtn1?.gridRow)
     }
+
+    @Test
+    fun testCanSpanButtonWithCollision() {
+        val btn1 = createButton("btn1", 0, 0)
+        val btn2 = createButton("btn2", 1, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 3,
+            )
+
+        // btn1 cannot expand horizontally because (1, 0) is occupied by btn2
+        assertEquals(false, GridLayoutMath.canSpanButton(layout, btn1, 2, 1))
+        // btn1 can expand vertically because (0, 1) is empty
+        assertEquals(true, GridLayoutMath.canSpanButton(layout, btn1, 1, 2))
+    }
+
+    @Test
+    fun testCanSpanButtonGridBounds() {
+        val btn1 = createButton("btn1", 3, 2)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1),
+                gridCols = 4,
+                gridRows = 3,
+            )
+
+        // At (3, 2), expanding colSpan past 1 exceeds gridCols = 4 (3 + 2 = 5 > 4)
+        assertEquals(false, GridLayoutMath.canSpanButton(layout, btn1, 2, 1))
+        // At (3, 2), expanding rowSpan past 1 exceeds gridRows = 3 (2 + 2 = 4 > 3)
+        assertEquals(false, GridLayoutMath.canSpanButton(layout, btn1, 1, 2))
+    }
 }
