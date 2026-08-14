@@ -549,6 +549,15 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_grid_cols">Columns</string>
     <string name="macropad_editor_grid_cols_count">%1$d Columns</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d Column</string>
+    <string name="macropad_editor_grid_size">Grid Size</string>
+    <string name="layout_settings_grid_cols">Columns</string>
+    <string name="layout_settings_grid_rows">Rows</string>
+    <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
+    <string name="layout_settings_grid_cell_too_small">Cell size is small for touch</string>
+    <string name="macropad_editor_grid_size_hidden_hint">Shrinking will hide %1$d button(s)</string>
+    <string name="macropad_editor_cell_span_section">Cell Span (N×M)</string>
+    <string name="macropad_editor_col_span">Column Span</string>
+    <string name="macropad_editor_row_span">Row Span</string>
 
     <!-- MacroPad editor section headers -->
     <string name="macropad_editor_section_layout">Layout</string>

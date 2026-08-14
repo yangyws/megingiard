@@ -1380,7 +1380,7 @@ private fun PadTableCell(
 
     val effectiveBg = if (isPickedUp) PC_TABLE_SELECTED_BG else bg.copy(alpha = bg.alpha * PC_TABLE_FILL_ALPHA)
 
-    Box(
+    BoxWithConstraints(
         modifier =
             modifier
                 .graphicsLayer { alpha = if (isDragSource) PC_TABLE_DRAG_SOURCE_ALPHA else 1f }
@@ -1399,6 +1399,10 @@ private fun PadTableCell(
                 ),
         contentAlignment = Alignment.Center,
     ) {
+        val cellFaceSize = minOf(maxWidth, maxHeight) - PC_TABLE_CONTENT_PADDING * 2
+        val hasGlyph = button.imageAssetId != null || button.iconName != null
+        val showsLabel = button.showLabel && button.label.isNotBlank()
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -1408,7 +1412,8 @@ private fun PadTableCell(
                 btn = button,
                 size = PC_TABLE_ICON_SIZE,
                 tint = text,
-                faceSize = PC_TABLE_ICON_SIZE * 2f,
+                faceSize = cellFaceSize,
+                faceReserve = if (showsLabel) PC_TABLE_LABEL_RESERVE else 0.dp,
                 fallback = {
                     if (button.label.isNotBlank()) {
                         Text(
@@ -1422,7 +1427,7 @@ private fun PadTableCell(
                     }
                 },
             )
-            if (button.imageAssetId == null && button.iconName != null && button.label.isNotBlank()) {
+            if (showsLabel && hasGlyph) {
                 Text(
                     text = button.label,
                     color = text,
@@ -1435,3 +1440,5 @@ private fun PadTableCell(
         }
     }
 }
+
+private val PC_TABLE_LABEL_RESERVE = 16.dp

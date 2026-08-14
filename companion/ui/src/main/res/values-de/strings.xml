@@ -240,6 +240,15 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_grid_cols">Spalten</string>
     <string name="macropad_editor_grid_cols_count">%1$d Spalten</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d Spalte</string>
+    <string name="macropad_editor_grid_size">Rastergröße</string>
+    <string name="layout_settings_grid_cols">Spalten</string>
+    <string name="layout_settings_grid_rows">Zeilen</string>
+    <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
+    <string name="layout_settings_grid_cell_too_small">Zellengröße ist klein für Touch</string>
+    <string name="macropad_editor_grid_size_hidden_hint">Verkleinern blendet %1$d Taste(n) aus</string>
+    <string name="macropad_editor_cell_span_section">Zellenbereich (N×M)</string>
+    <string name="macropad_editor_col_span">Spaltenbreite</string>
+    <string name="macropad_editor_row_span">Zeilenhöhe</string>
 
     <!-- MacroPad action picker labels -->
     <string name="macropad_action_keyboard_key">Tastaturtaste</string>

@@ -339,6 +339,14 @@ fun MacroPadEditor(onDone: () -> Unit) {
                         pendingMacroEditId = macro.id
                         showMacroListEditor = true
                     },
+                    onDelete = {
+                        val toDelete = editingButton
+                        if (toDelete != null) {
+                            buttonPendingDelete = toDelete
+                            editingButtonActive = false
+                            editingButton = null
+                        }
+                    },
                     onConfirm = { updated ->
                         val layout = MacroPadState.activeLayout.value ?: return@ButtonEditDialog
                         MacroPadState.updateLayout(

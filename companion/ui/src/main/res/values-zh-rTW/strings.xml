@@ -479,6 +479,15 @@
     <string name="macropad_editor_grid_cols">欄位數</string>
     <string name="macropad_editor_grid_cols_count">%1$d 欄</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d 欄</string>
+    <string name="macropad_editor_grid_size">網格尺寸</string>
+    <string name="layout_settings_grid_cols">欄數</string>
+    <string name="layout_settings_grid_rows">列數</string>
+    <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>
+    <string name="layout_settings_grid_cell_too_small">儲存格尺寸偏小，可能影響觸控操作</string>
+    <string name="macropad_editor_grid_size_hidden_hint">縮小尺寸將暫時隱藏 %1$d 個按鈕</string>
+    <string name="macropad_editor_cell_span_section">儲存格跨格 (N×M)</string>
+    <string name="macropad_editor_col_span">跨欄數</string>
+    <string name="macropad_editor_row_span">跨列數</string>
     <string name="macropad_editor_section_layout">配置</string>
     <string name="macropad_editor_section_buttons">按鈕</string>
     <string name="macropad_editor_section_button_settings">按鈕設定</string>

@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -150,6 +152,7 @@ internal fun ButtonEditDialog(
     enableMouse: Boolean = true,
     initialAction: PadAction? = null, // pre-set action for new buttons; ignored if button != null
     onEditMacro: ((Macro) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     onConfirm: (PadButton) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -210,8 +213,11 @@ internal fun ButtonEditDialog(
             }
         }
 
+    val isTableLayout = activeLayout?.isGridMode == true || button?.gridCol != null
     var buttonShape by remember { mutableStateOf(button?.buttonShape ?: ButtonShape.CIRCLE) }
     var buttonSize by remember { mutableStateOf(button?.buttonSize ?: ButtonSize.SIZE_1X1) }
+    var colSpan by remember { mutableIntStateOf(button?.effectiveColSpan ?: 1) }
+    var rowSpan by remember { mutableIntStateOf(button?.effectiveRowSpan ?: 1) }
     var action by remember { mutableStateOf(initAction) }
     var iconFilled by remember { mutableStateOf(button?.iconFilled ?: true) }
     var hapticStrength by remember { mutableStateOf(button?.hapticStrength ?: HapticStrength.OFF) }
@@ -347,57 +353,75 @@ internal fun ButtonEditDialog(
                     else -> button.label
                 }
             FullScreenTopBar(title = topBarTitle, onDismiss = onDismiss) {
-                TextButton(
-                    onClick = {
-                        if (isConfirmEnabled) {
-                            val result =
-                                button?.copy(
-                                    label = label,
-                                    iconName = iconName,
-                                    iconFilled = iconFilled,
-                                    imageAssetId = imageAssetId,
-                                    enlargeIcon = enlargeIcon,
-                                    buttonShape = buttonShape,
-                                    buttonSize = buttonSize,
-                                    action = action,
-                                    hapticStrength = hapticStrength,
-                                    hapticCustomDurationMs = hapticCustomDurationMs,
-                                    hapticCustomAmplitude = hapticCustomAmplitude,
-                                    buttonTextColor = buttonTextColor,
-                                    buttonBorderColor = buttonBorderColor,
-                                    buttonBgColor = buttonBgColor,
-                                    invisible = invisible,
-                                ) ?: PadButton(
-                                    id = UUID.randomUUID().toString(),
-                                    label = label,
-                                    iconName = iconName,
-                                    iconFilled = iconFilled,
-                                    imageAssetId = imageAssetId,
-                                    enlargeIcon = enlargeIcon,
-                                    posX = 0.5f,
-                                    posY = 0.5f,
-                                    buttonShape = buttonShape,
-                                    buttonSize = buttonSize,
-                                    action = action,
-                                    hapticStrength = hapticStrength,
-                                    hapticCustomDurationMs = hapticCustomDurationMs,
-                                    hapticCustomAmplitude = hapticCustomAmplitude,
-                                    buttonTextColor = buttonTextColor,
-                                    buttonBorderColor = buttonBorderColor,
-                                    buttonBgColor = buttonBgColor,
-                                    invisible = invisible,
-                                )
-                            AppLog.d(TAG, "Confirm button edit: id=${result.id} label=${result.label} action=${result.action}")
-                            onConfirm(result)
-                        }
-                    },
-                    enabled = isConfirmEnabled,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        stringResource(R.string.macropad_editor_done),
-                        color = if (isConfirmEnabled) accentColor else colors.onSurfaceSecondary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    if (isTableLayout && button != null && onDelete != null) {
+                        TextButton(onClick = onDelete) {
+                            Text(
+                                stringResource(R.string.macropad_editor_delete_button),
+                                color = colors.accent,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            if (isConfirmEnabled) {
+                                val result =
+                                    button?.copy(
+                                        label = label,
+                                        iconName = iconName,
+                                        iconFilled = iconFilled,
+                                        imageAssetId = imageAssetId,
+                                        enlargeIcon = enlargeIcon,
+                                        buttonShape = buttonShape,
+                                        buttonSize = buttonSize,
+                                        action = action,
+                                        hapticStrength = hapticStrength,
+                                        hapticCustomDurationMs = hapticCustomDurationMs,
+                                        hapticCustomAmplitude = hapticCustomAmplitude,
+                                        buttonTextColor = buttonTextColor,
+                                        buttonBorderColor = buttonBorderColor,
+                                        buttonBgColor = buttonBgColor,
+                                        colSpan = colSpan,
+                                        rowSpan = rowSpan,
+                                        invisible = invisible,
+                                    ) ?: PadButton(
+                                        id = UUID.randomUUID().toString(),
+                                        label = label,
+                                        iconName = iconName,
+                                        iconFilled = iconFilled,
+                                        imageAssetId = imageAssetId,
+                                        enlargeIcon = enlargeIcon,
+                                        posX = 0.5f,
+                                        posY = 0.5f,
+                                        buttonShape = buttonShape,
+                                        buttonSize = buttonSize,
+                                        action = action,
+                                        hapticStrength = hapticStrength,
+                                        hapticCustomDurationMs = hapticCustomDurationMs,
+                                        hapticCustomAmplitude = hapticCustomAmplitude,
+                                        buttonTextColor = buttonTextColor,
+                                        buttonBorderColor = buttonBorderColor,
+                                        buttonBgColor = buttonBgColor,
+                                        colSpan = colSpan,
+                                        rowSpan = rowSpan,
+                                        invisible = invisible,
+                                    )
+                                AppLog.d(TAG, "Confirm button edit: id=${result.id} label=${result.label} action=${result.action}")
+                                onConfirm(result)
+                            }
+                        },
+                        enabled = isConfirmEnabled,
+                    ) {
+                        Text(
+                            stringResource(R.string.macropad_editor_done),
+                            color = if (isConfirmEnabled) accentColor else colors.onSurfaceSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
 
@@ -491,93 +515,216 @@ internal fun ButtonEditDialog(
                 )
 
                 if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove) {
-                    // ── Shape + Size + Haptic side by side ──────────────────────────────────────────────
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f),
+                    if (isTableLayout && activeLayout != null) {
+                        val bId = button?.id ?: ""
+                        val canIncCol = bId.isBlank() || GridLayoutMath.canSpanButton(activeLayout, bId, colSpan + 1, rowSpan)
+                        val canDecCol = colSpan > 1
+                        val canIncRow = bId.isBlank() || GridLayoutMath.canSpanButton(activeLayout, bId, colSpan, rowSpan + 1)
+                        val canDecRow = rowSpan > 1
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            SectionLabel(stringResource(R.string.macropad_editor_button_shape), accentColor)
-                            AppDropdown(
-                                selected = buttonShape,
-                                options = ButtonShape.entries,
-                                optionText = { shape ->
-                                    when (shape) {
-                                        ButtonShape.CIRCLE -> stringResource(R.string.macropad_editor_shape_circle)
-                                        ButtonShape.SQUARE -> stringResource(R.string.macropad_editor_shape_square)
-                                        ButtonShape.ICON_ONLY -> stringResource(R.string.macropad_editor_shape_icon_only)
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_col_span), accentColor)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    IconButton(
+                                        onClick = { if (canDecCol) colSpan-- },
+                                        enabled = canDecCol,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Remove,
+                                            contentDescription = null,
+                                            tint = if (canDecCol) accentColor else colors.onSurfaceSecondary,
+                                        )
                                     }
-                                },
-                                onSelected = { shape -> buttonShape = shape },
-                                horizontalPadding = 16.dp,
-                                verticalPadding = 10.dp,
-                                fillMaxWidth = true,
-                            )
+                                    Text(
+                                        text = "$colSpan",
+                                        color = colors.onSurface,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    IconButton(
+                                        onClick = { if (canIncCol) colSpan++ },
+                                        enabled = canIncCol,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Add,
+                                            contentDescription = null,
+                                            tint = if (canIncCol) accentColor else colors.onSurfaceSecondary,
+                                        )
+                                    }
+                                }
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_row_span), accentColor)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    IconButton(
+                                        onClick = { if (canDecRow) rowSpan-- },
+                                        enabled = canDecRow,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Remove,
+                                            contentDescription = null,
+                                            tint = if (canDecRow) accentColor else colors.onSurfaceSecondary,
+                                        )
+                                    }
+                                    Text(
+                                        text = "$rowSpan",
+                                        color = colors.onSurface,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    IconButton(
+                                        onClick = { if (canIncRow) rowSpan++ },
+                                        enabled = canIncRow,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Add,
+                                            contentDescription = null,
+                                            tint = if (canIncRow) accentColor else colors.onSurfaceSecondary,
+                                        )
+                                    }
+                                }
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_section_haptic), accentColor)
+                                AppDropdown(
+                                    selected = hapticStrength,
+                                    options = HapticStrength.entries,
+                                    optionText = { strength ->
+                                        when (strength) {
+                                            HapticStrength.OFF -> stringResource(R.string.macropad_haptic_off)
+                                            HapticStrength.LIGHT -> stringResource(R.string.macropad_haptic_light)
+                                            HapticStrength.MEDIUM -> stringResource(R.string.macropad_haptic_medium)
+                                            HapticStrength.STRONG -> stringResource(R.string.macropad_haptic_strong)
+                                            HapticStrength.CUSTOM -> stringResource(R.string.macropad_haptic_custom)
+                                        }
+                                    },
+                                    onSelected = { strength ->
+                                        when (strength) {
+                                            HapticStrength.LIGHT -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_LIGHT_AMPLITUDE_USER
+                                            }
+                                            HapticStrength.MEDIUM -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_MEDIUM_AMPLITUDE_USER
+                                            }
+                                            HapticStrength.STRONG -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_STRONG_AMPLITUDE_USER
+                                            }
+                                            else -> { /* OFF / CUSTOM */ }
+                                        }
+                                        hapticStrength = strength
+                                    },
+                                    horizontalPadding = 16.dp,
+                                    verticalPadding = 10.dp,
+                                    fillMaxWidth = true,
+                                )
+                            }
                         }
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f),
+                    } else {
+                        // ── Shape + Size + Haptic side by side (Free Mode) ─────────────────────────────
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            SectionLabel(stringResource(R.string.macropad_editor_button_size), accentColor)
-                            AppDropdown(
-                                selected = buttonSize,
-                                options = ButtonSize.entries,
-                                optionText = { size -> size.displayLabel() },
-                                onSelected = { size -> buttonSize = size },
-                                horizontalPadding = 16.dp,
-                                verticalPadding = 10.dp,
-                                fillMaxWidth = true,
-                            )
-                        }
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            SectionLabel(stringResource(R.string.macropad_editor_section_haptic), accentColor)
-                            AppDropdown(
-                                selected = hapticStrength,
-                                options = HapticStrength.entries,
-                                optionText = { strength ->
-                                    when (strength) {
-                                        HapticStrength.OFF -> stringResource(R.string.macropad_haptic_off)
-                                        HapticStrength.LIGHT -> stringResource(R.string.macropad_haptic_light)
-                                        HapticStrength.MEDIUM -> stringResource(R.string.macropad_haptic_medium)
-                                        HapticStrength.STRONG -> stringResource(R.string.macropad_haptic_strong)
-                                        HapticStrength.CUSTOM -> stringResource(R.string.macropad_haptic_custom)
-                                    }
-                                },
-                                onSelected = { strength ->
-                                    // Snap sliders to preset values; CUSTOM/OFF leave sliders unchanged
-                                    when (strength) {
-                                        HapticStrength.LIGHT -> {
-                                            hapticCustomDurationMs = HF_PRESET_DURATION_MS
-                                            hapticCustomAmplitude =
-                                                HF_LIGHT_AMPLITUDE_USER
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_button_shape), accentColor)
+                                AppDropdown(
+                                    selected = buttonShape,
+                                    options = ButtonShape.entries,
+                                    optionText = { shape ->
+                                        when (shape) {
+                                            ButtonShape.CIRCLE -> stringResource(R.string.macropad_editor_shape_circle)
+                                            ButtonShape.SQUARE -> stringResource(R.string.macropad_editor_shape_square)
+                                            ButtonShape.ICON_ONLY -> stringResource(R.string.macropad_editor_shape_icon_only)
                                         }
-
-                                        HapticStrength.MEDIUM -> {
-                                            hapticCustomDurationMs = HF_PRESET_DURATION_MS
-                                            hapticCustomAmplitude =
-                                                HF_MEDIUM_AMPLITUDE_USER
+                                    },
+                                    onSelected = { shape -> buttonShape = shape },
+                                    horizontalPadding = 16.dp,
+                                    verticalPadding = 10.dp,
+                                    fillMaxWidth = true,
+                                )
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_button_size), accentColor)
+                                AppDropdown(
+                                    selected = buttonSize,
+                                    options = ButtonSize.entries,
+                                    optionText = { size -> size.displayLabel() },
+                                    onSelected = { size -> buttonSize = size },
+                                    horizontalPadding = 16.dp,
+                                    verticalPadding = 10.dp,
+                                    fillMaxWidth = true,
+                                )
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                SectionLabel(stringResource(R.string.macropad_editor_section_haptic), accentColor)
+                                AppDropdown(
+                                    selected = hapticStrength,
+                                    options = HapticStrength.entries,
+                                    optionText = { strength ->
+                                        when (strength) {
+                                            HapticStrength.OFF -> stringResource(R.string.macropad_haptic_off)
+                                            HapticStrength.LIGHT -> stringResource(R.string.macropad_haptic_light)
+                                            HapticStrength.MEDIUM -> stringResource(R.string.macropad_haptic_medium)
+                                            HapticStrength.STRONG -> stringResource(R.string.macropad_haptic_strong)
+                                            HapticStrength.CUSTOM -> stringResource(R.string.macropad_haptic_custom)
                                         }
-
-                                        HapticStrength.STRONG -> {
-                                            hapticCustomDurationMs = HF_PRESET_DURATION_MS
-                                            hapticCustomAmplitude =
-                                                HF_STRONG_AMPLITUDE_USER
+                                    },
+                                    onSelected = { strength ->
+                                        when (strength) {
+                                            HapticStrength.LIGHT -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_LIGHT_AMPLITUDE_USER
+                                            }
+                                            HapticStrength.MEDIUM -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_MEDIUM_AMPLITUDE_USER
+                                            }
+                                            HapticStrength.STRONG -> {
+                                                hapticCustomDurationMs = HF_PRESET_DURATION_MS
+                                                hapticCustomAmplitude = HF_STRONG_AMPLITUDE_USER
+                                            }
+                                            else -> { /* OFF / CUSTOM */ }
                                         }
-
-                                        else -> { /* OFF / CUSTOM → keep current slider values */ }
-                                    }
-                                    hapticStrength = strength
-                                },
-                                horizontalPadding = 16.dp,
-                                verticalPadding = 10.dp,
-                                fillMaxWidth = true,
-                            )
+                                        hapticStrength = strength
+                                    },
+                                    horizontalPadding = 16.dp,
+                                    verticalPadding = 10.dp,
+                                    fillMaxWidth = true,
+                                )
+                            }
                         }
                     }
                 } else if (action is PadAction.TrackpointMove) {

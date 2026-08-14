@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridOff
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Mouse
@@ -186,8 +187,7 @@ internal fun EditorToolbar(
     val bgLabel = stringResource(R.string.macropad_editor_change_background)
 
     if (layout?.isGridMode == true) {
-        var colsMenuExpanded by remember { mutableStateOf(false) }
-        val currentCols = layout.effectiveGridCols
+        var showGridSizeOverlay by remember { mutableStateOf(false) }
 
         Row(
             modifier = modifier,
@@ -206,50 +206,24 @@ internal fun EditorToolbar(
                 accentColor = accentColor,
                 onClick = onManageBackground,
             )
-            Box {
-                EditorToolbarIconButton(
-                    label = stringResource(R.string.macropad_editor_grid_cols),
-                    icon = Icons.Rounded.ViewColumn,
-                    accentColor = accentColor,
-                    onClick = { colsMenuExpanded = true },
-                )
-                DropdownMenu(
-                    expanded = colsMenuExpanded,
-                    onDismissRequest = { colsMenuExpanded = false },
-                ) {
-                    for (c in 1..8) {
-                        val isSelected = c == currentCols
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text =
-                                        if (c == 1) {
-                                            stringResource(R.string.macropad_editor_grid_cols_count_single, c)
-                                        } else {
-                                            stringResource(R.string.macropad_editor_grid_cols_count, c)
-                                        },
-                                    color = if (isSelected) accentColor else colors.onSurface,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            leadingIcon = {
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Check,
-                                        contentDescription = null,
-                                        tint = accentColor,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            },
-                            onClick = {
-                                colsMenuExpanded = false
-                                onChangeGridCols?.invoke(c)
-                            },
-                        )
-                    }
-                }
-            }
+            EditorToolbarIconButton(
+                label = stringResource(R.string.macropad_editor_grid_size),
+                icon = Icons.Rounded.GridView,
+                accentColor = accentColor,
+                onClick = { showGridSizeOverlay = true },
+            )
+        }
+
+        if (showGridSizeOverlay) {
+            InlineGridSizeOverlay(
+                layout = layout,
+                accentColor = accentColor,
+                onConfirm = { cols, rows ->
+                    MacroPadState.updateLayout(layout.copy(gridCols = cols, gridRows = rows))
+                    showGridSizeOverlay = false
+                },
+                onDismiss = { showGridSizeOverlay = false },
+            )
         }
     } else {
         val gridIcon =
