@@ -66,4 +66,27 @@ class CropSelectionMathTest {
         assertEquals(original.centerY, reopened.centerY, EPS)
         assertEquals(original.size, reopened.size, EPS)
     }
+
+    @Test
+    fun testAllowMarginsFreeVerticalAndHorizontalMovement() {
+        val (w, h) = CropSelectionMath.imageExtents(200f, 100f, 1f) // wide image: w=1.0, h=0.5
+        val shrunk = CropSelection(0.5f, 0.5f, 0.4f)
+
+        // Move vertically up and down
+        val movedUp = CropSelectionMath.move(shrunk, dx = 0f, dy = -0.3f, w, h, allowMargins = true)
+        assertEquals(0.2f, movedUp.centerY, EPS)
+        assertEquals(0.0f, movedUp.top, EPS)
+
+        val movedDown = CropSelectionMath.move(shrunk, dx = 0f, dy = 0.3f, w, h, allowMargins = true)
+        assertEquals(0.8f, movedDown.centerY, EPS)
+        assertEquals(1.0f, movedDown.centerY + movedDown.size / 2f, EPS)
+
+        // Move horizontally left and right
+        val movedLeft = CropSelectionMath.move(shrunk, dx = -0.3f, dy = 0f, w, h, allowMargins = true)
+        assertEquals(0.2f, movedLeft.centerX, EPS)
+
+        val movedRight = CropSelectionMath.move(shrunk, dx = 0.3f, dy = 0f, w, h, allowMargins = true)
+        assertEquals(0.8f, movedRight.centerX, EPS)
+    }
 }
+

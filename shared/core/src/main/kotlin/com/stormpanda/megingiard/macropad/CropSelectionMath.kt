@@ -78,8 +78,10 @@ object CropSelectionMath {
                 minSize(widthFraction, heightFraction),
                 maxSize(widthFraction, heightFraction, allowMargins),
             )
-        val marginX = max(0f, (widthFraction - size) / 2f)
-        val marginY = max(0f, (heightFraction - size) / 2f)
+        val boundW = if (allowMargins) 1f else widthFraction
+        val boundH = if (allowMargins) 1f else heightFraction
+        val marginX = max(0f, (boundW - size) / 2f)
+        val marginY = max(0f, (boundH - size) / 2f)
         return CropSelection(
             centerX = selection.centerX.coerceIn(HALF - marginX, HALF + marginX),
             centerY = selection.centerY.coerceIn(HALF - marginY, HALF + marginY),
@@ -132,8 +134,10 @@ object CropSelectionMath {
 
         val lowest = minSize(widthFraction, heightFraction)
         val highest = maxSize(widthFraction, heightFraction, allowMargins)
-        val reachX = if (corner.signX > 0f) HALF + widthFraction / 2f - anchorX else anchorX - (HALF - widthFraction / 2f)
-        val reachY = if (corner.signY > 0f) HALF + heightFraction / 2f - anchorY else anchorY - (HALF - heightFraction / 2f)
+        val boundW = if (allowMargins) 1f else widthFraction
+        val boundH = if (allowMargins) 1f else heightFraction
+        val reachX = if (corner.signX > 0f) HALF + boundW / 2f - anchorX else anchorX - (HALF - boundW / 2f)
+        val reachY = if (corner.signY > 0f) HALF + boundH / 2f - anchorY else anchorY - (HALF - boundH / 2f)
         val ceiling = if (allowMargins) highest else min(highest, max(lowest, min(reachX, reachY)))
 
         val size = (selection.size + delta).coerceIn(lowest, ceiling)
