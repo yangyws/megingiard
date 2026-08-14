@@ -83,6 +83,8 @@ internal fun IconPickerDialog(
     onFilledChange: (Boolean) -> Unit,
     enlargeIcon: Boolean = false,
     onEnlargeIconChange: ((Boolean) -> Unit)? = null,
+    fullBleedIcon: Boolean = false,
+    onFullBleedIconChange: ((Boolean) -> Unit)? = null,
     onSelect: (String?) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -111,7 +113,7 @@ internal fun IconPickerDialog(
             }
         }
 
-        // ── Search bar + filled / enlarge toggles ───────────────────────────────
+        // ── Search bar + filled / enlarge / full bleed toggles ───────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier =
@@ -171,6 +173,30 @@ internal fun IconPickerDialog(
                     )
                     Text(
                         text = stringResource(R.string.button_settings_enlarge_icon),
+                        color = colors.onSurface,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            if (onFullBleedIconChange != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .clickable { onFullBleedIconChange(!fullBleedIcon) }
+                            .padding(start = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = fullBleedIcon,
+                        onCheckedChange = onFullBleedIconChange,
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = accentColor,
+                                uncheckedColor = colors.onSurfaceSecondary,
+                            ),
+                    )
+                    Text(
+                        text = stringResource(R.string.button_settings_full_bleed_icon),
                         color = colors.onSurface,
                         style = MaterialTheme.typography.labelMedium,
                     )

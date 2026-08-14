@@ -1322,8 +1322,12 @@ Open Settings to create a layout.</string>
     <string name="button_settings_custom_image">Custom Image</string>
     <string name="button_settings_custom_image_desc">Choose an image for the button face</string>
     <string name="button_settings_clear_image">Remove custom image</string>
-    <string name="button_settings_enlarge_icon">Enlarge icon</string>
-    <string name="button_settings_enlarge_icon_desc">Scale the icon up to fill the button</string>
+    <string name="button_settings_enlarge_icon">Enlarge</string>
+    <string name="button_settings_enlarge_icon_desc">Enlarge the icon</string>
+    <string name="button_settings_full_bleed_icon">Full Bleed</string>
+    <string name="button_settings_full_bleed_icon_desc">Scale icon to completely fill the button edge-to-edge</string>
+    <string name="button_settings_show_label">Show label</string>
+    <string name="button_settings_show_label_desc">Display label text on the button face</string>
     <string name="crop_image_fit_whole">Whole</string>
     <string name="crop_image_fit_fill">Fill</string>
 </resources>

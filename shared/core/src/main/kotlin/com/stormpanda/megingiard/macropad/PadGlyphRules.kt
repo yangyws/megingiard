@@ -12,7 +12,12 @@ object PadGlyphRules {
     /**
      * Glyph em size as a fraction of the button face when [PadButton.enlargeIcon] is on.
      */
-    const val ENLARGED_EM_FRACTION = 1f
+    const val ENLARGED_EM_FRACTION = 1.0f
+
+    /**
+     * Glyph em size as a fraction of the button face when [PadButton.fullBleedIcon] is on.
+     */
+    const val FULL_BLEED_EM_FRACTION = 1.0f
 
     /**
      * Whether a new button created on a layout in [PadLayoutMode.GRID] starts enlarged.
@@ -34,10 +39,17 @@ object PadGlyphRules {
         defaultSizeDp: Float,
         faceSizeDp: Float?,
         enlarge: Boolean,
+        fullBleed: Boolean = false,
         reserveDp: Float = 0f,
     ): Float {
-        if (!enlarge || faceSizeDp == null || faceSizeDp <= 0f) return defaultSizeDp
-        val available = max(0f, faceSizeDp - max(0f, reserveDp))
-        return max(defaultSizeDp, min(available, faceSizeDp) * ENLARGED_EM_FRACTION)
+        if (faceSizeDp == null || faceSizeDp <= 0f) return defaultSizeDp
+        if (fullBleed) {
+            return max(defaultSizeDp, faceSizeDp * FULL_BLEED_EM_FRACTION)
+        }
+        if (enlarge) {
+            val available = max(0f, faceSizeDp - max(0f, reserveDp))
+            return max(defaultSizeDp, min(available, faceSizeDp) * ENLARGED_EM_FRACTION)
+        }
+        return defaultSizeDp
     }
 }

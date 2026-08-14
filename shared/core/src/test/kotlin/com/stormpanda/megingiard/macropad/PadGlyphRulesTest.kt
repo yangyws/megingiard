@@ -29,6 +29,8 @@ class PadGlyphRulesTest {
     fun testGlyphSizeDp() {
         assertEquals(44f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 120f, enlarge = false), 0f)
         assertEquals(60f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = true), 0f)
+        assertEquals(100f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 100f, enlarge = true), 0f)
+        assertEquals(60f, PadGlyphRules.glyphSizeDp(44f, faceSizeDp = 60f, enlarge = false, fullBleed = true), 0f)
         assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = null, enlarge = true), 0f)
         assertEquals(18f, PadGlyphRules.glyphSizeDp(18f, faceSizeDp = 0f, enlarge = true), 0f)
         assertEquals(46f, PadGlyphRules.glyphSizeDp(24f, faceSizeDp = 64f, enlarge = true, reserveDp = 18f), 0f)

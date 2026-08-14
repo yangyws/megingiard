@@ -26,6 +26,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+
 private const val PAD_GLYPH_LABEL_SCRIM_ALPHA = 0.45f
 
 @Composable
@@ -58,7 +62,7 @@ internal fun PadButtonGlyph(
                 Image(
                     bitmap = bitmap,
                     contentDescription = btn.label.ifBlank { null },
-                    contentScale = ContentScale.Crop,
+                    contentScale = if (btn.fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (labelOverlay && btn.showLabel && btn.label.isNotBlank()) {
@@ -83,15 +87,42 @@ internal fun PadButtonGlyph(
     }
 
     if (iconName != null) {
-        val glyphSize =
-            PadGlyphRules
-                .glyphSizeDp(
-                    defaultSizeDp = size.value,
-                    faceSizeDp = faceSize?.value,
-                    enlarge = btn.enlargeIcon,
-                    reserveDp = faceReserve.value,
-                ).dp
-        MaterialSymbol(name = iconName, size = glyphSize, tint = tint, filled = btn.iconFilled, modifier = modifier)
+        if (btn.fullBleedIcon) {
+            BoxWithConstraints(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                val density = LocalDensity.current
+                val baseSize = 48.dp
+                val basePx = with(density) { baseSize.toPx() }
+                val targetW = constraints.maxWidth.toFloat()
+                val targetH = constraints.maxHeight.toFloat()
+                MaterialSymbol(
+                    name = iconName,
+                    size = baseSize,
+                    tint = tint,
+                    filled = btn.iconFilled,
+                    modifier =
+                        Modifier.graphicsLayer {
+                            if (basePx > 0f && targetW > 0f && targetH > 0f) {
+                                scaleX = targetW / basePx
+                                scaleY = targetH / basePx
+                            }
+                        },
+                )
+            }
+        } else {
+            val glyphSize =
+                PadGlyphRules
+                    .glyphSizeDp(
+                        defaultSizeDp = size.value,
+                        faceSizeDp = faceSize?.value,
+                        enlarge = btn.enlargeIcon,
+                        fullBleed = false,
+                        reserveDp = faceReserve.value,
+                    ).dp
+            MaterialSymbol(name = iconName, size = glyphSize, tint = tint, filled = btn.iconFilled, modifier = modifier)
+        }
     } else if (btn.showLabel) {
         fallback()
     }

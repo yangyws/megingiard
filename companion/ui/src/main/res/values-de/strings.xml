@@ -1327,8 +1327,12 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="button_settings_custom_image">Eigenes Bild</string>
     <string name="button_settings_custom_image_desc">Wähle ein Bild für die Schaltflächenoberfläche</string>
     <string name="button_settings_clear_image">Eigenes Bild entfernen</string>
-    <string name="button_settings_enlarge_icon">Symbol vergrößern</string>
-    <string name="button_settings_enlarge_icon_desc">Skaliert das Symbol, um die Schaltfläche auszufüllen</string>
+    <string name="button_settings_enlarge_icon">Vergrößern</string>
+    <string name="button_settings_enlarge_icon_desc">Symbol vergrößern</string>
+    <string name="button_settings_full_bleed_icon">Ausfüllen</string>
+    <string name="button_settings_full_bleed_icon_desc">Symbol randlos auf die gesamte Schaltfläche skalieren</string>
+    <string name="button_settings_show_label">Beschriftung anzeigen</string>
+    <string name="button_settings_show_label_desc">Beschriftungstext auf der Schaltfläche anzeigen</string>
     <string name="crop_image_fit_whole">Ganz</string>
     <string name="crop_image_fit_fill">Ausfüllen</string>
 </resources>

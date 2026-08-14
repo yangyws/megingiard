@@ -336,6 +336,7 @@ data class PadButton(
     val imageAssetId: String? = null,
     val showLabel: Boolean = true,
     val enlargeIcon: Boolean = false,
+    val fullBleedIcon: Boolean = false,
     val gridCol: Int? = null,
     val gridRow: Int? = null,
     val colSpan: Int = 1,

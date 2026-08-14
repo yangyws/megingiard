@@ -31,6 +31,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -182,12 +184,14 @@ internal fun ButtonEditDialog(
         }
     val initIconName = button?.iconName ?: initialAction?.editorDefaultIconName()
     var label by remember { mutableStateOf(initLabel) }
+    var showLabel by remember { mutableStateOf(button?.showLabel ?: true) }
     var iconName by remember { mutableStateOf(initIconName) }
     var showIconPicker by remember { mutableStateOf(false) }
     var imageAssetId by remember { mutableStateOf(button?.imageAssetId) }
     var enlargeIcon by remember {
         mutableStateOf(button?.enlargeIcon ?: PadGlyphRules.defaultEnlargeIcon(activeLayout?.isGridMode == true))
     }
+    var fullBleedIcon by remember { mutableStateOf(button?.fullBleedIcon ?: false) }
     var cropSource by remember { mutableStateOf<ImageBitmap?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -372,10 +376,12 @@ internal fun ButtonEditDialog(
                                 val result =
                                     button?.copy(
                                         label = label,
+                                        showLabel = showLabel,
                                         iconName = iconName,
                                         iconFilled = iconFilled,
                                         imageAssetId = imageAssetId,
                                         enlargeIcon = enlargeIcon,
+                                        fullBleedIcon = fullBleedIcon,
                                         buttonShape = buttonShape,
                                         buttonSize = buttonSize,
                                         action = action,
@@ -391,10 +397,12 @@ internal fun ButtonEditDialog(
                                     ) ?: PadButton(
                                         id = UUID.randomUUID().toString(),
                                         label = label,
+                                        showLabel = showLabel,
                                         iconName = iconName,
                                         iconFilled = iconFilled,
                                         imageAssetId = imageAssetId,
                                         enlargeIcon = enlargeIcon,
+                                        fullBleedIcon = fullBleedIcon,
                                         posX = 0.5f,
                                         posY = 0.5f,
                                         buttonShape = buttonShape,
@@ -507,6 +515,36 @@ internal fun ButtonEditDialog(
                     enableKeyboard = enableKeyboard,
                     enableGamepad = enableGamepad,
                     enableMouse = enableMouse,
+                    trailingContent =
+                        if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher) {
+                            {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier =
+                                        Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable { showLabel = !showLabel }
+                                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                                ) {
+                                    Checkbox(
+                                        checked = showLabel,
+                                        onCheckedChange = { showLabel = it },
+                                        colors =
+                                            CheckboxDefaults.colors(
+                                                checkedColor = accentColor,
+                                                uncheckedColor = colors.onSurfaceSecondary,
+                                            ),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.button_settings_show_label),
+                                        color = colors.onSurface,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     onEditMacro = { macro ->
                         actionBeforeEdit = action
                         onEditMacro?.invoke(macro)
@@ -1062,6 +1100,8 @@ internal fun ButtonEditDialog(
                 onFilledChange = { iconFilled = it },
                 enlargeIcon = enlargeIcon,
                 onEnlargeIconChange = { enlargeIcon = it },
+                fullBleedIcon = fullBleedIcon,
+                onFullBleedIconChange = { fullBleedIcon = it },
                 onSelect = { name ->
                     iconName = name
                     showIconPicker = false

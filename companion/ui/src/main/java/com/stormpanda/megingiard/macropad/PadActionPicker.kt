@@ -2,13 +2,19 @@ package com.stormpanda.megingiard.macropad
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -16,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.keyboard.LinuxKeycodes
-import com.stormpanda.megingiard.ui.AppDropdown
+import com.stormpanda.megingiard.ui.AppSelectableChip
 import com.stormpanda.megingiard.ui.LocalAppColors
 
 private const val TAG = "PadActionPicker"
@@ -28,6 +34,7 @@ internal fun ActionPicker(
     enableKeyboard: Boolean = true,
     enableGamepad: Boolean = true,
     enableMouse: Boolean = true,
+    trailingContent: (@Composable () -> Unit)? = null,
     onEditMacro: ((Macro) -> Unit)? = null,
     onChange: (PadAction) -> Unit,
 ) {
@@ -48,6 +55,23 @@ internal fun ActionPicker(
             category.isEnabled(enableKeyboard, enableGamepad, enableMouse, hasMacros)
         }
 
+    val groupListState = rememberLazyListState()
+    val categoryListState = rememberLazyListState()
+
+    LaunchedEffect(currentGroup, availableGroups) {
+        val index = availableGroups.indexOf(currentGroup)
+        if (index >= 0) {
+            groupListState.animateScrollToItem(index)
+        }
+    }
+
+    LaunchedEffect(currentCategory, groupActions) {
+        val index = groupActions.indexOf(currentCategory)
+        if (index >= 0) {
+            categoryListState.animateScrollToItem(index)
+        }
+    }
+
     LaunchedEffect(groupActions, currentCategory) {
         if (groupActions.size == 1) {
             val singleCategory = groupActions.first()
@@ -59,44 +83,56 @@ internal fun ActionPicker(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.macropad_picker_label_group),
-            color = colors.onSurfaceSecondary,
-            style = MaterialTheme.typography.labelSmall,
-        )
-
-        AppDropdown(
-            selected = currentGroup,
-            options = availableGroups,
-            optionText = { group -> stringResource(group.labelResId()) },
-            onSelected = { group ->
-                val defaultCategory =
-                    group.actions().firstOrNull { category ->
-                        category.isEnabled(enableKeyboard, enableGamepad, enableMouse, hasMacros)
-                    }
-                if (defaultCategory != null) {
-                    onChange(defaultCategory.defaultAction())
-                }
-            },
+        // ── Action Group horizontal scroll row + trailing content (e.g. Show Label switch) ──
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            fillMaxWidth = true,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LazyRow(
+                state = groupListState,
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(availableGroups, key = { it.name }) { group ->
+                    val isSelected = group == currentGroup
+                    AppSelectableChip(
+                        text = stringResource(group.labelResId()),
+                        selected = isSelected,
+                        onClick = {
+                            val defaultCategory =
+                                group.actions().firstOrNull { category ->
+                                    category.isEnabled(enableKeyboard, enableGamepad, enableMouse, hasMacros)
+                                }
+                            if (defaultCategory != null) {
+                                onChange(defaultCategory.defaultAction())
+                            }
+                        },
+                    )
+                }
+            }
 
+            trailingContent?.invoke()
+        }
+
+        // ── Secondary category horizontal scroll row (when group has > 1 action category) ──
         if (groupActions.size > 1) {
-            Text(
-                text = stringResource(R.string.macropad_editor_action),
-                color = colors.onSurfaceSecondary,
-                style = MaterialTheme.typography.labelSmall,
-            )
-
-            AppDropdown(
-                selected = currentCategory,
-                options = groupActions,
-                optionText = { category -> stringResource(category.labelResId()) },
-                onSelected = { category -> onChange(category.defaultAction()) },
+            LazyRow(
+                state = categoryListState,
                 modifier = Modifier.fillMaxWidth(),
-                fillMaxWidth = true,
-            )
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(vertical = 2.dp),
+            ) {
+                items(groupActions, key = { it.name }) { category ->
+                    val isSelected = category == currentCategory
+                    AppSelectableChip(
+                        text = stringResource(category.labelResId()),
+                        selected = isSelected,
+                        onClick = { onChange(category.defaultAction()) },
+                    )
+                }
+            }
         }
 
         when (current) {

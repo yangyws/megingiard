@@ -290,10 +290,15 @@ Each button supports one of the following actions:
   - In `PadButtonEditDialog`, an **ImagePickerSlot** is placed beside the Material Symbol picker. Tapping it opens the SAF image picker, followed by `ImageCropDialog` (1:1 square crop modal with `CropFitMode.FIT` or `CropFitMode.FILL`).
   - Cropped thumbnails are downscaled to 256×256 px, compressed to WebP lossy (90 quality), content-addressed via a 16-hex-character SHA-256 hash, and stored under `filesDir/padicons/<hash>.webp`.
   - The custom image slot features a clear (✕) button to remove the custom image at any time.
-- **Enlarge Icon (`enlargeIcon`)**:
-  - For buttons with a Material Symbol icon (and no custom image), an **"Enlarge icon"** toggle switch is available in `PadButtonEditDialog`.
-  - When enabled (`enlargeIcon = true`), `PadGlyphRules` scales the glyph up to fill ~83% of the button face using font em metrics without clipping (`ENLARGED_EM_FRACTION = 1f`).
-  - Table Mode (`isGridMode = true`) defaults `enlargeIcon` to `true` for newly assigned icons; Free Mode defaults to `false`.
+- **Icon Appearance Controls (`iconFilled`, `enlargeIcon`, `fullBleedIcon`)**:
+  - **Filled (`iconFilled`, 填色)**: Toggles Material Symbol solid filled vs. outline ligature rendering.
+  - **Enlarge Icon (`enlargeIcon`, 放大)**: Scales the glyph up proportionally to the button face bounds (`ENLARGED_EM_FRACTION = 1.0f`) while maintaining aspect ratio.
+  - **Full Bleed (`fullBleedIcon`, 填滿)**: Stretches the glyph or custom image to completely fill the entire button/cell bounds (`ContentScale.FillBounds` / `graphicsLayer(scaleX, scaleY)` non-uniform stretch) edge-to-edge.
+  - All three options are accessible via checkboxes in `IconPickerDialog`.
+- **Show Label Switch (`showLabel`, 顯示文字)**:
+  - An inline switch placed in the Action Group header row allows enabling or disabling button label text rendering directly on the button face.
+- **Action Picker (`PadActionPicker`)**:
+  - Action groups (Keyboard, Gamepad, Mouse, Macro, Mirror, Navigation, App) and multi-action category rows are rendered as swipeable horizontal `LazyRow` chip bars (`AppSelectableChip`) with smooth auto-scroll (`animateScrollToItem`).
 
 ### FR-P11: Default Icons and Labels for Special Action Buttons
 
