@@ -41,6 +41,8 @@ internal fun PadButtonGlyph(
     labelOverlay: Boolean = true,
     faceSize: Dp? = null,
     faceReserve: Dp = 0.dp,
+    isPressed: Boolean = false,
+    accentColor: Color = tint,
     fallback: @Composable () -> Unit = {},
 ) {
     val assetId = btn.imageAssetId
@@ -58,13 +60,31 @@ internal fun PadButtonGlyph(
 
         val bitmap = image
         if (bitmap != null) {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            Box(
+                modifier =
+                    modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val scale = if (isPressed) 0.94f else 1.0f
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                contentAlignment = Alignment.BottomCenter,
+            ) {
                 Image(
                     bitmap = bitmap,
                     contentDescription = btn.label.ifBlank { null },
                     contentScale = if (btn.fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                if (isPressed) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.White.copy(alpha = 0.22f)),
+                    )
+                }
                 if (labelOverlay && btn.showLabel && btn.label.isNotBlank()) {
                     Text(
                         text = btn.label,

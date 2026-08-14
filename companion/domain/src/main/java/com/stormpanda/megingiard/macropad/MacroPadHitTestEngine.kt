@@ -187,7 +187,7 @@ class MacroPadHitTestEngine(
             }
 
             hitButton.action is PadAction.AppLauncher -> {
-                _pressedIds.value = _pressedIds.value + hitButton.id
+                updatePressedIds(buttons)
                 val act = hitButton.action as PadAction.AppLauncher
                 if (act.packageName.isNotBlank()) {
                     val bx = hitButton.posX * canvasW
@@ -208,7 +208,7 @@ class MacroPadHitTestEngine(
             }
 
             else -> {
-                _pressedIds.value = _pressedIds.value + hitButton.id
+                updatePressedIds(buttons)
                 injectActionDown(hitButton.action)
                 if (hitButton.hapticStrength != HapticStrength.OFF) {
                     AppLog.d(TAG, "haptic on press: button=${hitButton.id} strength=${hitButton.hapticStrength}")
@@ -392,7 +392,7 @@ class MacroPadHitTestEngine(
         profile: PadProfile,
     ) {
         val mapped = pointerMap.remove(pointerId) ?: return
-        _pressedIds.value = _pressedIds.value - mapped
+        updatePressedIds(buttons)
         val btn = buttons.firstOrNull { it.id == mapped } ?: return
 
         when {
@@ -413,6 +413,18 @@ class MacroPadHitTestEngine(
             }
         }
     }
+
+    private fun updatePressedIds(buttons: List<PadButton>) {
+        val activeIds = pointerMap.values.toSet()
+        _pressedIds.value =
+            activeIds.filter { id ->
+                val b = buttons.firstOrNull { it.id == id }
+                b?.action !is PadAction.ScrollWheel && b?.action !is PadAction.TrackpointMove
+            }.toSet()
+    }
+
+    /** Returns true if any pointer is currently being tracked or held. */
+    fun hasActivePointers(): Boolean = pointerMap.isNotEmpty() || _pressedIds.value.isNotEmpty()
 
     /** Reset all tracking state. */
     fun reset() {

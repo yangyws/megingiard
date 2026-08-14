@@ -287,6 +287,7 @@ internal fun PadButton(
                     faceSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
                     isTrackpoint = isTrackpoint,
                     effectiveContentAccent = effectiveContentAccent,
+                    isPressed = isPressed,
                 )
             }
         }
@@ -301,6 +302,7 @@ internal fun PadButtonContent(
     faceSize: Dp? = null,
     isTrackpoint: Boolean = btn.action is PadAction.TrackpointMove,
     effectiveContentAccent: Color = effectiveTextTint,
+    isPressed: Boolean = false,
 ) {
     if (isTrackpoint) {
         Text("●", color = effectiveContentAccent.copy(alpha = 0.7f), style = MaterialTheme.typography.titleLarge)
@@ -321,6 +323,8 @@ internal fun PadButtonContent(
             size = iconSize ?: 24.dp,
             tint = effectiveTextTint,
             faceSize = faceSize,
+            isPressed = isPressed,
+            accentColor = effectiveContentAccent,
             fallback = {
                 Text(
                     text = btn.label,

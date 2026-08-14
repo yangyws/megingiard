@@ -325,6 +325,10 @@ internal fun PadSurface(
                                         continue
                                     }
 
+                                    if (event.changes.none { it.pressed } && engine.hasActivePointers()) {
+                                        engine.releaseAll(layout.buttons)
+                                    }
+
                                     event.changes.forEach { change ->
                                         val id = change.id.value
 

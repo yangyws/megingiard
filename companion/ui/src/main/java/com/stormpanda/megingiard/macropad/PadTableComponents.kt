@@ -109,6 +109,7 @@ internal fun PadTableCell(
             faceSize = faceSize,
             isTrackpoint = false,
             effectiveContentAccent = accentColor,
+            isPressed = isPressed,
         )
     }
 }
