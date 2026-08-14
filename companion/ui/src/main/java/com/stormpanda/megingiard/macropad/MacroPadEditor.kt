@@ -981,13 +981,24 @@ private fun EditorBody(
             )
         }
 
-        // 4. Layout management bar
+        // 4. Layout management bar (layouts + mode chips + toolbar)
         item(key = "layouts") {
             EditorLayoutChipsBar(
                 layouts = profile.layouts,
                 activeLayout = layout,
+                profile = profile,
+                accentColor = accentColor,
                 gridMode = gridMode,
+                isCanvasLocked = isCanvasLocked,
+                onToggleCanvasLock = onToggleCanvasLock,
+                onAddButton = onAddButton,
                 onGridModeChange = { nextMode -> gridMode = nextMode },
+                onManageBackground = onManageBackground,
+                onManageTouchpadSettings = onManageTouchpadSettings,
+                onChangeGridCols = { newCols ->
+                    val currentLayout = layout ?: return@EditorLayoutChipsBar
+                    MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
+                },
                 onLayoutModeChange = { newLayoutMode ->
                     val curLayout = layout ?: return@EditorLayoutChipsBar
                     val updated = curLayout.withLayoutMode(newLayoutMode)
@@ -1012,39 +1023,7 @@ private fun EditorBody(
                     Modifier
                         .background(colors.surface)
                         .padding(horizontal = MPE_PADDING)
-                        .padding(top = MPE_PADDING, bottom = 4.dp),
-            )
-        }
-
-        // 3. Action toolbar (Add Button / Grid toggle / Columns in Table mode)
-        item(key = "toolbar") {
-            EditorToolbar(
-                profile = profile,
-                layout = layout,
-                accentColor = accentColor,
-                gridMode = gridMode,
-                isCanvasLocked = isCanvasLocked,
-                onToggleCanvasLock = onToggleCanvasLock,
-                onAddButton = onAddButton,
-                onGridModeChange = {
-                    gridMode =
-                        when (gridMode) {
-                            GridMode.OFF -> GridMode.RECTANGULAR
-                            GridMode.RECTANGULAR -> GridMode.RADIAL
-                            GridMode.RADIAL -> GridMode.OFF
-                        }
-                },
-                onManageBackground = onManageBackground,
-                onManageTouchpadSettings = onManageTouchpadSettings,
-                onChangeGridCols = { newCols ->
-                    val currentLayout = layout ?: return@EditorToolbar
-                    MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
-                },
-                modifier =
-                    Modifier
-                        .background(colors.surface)
-                        .padding(horizontal = MPE_PADDING)
-                        .padding(top = 4.dp, bottom = MPE_PADDING),
+                        .padding(top = MPE_PADDING, bottom = MPE_PADDING),
             )
         }
 

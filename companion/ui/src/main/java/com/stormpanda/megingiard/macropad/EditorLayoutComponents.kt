@@ -171,8 +171,16 @@ internal fun EditorProfileChipsBar(
 internal fun EditorLayoutChipsBar(
     layouts: List<PadLayout>,
     activeLayout: PadLayout?,
+    profile: PadProfile,
+    accentColor: Color,
     gridMode: GridMode,
+    isCanvasLocked: Boolean,
+    onToggleCanvasLock: () -> Unit,
+    onAddButton: () -> Unit,
     onGridModeChange: (GridMode) -> Unit,
+    onManageBackground: () -> Unit,
+    onManageTouchpadSettings: () -> Unit,
+    onChangeGridCols: ((Int) -> Unit)? = null,
     onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
     onEditLayout: () -> Unit,
@@ -237,9 +245,7 @@ internal fun EditorLayoutChipsBar(
                                     modifier = Modifier.size(14.dp),
                                 )
                             },
-                            modifier =
-                                Modifier
-                                    .then(Modifier.longPressDraggableHandle()),
+                            modifier = Modifier.then(Modifier.longPressDraggableHandle()),
                         )
                     }
                 }
@@ -260,7 +266,6 @@ internal fun EditorLayoutChipsBar(
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(colors.surface),
                 ) {
                     DropdownMenuItem(
                         text = {
@@ -315,7 +320,6 @@ internal fun EditorLayoutChipsBar(
                         },
                     )
                     if (canDelete) {
-                        AppDivider()
                         DropdownMenuItem(
                             text = {
                                 Text(
@@ -334,37 +338,66 @@ internal fun EditorLayoutChipsBar(
             }
         }
 
-        // Layout mode chips: 自由模式 ↔ 表格模式
+        // Layout mode chips (自由模式 ↔ 表格模式) + Action Toolbar on the right
         val isGrid = activeLayout?.isGridMode == true
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppSelectableChip(
-                text = stringResource(R.string.layout_settings_mode_free),
-                selected = !isGrid,
-                onClick = { if (isGrid) onLayoutModeChange(PadLayoutMode.FREE) },
-                leadingIcon = { contentColor ->
-                    Icon(
-                        imageVector = Icons.Rounded.OpenWith,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(14.dp),
-                    )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppSelectableChip(
+                    text = stringResource(R.string.layout_settings_mode_free),
+                    selected = !isGrid,
+                    onClick = { if (isGrid) onLayoutModeChange(PadLayoutMode.FREE) },
+                    leadingIcon = { contentColor ->
+                        Icon(
+                            imageVector = Icons.Rounded.OpenWith,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    },
+                )
+                AppSelectableChip(
+                    text = stringResource(R.string.layout_settings_mode_grid),
+                    selected = isGrid,
+                    onClick = { if (!isGrid) onLayoutModeChange(PadLayoutMode.GRID) },
+                    leadingIcon = { contentColor ->
+                        Icon(
+                            imageVector = Icons.Rounded.GridView,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    },
+                )
+            }
+
+            // Action toolbar (Add Button / Background / Lock / Touchpad / Grid OR Columns in Table mode)
+            EditorToolbar(
+                profile = profile,
+                layout = activeLayout,
+                accentColor = accentColor,
+                gridMode = gridMode,
+                isCanvasLocked = isCanvasLocked,
+                onToggleCanvasLock = onToggleCanvasLock,
+                onAddButton = onAddButton,
+                onGridModeChange = {
+                    val nextMode =
+                        when (gridMode) {
+                            GridMode.OFF -> GridMode.RECTANGULAR
+                            GridMode.RECTANGULAR -> GridMode.RADIAL
+                            GridMode.RADIAL -> GridMode.OFF
+                        }
+                    onGridModeChange(nextMode)
                 },
-            )
-            AppSelectableChip(
-                text = stringResource(R.string.layout_settings_mode_grid),
-                selected = isGrid,
-                onClick = { if (!isGrid) onLayoutModeChange(PadLayoutMode.GRID) },
-                leadingIcon = { contentColor ->
-                    Icon(
-                        imageVector = Icons.Rounded.GridView,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(14.dp),
-                    )
-                },
+                onManageBackground = onManageBackground,
+                onManageTouchpadSettings = onManageTouchpadSettings,
+                onChangeGridCols = onChangeGridCols,
             )
         }
     }

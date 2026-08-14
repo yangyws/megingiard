@@ -190,7 +190,7 @@ internal fun EditorToolbar(
         val currentCols = layout.effectiveGridCols
 
         Row(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -264,7 +264,7 @@ internal fun EditorToolbar(
         val lockLabel = if (isCanvasLocked) stringResource(R.string.macropad_editor_unlock) else stringResource(R.string.macropad_editor_lock)
 
         Row(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
