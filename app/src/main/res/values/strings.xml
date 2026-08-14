@@ -553,6 +553,10 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_button_color_accented">Accented</string>
     <string name="macropad_editor_button_color_neutral">Neutral</string>
 
+    <!-- Layout mode strings -->
+    <string name="layout_settings_mode_free">Free Mode</string>
+    <string name="layout_settings_mode_grid">Table Mode</string>
+
     <!-- Layout background image settings -->
     <string name="layout_settings_bg_image_title">Background Image</string>
     <string name="layout_settings_bg_image_desc">Display a custom image behind MacroPad buttons</string>

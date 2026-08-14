@@ -13,8 +13,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.OpenWith
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -170,6 +171,9 @@ internal fun EditorProfileChipsBar(
 internal fun EditorLayoutChipsBar(
     layouts: List<PadLayout>,
     activeLayout: PadLayout?,
+    gridMode: GridMode,
+    onGridModeChange: (GridMode) -> Unit,
+    onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
     onEditLayout: () -> Unit,
     onDuplicateLayout: () -> Unit,
@@ -203,116 +207,165 @@ internal fun EditorLayoutChipsBar(
         }
     }
 
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        LazyRow(
-            state = lazyRowState,
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(vertical = 4.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(layouts, key = { it.id }) { layout ->
-                ReorderableItem(reorderState, key = layout.id) {
-                    val isActive = layout.id == activeLayout?.id
-                    AppSelectableChip(
-                        text = layout.name,
-                        selected = isActive,
-                        onClick = { onSelectLayout(layout.id) },
-                        modifier =
-                            Modifier
-                                .then(Modifier.longPressDraggableHandle()),
+            LazyRow(
+                state = lazyRowState,
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(layouts, key = { it.id }) { layout ->
+                    ReorderableItem(reorderState, key = layout.id) {
+                        val isActive = layout.id == activeLayout?.id
+                        AppSelectableChip(
+                            text = layout.name,
+                            selected = isActive,
+                            onClick = { onSelectLayout(layout.id) },
+                            leadingIcon = { contentColor ->
+                                Icon(
+                                    imageVector = if (gridMode != GridMode.OFF) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            },
+                            modifier =
+                                Modifier
+                                    .then(Modifier.longPressDraggableHandle()),
+                        )
+                    }
+                }
+            }
+
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = stringResource(R.string.cd_more_options),
+                        tint = colors.onSurfaceSecondary,
+                        modifier = Modifier.size(20.dp),
                     )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(colors.surface),
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.macropad_editor_rename),
+                                color = colors.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onEditLayout()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.macropad_duplicate_layout),
+                                color = colors.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onDuplicateLayout()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.macropad_editor_copy_to_profile),
+                                color = colors.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onCopyToProfile()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.macropad_reorder_layouts),
+                                color = colors.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onReorderLayouts()
+                        },
+                    )
+                    if (canDelete) {
+                        AppDivider()
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.macropad_editor_delete_layout),
+                                    color = colors.accent,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDeleteLayout()
+                            },
+                        )
+                    }
                 }
             }
         }
 
-        Box {
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.size(28.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = stringResource(R.string.cd_more_options),
-                    tint = colors.onSurfaceSecondary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(colors.surface),
-            ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.macropad_editor_title),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onEditLayout()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.macropad_duplicate_layout),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onDuplicateLayout()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.macropad_editor_copy_to_profile),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onCopyToProfile()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.macropad_reorder_layouts),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onReorderLayouts()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(R.string.macropad_editor_delete_layout),
-                            color = if (canDelete) colors.error else colors.onSurfaceSecondary.copy(alpha = 0.38f),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
-                    enabled = canDelete,
-                    onClick = {
-                        menuExpanded = false
-                        onDeleteLayout()
-                    },
-                )
-            }
+        // Layout mode chips: 自由模式 ↔ 表格模式
+        val isGrid = activeLayout?.isGridMode == true
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppSelectableChip(
+                text = stringResource(R.string.layout_settings_mode_free),
+                selected = !isGrid,
+                onClick = { if (isGrid) onLayoutModeChange(PadLayoutMode.FREE) },
+                leadingIcon = { contentColor ->
+                    Icon(
+                        imageVector = Icons.Rounded.OpenWith,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(14.dp),
+                    )
+                },
+            )
+            AppSelectableChip(
+                text = stringResource(R.string.layout_settings_mode_grid),
+                selected = isGrid,
+                onClick = { if (!isGrid) onLayoutModeChange(PadLayoutMode.GRID) },
+                leadingIcon = { contentColor ->
+                    Icon(
+                        imageVector = Icons.Rounded.GridView,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(14.dp),
+                    )
+                },
+            )
         }
     }
 }

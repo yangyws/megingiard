@@ -325,7 +325,23 @@ data class PadButton(
     val buttonBorderColor: ColorOption? = null,
     val buttonBgColor: ColorOption? = null,
     val invisible: Boolean = false,
-)
+    val gridCol: Int? = null,
+    val gridRow: Int? = null,
+    val colSpan: Int = 1,
+    val rowSpan: Int = 1,
+    @Transient val resolvedCell: CellBounds? = null,
+) {
+    val effectiveColSpan: Int get() = colSpan.coerceAtLeast(1)
+    val effectiveRowSpan: Int get() = rowSpan.coerceAtLeast(1)
+
+    fun isWithinGrid(cols: Int, rows: Int): Boolean {
+        val c = gridCol ?: return false
+        val r = gridRow ?: return false
+        val cs = effectiveColSpan
+        val rs = effectiveRowSpan
+        return c >= 0 && r >= 0 && (c + cs) <= cols && (r + rs) <= rows
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Background Touchpad configuration — per-layout relative mouse touchpad settings
@@ -346,32 +362,28 @@ data class BackgroundTouchpadConfig(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PadLayoutMode — positioning mode for PadLayout
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Serializable
+enum class PadLayoutMode {
+    FREE,
+    GRID,
+}
+
+const val MAX_GRID_COLS = 8
+const val MAX_GRID_ROWS = 6
+const val MIN_GRID_SIZE = 1
+const val DEFAULT_GRID_COLS = 5
+const val DEFAULT_GRID_ROWS = 4
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PadLayout — a single button arrangement within a profile
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * A named button arrangement within a [PadProfile]. Each profile can contain
  * multiple layouts; the user switches between them at runtime.
- *
- * @param id                          Stable unique identifier (UUID string).
- * @param name                        User-visible layout name.
- * @param enabled                     Whether this layout participates in next/previous navigation.
- * @param buttons                     All buttons placed on this layout.
- * @param ambientDim                  Dim overlay alpha [0.0, 0.9] when screen mirror is active.
-
- * @param mirrorSavedScale            Persisted mirror zoom level.
- * @param mirrorSavedOffsetX          Persisted mirror pan X offset.
- * @param mirrorSavedOffsetY          Persisted mirror pan Y offset.
- * @param mirrorAutoStart             Remembered mirror preference for this layout. Set to
- *                                    `true` when the user explicitly starts mirroring on
- *                                    this layout, and to `false` when the user explicitly
- *                                    stops mirroring or cancels the consent prompt. Runtime
- *                                    service teardown does not mutate this flag.
- * @param buttonColorNoMirror         Button color style used when screen mirroring is inactive.
- *                                    Defaults to [ButtonColorStyle.ACCENTED].
- * @param buttonColorMirror           Button color style used when screen mirroring is active
- *                                    (ambient overlay). Defaults to [ButtonColorStyle.NEUTRAL].
- * @param backgroundTouchpad          Per-layout background touchpad settings for relative mouse.
  */
 @Serializable
 data class PadLayout(
@@ -408,7 +420,16 @@ data class PadLayout(
     val bgImageOffsetY: Float = 0f,
     val backgroundImageDim: Float = 0f,
     val backgroundTouchpad: BackgroundTouchpadConfig = BackgroundTouchpadConfig(),
-)
+    val layoutMode: PadLayoutMode = PadLayoutMode.FREE,
+    val gridCols: Int = DEFAULT_GRID_COLS,
+    val gridRows: Int = DEFAULT_GRID_ROWS,
+    val gridShowBorders: Boolean = true,
+) {
+    val isGridMode: Boolean get() = layoutMode == PadLayoutMode.GRID
+
+    val effectiveGridCols: Int get() = gridCols.coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS)
+    val effectiveGridRows: Int get() = gridRows.coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 @Serializable

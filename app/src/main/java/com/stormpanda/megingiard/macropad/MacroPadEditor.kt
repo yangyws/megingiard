@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
+import com.stormpanda.megingiard.macropad.withLayoutMode
 import com.stormpanda.megingiard.CompanionViewMode
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.input.MouseInjector
@@ -136,6 +137,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
     var showMacroListEditor by remember { mutableStateOf(false) }
     var pendingMacroEditId by remember { mutableStateOf<String?>(null) }
     var showAddButton by remember { mutableStateOf(false) }
+    var pendingCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var editingButton by remember { mutableStateOf<PadButton?>(null) }
     var editingButtonActive by remember { mutableStateOf(false) }
     var buttonPendingDelete by remember { mutableStateOf<PadButton?>(null) }
@@ -994,6 +996,13 @@ private fun EditorBody(
             EditorLayoutChipsBar(
                 layouts = profile.layouts,
                 activeLayout = layout,
+                gridMode = gridMode,
+                onGridModeChange = { nextMode -> gridMode = nextMode },
+                onLayoutModeChange = { newLayoutMode ->
+                    val curLayout = layout ?: return@EditorLayoutChipsBar
+                    val updated = curLayout.withLayoutMode(newLayoutMode)
+                    MacroPadState.updateLayout(updated)
+                },
                 onSelectLayout = onSelectLayout,
                 onEditLayout = onEditLayout,
                 onDuplicateLayout = {
@@ -1046,35 +1055,59 @@ private fun EditorBody(
 
         // 4. Pad canvas
         item(key = "canvas") {
-            PadCanvas(profile = profile, layout = layout, accentColor = accentColor, gridMode = gridMode, isLocked = isCanvasLocked)
-        }
-
-        // 5. Buttons section header
-        item(key = "section_buttons") {
-            EditorSectionHeader(
-                textRes = R.string.macropad_editor_section_buttons,
-                actionIcon = Icons.Rounded.Add,
-                actionContentDescription = stringResource(R.string.macropad_editor_add_button),
-                onActionClick = onAddButton,
+            PadCanvas(
+                profile = profile,
+                layout = layout,
+                accentColor = accentColor,
+                gridMode = gridMode,
+                isLocked = isCanvasLocked,
+                onCellTap = { col, row ->
+                    val lay = layout ?: return@PadCanvas
+                    val button = GridLayoutMath.buttonAt(lay, col, row)
+                    if (button != null) {
+                        onEditButton(button)
+                    } else {
+                        val currentLayout = layout
+                        if (currentLayout != null) {
+                            val newBtn = PadButton(
+                                id = java.util.UUID.randomUUID().toString(),
+                                label = "",
+                                posX = 0.5f,
+                                posY = 0.5f,
+                                action = PadAction.KeyboardKey(keycode = 30, label = "A"),
+                                gridCol = col,
+                                gridRow = row,
+                            )
+                            MacroPadState.updateLayout(currentLayout.copy(buttons = currentLayout.buttons + newBtn))
+                        }
+                    }
+                },
+                onCellMove = { from, to ->
+                    val lay = layout ?: return@PadCanvas
+                    val moved = GridLayoutMath.moveButton(lay, from, to)
+                    MacroPadState.updateLayout(moved)
+                },
+                onCellMenu = { button ->
+                    onEditButton(button)
+                },
             )
         }
 
-        // 6. Button list — tap to edit, drag handle to reorder
-        if (layout?.buttons.isNullOrEmpty()) {
-            item(key = "empty") {
-                Text(
-                    text = stringResource(R.string.macropad_editor_add_button),
-                    color = colors.onSurfaceSecondary,
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier =
-                        Modifier
-                            .padding(horizontal = MPE_PADDING)
-                            .padding(vertical = 8.dp),
-                )
+        val unplacedButtons =
+            if (layout != null && layout.isGridMode) {
+                val cols = layout.effectiveGridCols
+                val rows = layout.effectiveGridRows
+                layout.buttons.filterNot { it.isWithinGrid(cols, rows) }
+            } else {
+                emptyList()
             }
-        } else {
-            itemsIndexed(layout?.buttons ?: emptyList(), key = { _, btn -> btn.id }) { _, btn ->
-                ReorderableItem(reorderState, key = btn.id) { isDragging ->
+
+        if (layout?.isGridMode == true) {
+            if (unplacedButtons.isNotEmpty()) {
+                item(key = "section_unplaced_buttons") {
+                    EditorSectionHeader(textRes = R.string.macropad_editor_section_buttons)
+                }
+                itemsIndexed(unplacedButtons, key = { _, btn -> btn.id }) { _, btn ->
                     ButtonListItem(
                         btn = btn,
                         accentColor = accentColor,
@@ -1082,14 +1115,59 @@ private fun EditorBody(
                         enableGamepad = profile.enableGamepad,
                         enableMouse = profile.enableMouse,
                         enableTouch = profile.enableTouch,
-                        isDragging = isDragging,
+                        isDragging = false,
                         onEdit = { onEditButton(btn) },
-                        onDuplicate = { MacroPadState.duplicateButtonInLayout(btn, layout.id) },
+                        onDuplicate = { layout?.let { lay -> MacroPadState.duplicateButtonInLayout(btn, lay.id) } },
                         onCopyToLayout = { onCopyToLayout(btn) },
                         onDelete = { onDeleteRequested(btn) },
-                        dragHandleModifier = Modifier.draggableHandle(),
+                        dragHandleModifier = Modifier,
                     )
                     AppDivider(modifier = Modifier.padding(horizontal = MPE_PADDING))
+                }
+            }
+        } else {
+            // 5. Buttons section header
+            item(key = "section_buttons") {
+                EditorSectionHeader(
+                    textRes = R.string.macropad_editor_section_buttons,
+                    actionIcon = Icons.Rounded.Add,
+                    actionContentDescription = stringResource(R.string.macropad_editor_add_button),
+                    onActionClick = onAddButton,
+                )
+            }
+
+            // 6. Button list — tap to edit, drag handle to reorder
+            if (layout?.buttons.isNullOrEmpty()) {
+                item(key = "empty") {
+                    Text(
+                        text = stringResource(R.string.macropad_editor_add_button),
+                        color = colors.onSurfaceSecondary,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier =
+                            Modifier
+                                .padding(horizontal = MPE_PADDING)
+                                .padding(vertical = 8.dp),
+                    )
+                }
+            } else {
+                itemsIndexed(layout?.buttons ?: emptyList(), key = { _, btn -> btn.id }) { _, btn ->
+                    ReorderableItem(reorderState, key = btn.id) { isDragging ->
+                        ButtonListItem(
+                            btn = btn,
+                            accentColor = accentColor,
+                            enableKeyboard = profile.enableKeyboard,
+                            enableGamepad = profile.enableGamepad,
+                            enableMouse = profile.enableMouse,
+                            enableTouch = profile.enableTouch,
+                            isDragging = isDragging,
+                            onEdit = { onEditButton(btn) },
+                            onDuplicate = { MacroPadState.duplicateButtonInLayout(btn, layout.id) },
+                            onCopyToLayout = { onCopyToLayout(btn) },
+                            onDelete = { onDeleteRequested(btn) },
+                            dragHandleModifier = Modifier.draggableHandle(),
+                        )
+                        AppDivider(modifier = Modifier.padding(horizontal = MPE_PADDING))
+                    }
                 }
             }
         }

@@ -461,6 +461,8 @@
     <string name="macropad_editor_grid_rectangular">矩形網格</string>
     <string name="macropad_editor_grid_radial">徑向網格</string>
     <string name="macropad_editor_grid_toggle">更改網格</string>
+    <string name="layout_settings_mode_free">自由模式</string>
+    <string name="layout_settings_mode_grid">表格模式</string>
     <string name="macropad_editor_toolbar_button">新增按鈕</string>
     <string name="macropad_editor_unlock">解鎖按鈕</string>
     <string name="macropad_editor_lock">鎖定按鈕</string>

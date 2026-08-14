@@ -73,7 +73,8 @@ abstract class DexTask : DefaultTask() {
         val buildToolsDir = sdkRoot.get().asFile.resolve("build-tools")
         val newest = buildToolsDir.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
             ?: error("No build-tools installed under $buildToolsDir")
-        val d8 = newest.resolve("d8")
+        val d8ExecutableName = if (org.gradle.internal.os.OperatingSystem.current().isWindows) "d8.bat" else "d8"
+        val d8 = newest.resolve(d8ExecutableName)
         check(d8.exists()) { "d8 not found at $d8" }
 
         val out = outputDex.get().asFile

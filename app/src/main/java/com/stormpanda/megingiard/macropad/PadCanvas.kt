@@ -7,12 +7,16 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Icon
@@ -50,13 +55,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.BitmapUtils
+import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.ui.LocalAppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -110,11 +118,14 @@ internal enum class GridMode { OFF, RECTANGULAR, RADIAL }
 
 @Composable
 internal fun PadCanvas(
-    profile: PadProfile,
+    profile: PadProfile?,
     layout: PadLayout?,
     accentColor: Color,
     gridMode: GridMode,
     isLocked: Boolean,
+    onCellTap: ((col: Int, row: Int) -> Unit)? = null,
+    onCellMove: ((from: Pair<Int, Int>, to: Pair<Int, Int>) -> Unit)? = null,
+    onCellMenu: ((PadButton) -> Unit)? = null,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var lastTouchedButtonId by remember { mutableStateOf<String?>(null) }
@@ -228,8 +239,8 @@ internal fun PadCanvas(
                 }
             }
         }
-        // Grid overlay — drawn behind buttons
-        if (gridMode != GridMode.OFF && canvasSize.width > 0 && canvasSize.height > 0) {
+        // Grid overlay — drawn behind buttons in free mode
+        if (layout?.isGridMode != true && gridMode != GridMode.OFF && canvasSize.width > 0 && canvasSize.height > 0) {
             GridOverlay(
                 gridMode = gridMode,
                 gridStepPx = gridStepPx,
@@ -237,18 +248,28 @@ internal fun PadCanvas(
             )
         }
 
-        // Render each button as a draggable chip
-        (layout?.buttons ?: emptyList()).forEach { btn ->
+        if (layout?.isGridMode == true) {
+            PadTableGrid(
+                layout = layout,
+                accentColor = accentColor,
+                onCellTap = onCellTap,
+                onCellMove = onCellMove,
+                onCellMenu = onCellMenu,
+            )
+        }
+
+        // Render each button as a draggable chip (free-placement mode only)
+        (if (layout?.isGridMode == true) emptyList() else layout?.buttons ?: emptyList()).forEach { btn ->
             val targetLayoutId = layout?.id
             DraggableButton(
                 btn = btn,
                 layout = layout!!,
                 canvasSize = canvasSize,
                 accentColor = accentColor,
-                enableKeyboard = profile.enableKeyboard,
-                enableGamepad = profile.enableGamepad,
-                enableMouse = profile.enableMouse,
-                enableTouch = profile.enableTouch,
+                enableKeyboard = profile?.enableKeyboard == true,
+                enableGamepad = profile?.enableGamepad == true,
+                enableMouse = profile?.enableMouse == true,
+                enableTouch = profile?.enableTouch == true,
                 gridMode = gridMode,
                 gridStepPx = gridStepPx,
                 isLocked = isLocked,
@@ -965,5 +986,145 @@ private fun DragHandle(
             size = handleSize,
             tint = accentColor,
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Table mode canvas
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PadTableGrid(
+    layout: PadLayout,
+    accentColor: Color,
+    onCellTap: ((col: Int, row: Int) -> Unit)? = null,
+    onCellMove: ((from: Pair<Int, Int>, to: Pair<Int, Int>) -> Unit)? = null,
+    onCellMenu: ((PadButton) -> Unit)? = null,
+) {
+    val colors = LocalAppColors.current
+    val cols = layout.effectiveGridCols
+    val rows = layout.effectiveGridRows
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                for (col in 0 until cols) {
+                    val button = GridLayoutMath.buttonAt(layout, col, row)
+                    val cellModifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(2.dp)
+                            .clip(RoundedCornerShape(4.dp))
+
+                    if (button == null) {
+                        Box(
+                            modifier =
+                                cellModifier
+                                    .border(
+                                        width = 1.dp,
+                                        color = colors.onSurfaceSecondary.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(4.dp),
+                                    )
+                                    .pointerInput(col, row) {
+                                        detectTapGestures(
+                                            onTap = { onCellTap?.invoke(col, row) },
+                                        )
+                                    },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = stringResource(R.string.macropad_editor_add_button),
+                                tint = colors.onSurfaceSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    } else {
+                        PadTableCell(
+                            button = button,
+                            layout = layout,
+                            accentColor = accentColor,
+                            showBorder = layout.gridShowBorders,
+                            onTap = { onCellTap?.invoke(col, row) },
+                            onLongPress = { onCellMenu?.invoke(button) },
+                            modifier = cellModifier,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PadTableCell(
+    button: PadButton,
+    layout: PadLayout,
+    accentColor: Color,
+    showBorder: Boolean,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val bg = resolveColorOption(button.buttonBgColor ?: layout.buttonBgColor, accentColor, MP_AMBIENT_NEUTRAL_BG)
+    val border =
+        resolveColorOption(button.buttonBorderColor ?: layout.buttonBorderColor, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
+    val text =
+        resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+
+    Box(
+        modifier =
+            modifier
+                .background(bg.copy(alpha = bg.alpha * 0.18f))
+                .then(
+                    if (showBorder) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = border,
+                            shape = RoundedCornerShape(4.dp),
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
+                .pointerInput(button.id) {
+                    detectTapGestures(
+                        onTap = { onTap() },
+                        onLongPress = { onLongPress() },
+                    )
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(2.dp),
+        ) {
+            val iconName = button.iconName
+            if (iconName != null) {
+                MaterialSymbol(
+                    name = iconName,
+                    size = 24.dp,
+                    tint = text,
+                    filled = button.iconFilled,
+                )
+            }
+            if (button.label.isNotBlank()) {
+                Text(
+                    text = button.label,
+                    color = text,
+                    style =
+                        if (iconName != null) {
+                            MaterialTheme.typography.labelSmall
+                        } else {
+                            MaterialTheme.typography.bodySmall
+                        },
+                    maxLines = if (iconName != null) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }

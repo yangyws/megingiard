@@ -127,6 +127,39 @@ internal fun EditorActionChip(
 }
 
 @Composable
+internal fun EditorToolbarIconButton(
+    label: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+) {
+    val colors = LocalAppColors.current
+    val bg = if (isActive) accentColor.copy(alpha = 0.2f) else colors.surface
+    val border = if (isActive) accentColor else colors.onSurfaceSecondary.copy(alpha = 0.3f)
+    val tint = if (isActive) accentColor else colors.onSurface
+
+    Box(
+        modifier =
+            modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(bg)
+                .border(1.dp, border, RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
 internal fun EditorToolbar(
     profile: PadProfile,
     accentColor: Color,
@@ -153,70 +186,43 @@ internal fun EditorToolbar(
     val lockIcon = if (isCanvasLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen
     val lockLabel = if (isCanvasLocked) stringResource(R.string.macropad_editor_unlock) else stringResource(R.string.macropad_editor_lock)
 
-    Column(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // First row: Add Button and Change Background
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Add Button ("Add Button")
-            EditorActionChip(
-                label = buttonLabel,
-                icon = Icons.Rounded.Add,
-                accentColor = accentColor,
-                onClick = onAddButton,
-                modifier = Modifier.weight(1f),
-            )
-            // Background Button ("Change Background")
-            EditorActionChip(
-                label = bgLabel,
-                icon = Icons.Rounded.Wallpaper,
-                accentColor = accentColor,
-                onClick = onManageBackground,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        // Second row: Unlock Buttons and Touchpad Settings
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Unlock / Lock button
-            EditorActionChip(
-                label = lockLabel,
-                icon = lockIcon,
-                accentColor = accentColor,
-                onClick = onToggleCanvasLock,
-                modifier = Modifier.weight(1f),
-            )
-            // Touchpad Settings button
-            EditorActionChip(
-                label = touchpadLabel,
-                icon = Icons.Rounded.Mouse,
-                accentColor = accentColor,
-                onClick = onManageTouchpadSettings,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        // Third row: Change Grid
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            EditorActionChip(
-                label = gridLabel,
-                icon = gridIcon,
-                accentColor = accentColor,
-                onClick = onGridModeChange,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        EditorToolbarIconButton(
+            label = buttonLabel,
+            icon = Icons.Rounded.Add,
+            accentColor = accentColor,
+            onClick = onAddButton,
+        )
+        EditorToolbarIconButton(
+            label = bgLabel,
+            icon = Icons.Rounded.Wallpaper,
+            accentColor = accentColor,
+            onClick = onManageBackground,
+        )
+        EditorToolbarIconButton(
+            label = lockLabel,
+            icon = lockIcon,
+            accentColor = accentColor,
+            onClick = onToggleCanvasLock,
+            isActive = !isCanvasLocked,
+        )
+        EditorToolbarIconButton(
+            label = touchpadLabel,
+            icon = Icons.Rounded.Mouse,
+            accentColor = accentColor,
+            onClick = onManageTouchpadSettings,
+        )
+        EditorToolbarIconButton(
+            label = gridLabel,
+            icon = gridIcon,
+            accentColor = accentColor,
+            onClick = onGridModeChange,
+            isActive = gridMode != GridMode.OFF,
+        )
     }
 }
 

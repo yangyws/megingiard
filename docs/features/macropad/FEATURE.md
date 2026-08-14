@@ -26,7 +26,10 @@ The MacroPad feature turns the secondary display into a fully configurable butto
 - Each profile can contain an **arbitrary number of buttons** placed anywhere on the pad canvas.
 - Button positions are stored as **normalised coordinates** [0.0, 1.0] relative to the pad dimensions, so the layout scales correctly at any pad size.
 - Each button has a user-defined **label**, a **shape** (circle, square, or icon only), a **size weight** (1.0 = default unit size), and an **action** (see FR-P3).
-- Buttons MUST be repositioned by **drag** inside the editor canvas.
+- Buttons MUST be repositioned by **drag** inside the editor canvas when in Free Mode.
+- Each layout supports two layout modes via `PadLayoutMode`:
+  - **`PadLayoutMode.FREE` (Free Mode)** — Buttons carry normalized `posX` / `posY` coordinates `[0.0, 1.0]` and can be placed anywhere on the canvas with optional snap overlays.
+  - **`PadLayoutMode.GRID` (Table Mode)** — Buttons carry discrete `gridCol` / `gridRow` indices inside a configurable `gridCols x gridRows` table grid (default 5×4, min 1×1, max 8×6). `GridLayoutMath` computes cell centers and bounds. Empty cells display a `+` trigger to add buttons directly to that cell; occupied cells render button faces and support long-press editing.
 - The editor provides a **grid snap overlay** that can be toggled on and off at any time during layout editing. Two grid modes are available:
   - **Rectangular** — vertical and horizontal lines spaced at 30 dp (half the 60 dp button unit), forming a uniform grid. Crossing points are the snap targets.
   - **Radial** — concentric circles (centred on the canvas) spaced at 30 dp, with **evenly distributed snap points** along each circle. The number of snap points per circle scales with its circumference (roughly one point per 60 dp of arc length) and is always a **multiple of 4** (minimum 4). Circles alternate phase: odd-indexed circles (1st, 3rd, …) have 4 anchor points at the **diagonals** (45°, 135°, 225°, 315°); even-indexed circles have anchors at the **cardinal** directions (0°, 90°, 180°, 270°). Additional equidistant points fill the gaps between the 4 anchors. A dedicated snap point sits at the exact centre of the canvas. No horizontal or vertical lines are shown.
