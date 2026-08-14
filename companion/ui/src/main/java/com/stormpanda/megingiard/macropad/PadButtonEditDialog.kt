@@ -1,6 +1,10 @@
 package com.stormpanda.megingiard.macropad
 
+import android.net.Uri
 import android.os.Vibrator
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,18 +43,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.AppLog
+import com.stormpanda.megingiard.AppStateManager
+import com.stormpanda.megingiard.BitmapUtils
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.settings.ColorWheelPicker
 import com.stormpanda.megingiard.settings.MacroPadSettings
@@ -63,6 +74,9 @@ import com.stormpanda.megingiard.ui.FullScreenTopBar
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.appSwitchColors
 import com.stormpanda.megingiard.ui.blockPointerEvents
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.UUID
 
@@ -80,6 +94,9 @@ private const val PBD_ICON_PROFILE_SWITCHER = "swap_horiz"
 private const val PBD_ICON_BACKGROUND_PEEK = "visibility"
 private val PBD_PREVIEW_BUTTON_SIZE = 60.dp
 private val PBD_RECENT_COLORS_GRID_HEIGHT = 128.dp
+private val BTN_IMAGE_SLOT_SIZE = 56.dp
+private val BTN_IMAGE_CLEAR_SIZE = 18.dp
+private const val BTN_IMAGE_DECODE_PX = 1024
 
 /**
  * Maps a [PadAction] type to its localised label string resource.
@@ -164,6 +181,35 @@ internal fun ButtonEditDialog(
     var label by remember { mutableStateOf(initLabel) }
     var iconName by remember { mutableStateOf(initIconName) }
     var showIconPicker by remember { mutableStateOf(false) }
+    var imageAssetId by remember { mutableStateOf(button?.imageAssetId) }
+    var enlargeIcon by remember {
+        mutableStateOf(button?.enlargeIcon ?: PadGlyphRules.defaultEnlargeIcon(activeLayout?.isGridMode == true))
+    }
+    var cropSource by remember { mutableStateOf<ImageBitmap?>(null) }
+    val scope = rememberCoroutineScope()
+
+    val imagePickerLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
+            AppStateManager.setFilePickerOpen(false)
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val decoded =
+                    withContext(Dispatchers.IO) {
+                        BitmapUtils.decodeScaledBitmapFromUri(
+                            context,
+                            uri,
+                            targetW = BTN_IMAGE_DECODE_PX,
+                            targetH = BTN_IMAGE_DECODE_PX,
+                        )
+                    }
+                if (decoded != null) {
+                    cropSource = decoded.asImageBitmap()
+                } else {
+                    AppLog.e(TAG, "Failed to decode picked button image from $uri")
+                }
+            }
+        }
+
     var buttonShape by remember { mutableStateOf(button?.buttonShape ?: ButtonShape.CIRCLE) }
     var buttonSize by remember { mutableStateOf(button?.buttonSize ?: ButtonSize.SIZE_1X1) }
     var action by remember { mutableStateOf(initAction) }
@@ -309,6 +355,8 @@ internal fun ButtonEditDialog(
                                     label = label,
                                     iconName = iconName,
                                     iconFilled = iconFilled,
+                                    imageAssetId = imageAssetId,
+                                    enlargeIcon = enlargeIcon,
                                     buttonShape = buttonShape,
                                     buttonSize = buttonSize,
                                     action = action,
@@ -324,6 +372,8 @@ internal fun ButtonEditDialog(
                                     label = label,
                                     iconName = iconName,
                                     iconFilled = iconFilled,
+                                    imageAssetId = imageAssetId,
+                                    enlargeIcon = enlargeIcon,
                                     posX = 0.5f,
                                     posY = 0.5f,
                                     buttonShape = buttonShape,
@@ -387,12 +437,22 @@ internal fun ButtonEditDialog(
                             label = { Text(stringResource(R.string.macropad_editor_button_label), color = colors.onSurfaceSecondary) },
                             modifier = Modifier.weight(1f),
                         )
+                        // Custom image selector slot
+                        ImagePickerSlot(
+                            assetId = imageAssetId,
+                            accentColor = accentColor,
+                            onPick = {
+                                AppStateManager.setFilePickerOpen(true)
+                                imagePickerLauncher.launch("image/*")
+                            },
+                            onClear = { imageAssetId = null },
+                        )
                         // Icon selector button
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier =
                                 Modifier
-                                    .size(56.dp)
+                                    .size(BTN_IMAGE_SLOT_SIZE)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(
                                         if (iconName != null) {
@@ -411,6 +471,32 @@ internal fun ButtonEditDialog(
                                 size = 28.dp,
                                 tint = if (iconName != null) accentColor else colors.onSurfaceSecondary,
                                 filled = iconsFilled,
+                            )
+                        }
+                    }
+
+                    if (PadGlyphRules.showsEnlargeIcon(iconName, imageAssetId)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.button_settings_enlarge_icon),
+                                    color = colors.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.button_settings_enlarge_icon_desc),
+                                    color = colors.onSurfaceSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            Switch(
+                                checked = enlargeIcon,
+                                onCheckedChange = { enlargeIcon = it },
+                                colors = appSwitchColors(),
                             )
                         }
                     }
@@ -862,6 +948,27 @@ internal fun ButtonEditDialog(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+
+        val sourceToCrop = cropSource
+        if (sourceToCrop != null) {
+            ImageCropDialog(
+                bitmap = sourceToCrop,
+                aspectRatio = 1f,
+                showFitToggle = true,
+                initialFit = CropFitMode.FIT,
+                onDismiss = { cropSource = null },
+                onConfirmBitmap = { cropped ->
+                    cropSource = null
+                    scope.launch {
+                        val id = PadIconStore.put(context, cropped)
+                        if (id != null) {
+                            imageAssetId = id
+                        }
+                    }
+                },
+            )
+        }
+
         // Color Wheel overlays
         val activeWheelTarget = activeColorPickerTarget
         if (activeWheelTarget != null) {
@@ -1246,3 +1353,71 @@ private fun QuickColorSelectionDialog(
         }
     }
 }
+
+@Composable
+private fun ImagePickerSlot(
+    assetId: String?,
+    accentColor: Color,
+    onPick: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val context = LocalContext.current
+    val colors = LocalAppColors.current
+    var preview by remember(assetId) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(assetId) {
+        preview = assetId?.let { PadIconStore.load(context, it)?.asImageBitmap() }
+    }
+
+    Box(contentAlignment = Alignment.TopEnd, modifier = Modifier.size(BTN_IMAGE_SLOT_SIZE)) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (assetId != null) accentColor.copy(alpha = 0.2f) else colors.surface)
+                    .border(
+                        width = if (assetId != null) 2.dp else 1.dp,
+                        color = if (assetId != null) accentColor else colors.accentBorder,
+                        shape = RoundedCornerShape(8.dp),
+                    ).clickable(onClick = onPick),
+        ) {
+            val bitmap = preview
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = stringResource(R.string.button_settings_custom_image),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                )
+            } else {
+                MaterialSymbol(
+                    name = "add_photo_alternate",
+                    size = 28.dp,
+                    tint = if (assetId != null) accentColor else colors.onSurfaceSecondary,
+                    filled = false,
+                )
+            }
+        }
+        if (assetId != null) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier =
+                    Modifier
+                        .size(BTN_IMAGE_CLEAR_SIZE)
+                        .clip(CircleShape)
+                        .background(colors.surface)
+                        .clickable(onClick = onClear),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.button_settings_clear_image),
+                    tint = colors.error,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
+    }
+}
+

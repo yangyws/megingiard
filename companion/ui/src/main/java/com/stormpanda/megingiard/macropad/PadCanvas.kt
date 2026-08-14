@@ -1404,26 +1404,30 @@ private fun PadTableCell(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(PC_TABLE_CONTENT_PADDING),
         ) {
-            val iconName = button.iconName
-            if (iconName != null) {
-                MaterialSymbol(
-                    name = iconName,
-                    size = PC_TABLE_ICON_SIZE,
-                    tint = text,
-                    filled = button.iconFilled,
-                )
-            }
-            if (button.label.isNotBlank()) {
+            PadButtonGlyph(
+                btn = button,
+                size = PC_TABLE_ICON_SIZE,
+                tint = text,
+                faceSize = PC_TABLE_ICON_SIZE * 2f,
+                fallback = {
+                    if (button.label.isNotBlank()) {
+                        Text(
+                            text = button.label,
+                            color = text,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                },
+            )
+            if (button.imageAssetId == null && button.iconName != null && button.label.isNotBlank()) {
                 Text(
                     text = button.label,
                     color = text,
-                    style =
-                        if (iconName != null) {
-                            MaterialTheme.typography.labelSmall
-                        } else {
-                            MaterialTheme.typography.bodySmall
-                        },
-                    maxLines = if (iconName != null) 1 else 2,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )

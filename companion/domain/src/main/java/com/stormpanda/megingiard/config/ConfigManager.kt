@@ -8,7 +8,9 @@ import android.provider.OpenableColumns
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadAction
+import com.stormpanda.megingiard.macropad.PadIconStore
 import com.stormpanda.megingiard.macropad.PadProfile
+import com.stormpanda.megingiard.macropad.referencedImageAssetIds
 import com.stormpanda.megingiard.security.HmacUtil
 import com.stormpanda.megingiard.settings.SettingsManager
 import kotlinx.coroutines.Dispatchers
@@ -368,6 +370,7 @@ object ConfigManager {
         AppLog.i(TAG, "writeToUri: uri=$uri includeBackgrounds=$includeBackgrounds")
         val json = exportJson.encodeToString(export)
         val backgroundsDir = File(context.filesDir, "backgrounds")
+        val padIconsDir = File(context.filesDir, "padicons")
         val imageFilesToBundle = mutableMapOf<String, File>()
 
         if (includeBackgrounds && backgroundsDir.exists()) {
@@ -381,8 +384,18 @@ object ConfigManager {
             }
         }
 
+        if (padIconsDir.exists()) {
+            val iconIds = referencedImageAssetIds(export.profiles)
+            for (id in iconIds) {
+                val file = File(padIconsDir, "$id.webp")
+                if (file.exists() && file.isFile) {
+                    imageFilesToBundle["padicons/$id.webp"] = file
+                }
+            }
+        }
+
         context.contentResolver.openOutputStream(uri)?.use { out ->
-            if (includeBackgrounds && imageFilesToBundle.isNotEmpty()) {
+            if (imageFilesToBundle.isNotEmpty()) {
                 ZipOutputStream(out).use { zip ->
                     // 1. Write config.json
                     val configEntry = ZipEntry("config.json")
@@ -390,7 +403,7 @@ object ConfigManager {
                     zip.write(json.toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
 
-                    // 2. Write background image entries
+                    // 2. Write background and icon images
                     for ((entryPath, file) in imageFilesToBundle) {
                         val entry = ZipEntry(entryPath)
                         zip.putNextEntry(entry)
@@ -485,6 +498,9 @@ object ConfigManager {
                             } else if (entryName.startsWith("backgrounds/") || entryName.startsWith("bg_")) {
                                 val key = entryName.removePrefix("backgrounds/").removePrefix("bg_")
                                 imagesMap[key] = entryBytes
+                            } else if (entryName.startsWith("padicons/") || entryName.startsWith("padicon_")) {
+                                val key = entryName.removePrefix("padicons/").removePrefix("padicon_").removeSuffix(".webp")
+                                imagesMap["padicon_$key"] = entryBytes
                             }
                         }
                         zip.closeEntry()
@@ -570,7 +586,7 @@ object ConfigManager {
     /**
      * Imports profiles with new UUIDs so they don't collide with existing ones.
      */
-    private fun importMacroPadData(
+    private suspend fun importMacroPadData(
         context: Context,
         profiles: List<PadProfile>,
         images: Map<String, ByteArray> = emptyMap(),
@@ -581,6 +597,14 @@ object ConfigManager {
             (images.isNotEmpty() || profiles.any { p -> p.layouts.any { !it.backgroundImagePath.isNullOrEmpty() } })
         ) {
             backgroundsDir.mkdirs()
+        }
+
+        // Extract any bundled pad icons
+        for ((key, bytes) in images) {
+            if (key.startsWith("padicon_")) {
+                val id = key.removePrefix("padicon_")
+                PadIconStore.putRaw(context, id, bytes)
+            }
         }
 
         for (profile in profiles) {

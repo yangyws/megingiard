@@ -314,23 +314,21 @@ internal fun PadButtonContent(
             iconSize = iconSize,
         )
     } else {
-        val iconName = btn.iconName
-        if (iconName != null) {
-            MaterialSymbol(
-                name = iconName,
-                size = iconSize,
-                tint = effectiveTextTint,
-                filled = btn.iconFilled,
-            )
-        } else {
-            Text(
-                text = btn.label,
-                color = effectiveTextTint,
-                fontSize = (11 * btn.buttonSize.cols).sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        PadButtonGlyph(
+            btn = btn,
+            size = iconSize,
+            tint = effectiveTextTint,
+            faceSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
+            fallback = {
+                Text(
+                    text = btn.label,
+                    color = effectiveTextTint,
+                    fontSize = (11 * btn.buttonSize.cols).sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+        )
     }
 }
 

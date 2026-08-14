@@ -1147,4 +1147,13 @@
     <string name="update_dialog_btn_cancel">取消</string>
     <string name="help_settings_auto_update_desc">啟用時，Megingiard 會每 24 小時靜默檢查一次新版本。若發現更新，您可以備份設定並在上方螢幕的預設瀏覽器中開啟發布頁面。</string>
     <string name="help_settings_check_updates_desc">立即手動觸發對 GitHub Releases 儲存庫的更新檢查。</string>
+
+    <!-- Custom Button Image & Cropping -->
+    <string name="button_settings_custom_image">自訂圖案</string>
+    <string name="button_settings_custom_image_desc">選擇按鈕表面的自訂圖片</string>
+    <string name="button_settings_clear_image">移除自訂圖案</string>
+    <string name="button_settings_enlarge_icon">放大圖示</string>
+    <string name="button_settings_enlarge_icon_desc">讓圖示放大填滿按鈕</string>
+    <string name="crop_image_fit_whole">完整</string>
+    <string name="crop_image_fit_fill">填滿</string>
 </resources>

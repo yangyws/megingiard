@@ -1313,5 +1313,14 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <!-- Settings Help Modal Entry -->
     <string name="help_settings_auto_update_desc">Wenn aktiviert, prüft Megingiard alle 24 Stunden lautlos im Hintergrund auf neue Releases. Wenn ein Update gefunden wird, kannst du deine Einstellungen sichern und die Release-Seite im Standardbrowser auf dem oberen Bildschirm öffnen.</string>
     <string name="help_settings_check_updates_desc">Führt sofort eine manuelle Suche nach neuen Releases auf GitHub durch.</string>
+
+    <!-- Custom Button Image & Cropping -->
+    <string name="button_settings_custom_image">Eigenes Bild</string>
+    <string name="button_settings_custom_image_desc">Wähle ein Bild für die Schaltflächenoberfläche</string>
+    <string name="button_settings_clear_image">Eigenes Bild entfernen</string>
+    <string name="button_settings_enlarge_icon">Symbol vergrößern</string>
+    <string name="button_settings_enlarge_icon_desc">Skaliert das Symbol, um die Schaltfläche auszufüllen</string>
+    <string name="crop_image_fit_whole">Ganz</string>
+    <string name="crop_image_fit_fill">Ausfüllen</string>
 </resources>
 

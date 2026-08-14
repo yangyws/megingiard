@@ -208,6 +208,7 @@ Adding a new setting requires assigning the key to a section in `SECTION_MAP` or
 - **MIME type:** `application/vnd.megingiard.config+json`
 - **Extension:** `.mgrd`
   Macros are embedded inside each `PadProfile.macros`.
+  Background images (`backgrounds/bg_<id>`) and custom button image thumbnails (`padicons/<hash>.webp`) are packaged inside a ZIP archive container alongside `config.json` when images are present. On import, all bundled icons and backgrounds are verified, unpacked, and restored to internal storage.
 
 - **Checksum scope (v4):** SHA-256 of the minified kotlinx.serialization JSON encoding (with
   `encodeDefaults = true`) of settings and profiles only.

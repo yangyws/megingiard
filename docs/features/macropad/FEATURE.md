@@ -282,6 +282,19 @@ Each button supports one of the following actions:
 - The `iconName` field defaults to `null`, so existing saved profiles load without any migration.
 - No runtime reflection or Proguard keep-rules are required.
 
+### FR-P10b: Custom Button Images & Enlarge Icon
+
+- **Custom Button Face Images (`imageAssetId`)**:
+  - Each button MAY be assigned a custom bitmap image asset (`imageAssetId: String?`), managed via `PadIconStore`.
+  - When set, the button face renders the custom image cropped to a square or rounded rectangle via `PadButtonGlyph`.
+  - In `PadButtonEditDialog`, an **ImagePickerSlot** is placed beside the Material Symbol picker. Tapping it opens the SAF image picker, followed by `ImageCropDialog` (1:1 square crop modal with `CropFitMode.FIT` or `CropFitMode.FILL`).
+  - Cropped thumbnails are downscaled to 256×256 px, compressed to WebP lossy (90 quality), content-addressed via a 16-hex-character SHA-256 hash, and stored under `filesDir/padicons/<hash>.webp`.
+  - The custom image slot features a clear (✕) button to remove the custom image at any time.
+- **Enlarge Icon (`enlargeIcon`)**:
+  - For buttons with a Material Symbol icon (and no custom image), an **"Enlarge icon"** toggle switch is available in `PadButtonEditDialog`.
+  - When enabled (`enlargeIcon = true`), `PadGlyphRules` scales the glyph up to fill ~83% of the button face using font em metrics without clipping (`ENLARGED_EM_FRACTION = 1f`).
+  - Table Mode (`isGridMode = true`) defaults `enlargeIcon` to `true` for newly assigned icons; Free Mode defaults to `false`.
+
 ### FR-P11: Default Icons and Labels for Special Action Buttons
 
 - When a new button is created (or the action type is changed while the label field is still blank), the editor MUST pre-fill `label` and `iconName` with sensible defaults for action types that do not manage their own label.
