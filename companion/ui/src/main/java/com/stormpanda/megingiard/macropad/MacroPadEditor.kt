@@ -233,7 +233,6 @@ fun MacroPadEditor(onDone: () -> Unit) {
             containerColor = colors.appBackground,
             topBar = {
                 EditorTopBar(
-                    layout = activeLayout,
                     onDone = onDone,
                     onHelpClick = { showEditorHelp = true },
                 )
@@ -744,12 +743,10 @@ fun MacroPadEditor(onDone: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorTopBar(
-    layout: PadLayout?,
     onDone: () -> Unit,
     onHelpClick: () -> Unit,
 ) {
     val colors = LocalAppColors.current
-    val isGrid = layout?.isGridMode == true
 
     TopAppBar(
         title = {
@@ -769,50 +766,6 @@ private fun EditorTopBar(
             }
         },
         actions = {
-            if (layout != null) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 4.dp),
-                ) {
-                    AppSelectableChip(
-                        text = stringResource(R.string.layout_settings_mode_free),
-                        selected = !isGrid,
-                        onClick = {
-                            if (isGrid) {
-                                val updated = layout.withLayoutMode(PadLayoutMode.FREE)
-                                MacroPadState.updateLayout(updated)
-                            }
-                        },
-                        leadingIcon = { contentColor ->
-                            Icon(
-                                imageVector = Icons.Rounded.OpenWith,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        },
-                    )
-                    AppSelectableChip(
-                        text = stringResource(R.string.layout_settings_mode_grid),
-                        selected = isGrid,
-                        onClick = {
-                            if (!isGrid) {
-                                val updated = layout.withLayoutMode(PadLayoutMode.GRID)
-                                MacroPadState.updateLayout(updated)
-                            }
-                        },
-                        leadingIcon = { contentColor ->
-                            Icon(
-                                imageVector = Icons.Rounded.GridView,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        },
-                    )
-                }
-            }
             HelpIconButton(onClick = onHelpClick)
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface),
@@ -1067,6 +1020,11 @@ private fun EditorBody(
                 onChangeGridCols = { newCols ->
                     val currentLayout = layout ?: return@EditorLayoutChipsBar
                     MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
+                },
+                onLayoutModeChange = { newLayoutMode ->
+                    val curLayout = layout ?: return@EditorLayoutChipsBar
+                    val updated = curLayout.withLayoutMode(newLayoutMode)
+                    MacroPadState.updateLayout(updated)
                 },
                 onSelectLayout = onSelectLayout,
                 onEditLayout = onEditLayout,
