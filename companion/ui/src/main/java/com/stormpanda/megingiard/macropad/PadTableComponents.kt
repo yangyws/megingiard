@@ -102,15 +102,25 @@ internal fun PadTableCell(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        PadButtonContent(
-            btn = button,
-            effectiveTextTint = text,
-            iconSize = PTC_TABLE_ICON_SIZE,
-            faceSize = faceSize,
-            isTrackpoint = false,
-            effectiveContentAccent = accentColor,
-            isPressed = isPressed,
-        )
+        Box(
+            modifier =
+                Modifier.graphicsLayer {
+                    val scale = if (isPressed) 0.93f else 1.0f
+                    scaleX = scale
+                    scaleY = scale
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            PadButtonContent(
+                btn = button,
+                effectiveTextTint = text,
+                iconSize = PTC_TABLE_ICON_SIZE,
+                faceSize = faceSize,
+                isTrackpoint = false,
+                effectiveContentAccent = accentColor,
+                isPressed = isPressed,
+            )
+        }
     }
 }
 

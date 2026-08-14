@@ -217,7 +217,7 @@ internal fun ButtonEditDialog(
             }
         }
 
-    val isTableLayout = activeLayout?.isGridMode == true || button?.gridCol != null
+    val isTableLayout = activeLayout?.isGridMode == true
     var buttonShape by remember { mutableStateOf(button?.buttonShape ?: ButtonShape.CIRCLE) }
     var buttonSize by remember { mutableStateOf(button?.buttonSize ?: ButtonSize.SIZE_1X1) }
     var colSpan by remember { mutableIntStateOf(button?.effectiveColSpan ?: 1) }
