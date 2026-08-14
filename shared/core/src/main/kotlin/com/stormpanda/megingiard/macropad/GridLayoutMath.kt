@@ -453,6 +453,34 @@ object GridLayoutMath {
         return layout.copy(buttons = moved)
     }
 
+    /**
+     * Swaps the button at [from] with the button at [to], or moves the button at [from] to [to] if [to] is empty.
+     */
+    fun swapOrMoveButton(
+        layout: PadLayout,
+        from: Pair<Int, Int>,
+        to: Pair<Int, Int>,
+    ): PadLayout {
+        if (from == to) return layout
+        val source = buttonAt(layout, from.first, from.second) ?: return layout
+        val target = buttonAt(layout, to.first, to.second)
+
+        return if (target != null) {
+            if (target.id == source.id) return layout
+            val updatedButtons =
+                layout.buttons.map { btn ->
+                    when (btn.id) {
+                        source.id -> btn.copy(gridCol = to.first, gridRow = to.second)
+                        target.id -> btn.copy(gridCol = from.first, gridRow = from.second)
+                        else -> btn
+                    }
+                }
+            layout.copy(buttons = updatedButtons)
+        } else {
+            moveButton(layout, from, to)
+        }
+    }
+
     fun cellBounds(
         col: Int,
         row: Int,

@@ -949,6 +949,9 @@ private fun DragHandle(
 // Table mode canvas
 // ─────────────────────────────────────────────────────────────────────────────
 
+private val PC_TABLE_SELECTED_BORDER = Color(0xFFE53935)
+private val PC_TABLE_SELECTED_BG = Color(0x40E53935)
+
 @Composable
 private fun PadTableGrid(
     layout: PadLayout,
@@ -960,12 +963,14 @@ private fun PadTableGrid(
     val colors = LocalAppColors.current
     val cols = layout.effectiveGridCols
     val rows = layout.effectiveGridRows
+    var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         for (row in 0 until rows) {
             Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 for (col in 0 until cols) {
                     val button = GridLayoutMath.buttonAt(layout, col, row)
+                    val isSelected = selectedCell == Pair(col, row)
                     val cellModifier =
                         Modifier
                             .weight(1f)
@@ -978,13 +983,23 @@ private fun PadTableGrid(
                             modifier =
                                 cellModifier
                                     .border(
-                                        width = 1.dp,
-                                        color = colors.onSurfaceSecondary.copy(alpha = 0.4f),
+                                        width = if (isSelected) 2.5.dp else 1.dp,
+                                        color = if (isSelected) PC_TABLE_SELECTED_BORDER else colors.onSurfaceSecondary.copy(alpha = 0.4f),
                                         shape = RoundedCornerShape(4.dp),
                                     )
-                                    .pointerInput(col, row) {
+                                    .pointerInput(col, row, selectedCell) {
                                         detectTapGestures(
-                                            onTap = { onCellTap?.invoke(col, row) },
+                                            onTap = {
+                                                val src = selectedCell
+                                                if (src != null) {
+                                                    if (src != Pair(col, row)) {
+                                                        onCellMove?.invoke(src, Pair(col, row))
+                                                    }
+                                                    selectedCell = null
+                                                } else {
+                                                    onCellTap?.invoke(col, row)
+                                                }
+                                            },
                                         )
                                     },
                             contentAlignment = Alignment.Center,
@@ -1002,8 +1017,21 @@ private fun PadTableGrid(
                             layout = layout,
                             accentColor = accentColor,
                             showBorder = layout.gridShowBorders,
-                            onTap = { onCellTap?.invoke(col, row) },
-                            onLongPress = { onCellMenu?.invoke(button) },
+                            isSelected = isSelected,
+                            onTap = {
+                                val src = selectedCell
+                                if (src != null) {
+                                    if (src != Pair(col, row)) {
+                                        onCellMove?.invoke(src, Pair(col, row))
+                                    }
+                                    selectedCell = null
+                                } else {
+                                    onCellTap?.invoke(col, row)
+                                }
+                            },
+                            onLongPress = {
+                                selectedCell = if (selectedCell == Pair(col, row)) null else Pair(col, row)
+                            },
                             modifier = cellModifier,
                         )
                     }
@@ -1019,24 +1047,32 @@ private fun PadTableCell(
     layout: PadLayout,
     accentColor: Color,
     showBorder: Boolean,
+    isSelected: Boolean = false,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val bg = resolveColorOption(button.buttonBgColor ?: layout.buttonBgColor, accentColor, MP_AMBIENT_NEUTRAL_BG)
     val border =
-        resolveColorOption(button.buttonBorderColor ?: layout.buttonBorderColor, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
+        if (isSelected) {
+            PC_TABLE_SELECTED_BORDER
+        } else {
+            resolveColorOption(button.buttonBorderColor ?: layout.buttonBorderColor, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
+        }
     val text =
         resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+
+    val effectiveBg = if (isSelected) PC_TABLE_SELECTED_BG else bg.copy(alpha = bg.alpha * 0.18f)
+    val effectiveBorderWidth = if (isSelected) 2.5.dp else 1.dp
 
     Box(
         modifier =
             modifier
-                .background(bg.copy(alpha = bg.alpha * 0.18f))
+                .background(effectiveBg)
                 .then(
-                    if (showBorder) {
+                    if (showBorder || isSelected) {
                         Modifier.border(
-                            width = 1.dp,
+                            width = effectiveBorderWidth,
                             color = border,
                             shape = RoundedCornerShape(4.dp),
                         )
@@ -1044,7 +1080,7 @@ private fun PadTableCell(
                         Modifier
                     },
                 )
-                .pointerInput(button.id) {
+                .pointerInput(button.id, isSelected) {
                     detectTapGestures(
                         onTap = { onTap() },
                         onLongPress = { onLongPress() },

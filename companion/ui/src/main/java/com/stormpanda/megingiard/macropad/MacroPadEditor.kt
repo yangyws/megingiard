@@ -1058,7 +1058,7 @@ private fun EditorBody(
                 },
                 onCellMove = { from, to ->
                     val lay = layout ?: return@PadCanvas
-                    val moved = GridLayoutMath.moveButton(lay, from, to)
+                    val moved = GridLayoutMath.swapOrMoveButton(lay, from, to)
                     MacroPadState.updateLayout(moved)
                 },
                 onCellMenu = { button ->
