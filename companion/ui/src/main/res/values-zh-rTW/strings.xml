@@ -194,6 +194,8 @@
     <string name="macropad_icon_picker_search">搜尋圖示…</string>
     <string name="macropad_icon_picker_no_results">找不到圖示</string>
     <string name="macropad_icon_picker_filled">實心</string>
+    <string name="macropad_icon_picker_enlarge">放大</string>
+    <string name="macropad_icon_picker_full_bleed">滿版</string>
     <string name="macropad_icon_picker_currently_selected">當前選擇</string>
     <string name="settings_section_config">備份與設定檔</string>
     <string name="settings_section_updates">應用程式更新</string>
@@ -1163,10 +1165,6 @@
     <string name="button_settings_custom_image">自訂圖案</string>
     <string name="button_settings_custom_image_desc">選擇按鈕表面的自訂圖片</string>
     <string name="button_settings_clear_image">移除自訂圖案</string>
-    <string name="button_settings_enlarge_icon">放大</string>
-    <string name="button_settings_enlarge_icon_desc">放大圖示尺寸</string>
-    <string name="button_settings_full_bleed_icon">滿版</string>
-    <string name="button_settings_full_bleed_icon_desc">直接跟按鈕滿版顯示</string>
     <string name="button_settings_show_label">顯示文字</string>
     <string name="button_settings_show_label_desc">在按鈕表面顯示標籤文字</string>
     <string name="button_settings_show_label_bg">文字底色</string>

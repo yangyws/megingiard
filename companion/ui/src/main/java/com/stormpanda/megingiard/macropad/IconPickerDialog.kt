@@ -186,7 +186,7 @@ internal fun IconPickerDialog(
                             ),
                     )
                     Text(
-                        text = stringResource(R.string.button_settings_enlarge_icon),
+                        text = stringResource(R.string.macropad_icon_picker_enlarge),
                         color = colors.onSurface,
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -210,7 +210,7 @@ internal fun IconPickerDialog(
                             ),
                     )
                     Text(
-                        text = stringResource(R.string.button_settings_full_bleed_icon),
+                        text = stringResource(R.string.macropad_icon_picker_full_bleed),
                         color = colors.onSurface,
                         style = MaterialTheme.typography.labelMedium,
                     )
