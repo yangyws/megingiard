@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.OpenWith
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -366,8 +367,9 @@ internal fun EditorLayoutChipsBar(
             }
         }
 
-        // Layout mode chips (自由模式 ↔ 表格模式) + Action Toolbar on the right
+        // Layout mode chips (自由模式 ↔ 表格模式) + Wallpaper icon + Action Toolbar on the right
         val isGrid = activeLayout?.isGridMode == true
+        val bgLabel = stringResource(R.string.macropad_editor_change_background)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -409,9 +411,17 @@ internal fun EditorLayoutChipsBar(
                         )
                     },
                 )
+                EditorToolbarIconButton(
+                    label = bgLabel,
+                    icon = Icons.Rounded.Wallpaper,
+                    accentColor = accentColor,
+                    onClick = onManageBackground,
+                    onLongClick = onToggleBackgroundVisibility,
+                    isStrikethrough = isBackgroundHidden,
+                )
             }
 
-            // Action toolbar (Add Button / Background / Lock / Touchpad / Grid OR Columns in Table mode)
+            // Action toolbar (Add Button / Lock / Touchpad / Grid OR Thick borders / Button bg / Grid size in Table mode)
             EditorToolbar(
                 profile = profile,
                 layout = activeLayout,
@@ -429,10 +439,7 @@ internal fun EditorLayoutChipsBar(
                         }
                     onGridModeChange(nextMode)
                 },
-                onManageBackground = onManageBackground,
                 onManageTouchpadSettings = onManageTouchpadSettings,
-                isBackgroundHidden = isBackgroundHidden,
-                onToggleBackgroundVisibility = onToggleBackgroundVisibility,
                 onChangeGridCols = onChangeGridCols,
                 onManageGridSize = onManageGridSize,
                 onToggleGridBorders = onToggleGridBorders,

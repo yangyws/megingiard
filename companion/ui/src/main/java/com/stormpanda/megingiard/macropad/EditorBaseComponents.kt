@@ -282,10 +282,7 @@ internal fun EditorToolbar(
     onToggleCanvasLock: () -> Unit,
     onAddButton: () -> Unit,
     onGridModeChange: () -> Unit,
-    onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
-    isBackgroundHidden: Boolean = false,
-    onToggleBackgroundVisibility: (() -> Unit)? = null,
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
     onToggleGridBorders: (() -> Unit)? = null,
@@ -294,7 +291,6 @@ internal fun EditorToolbar(
 ) {
     val colors = LocalAppColors.current
     val buttonLabel = stringResource(R.string.macropad_editor_toolbar_button)
-    val bgLabel = stringResource(R.string.macropad_editor_change_background)
 
     if (layout?.isGridMode == true) {
         Row(
@@ -303,25 +299,12 @@ internal fun EditorToolbar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EditorToolbarIconButton(
-                label = bgLabel,
-                icon = Icons.Rounded.Wallpaper,
-                accentColor = accentColor,
-                onClick = onManageBackground,
-                onLongClick = onToggleBackgroundVisibility,
-                isStrikethrough = isBackgroundHidden,
-            )
-            EditorToolbarIconButton(
-                label = stringResource(R.string.macropad_editor_grid_size),
-                icon = Icons.Rounded.GridView,
-                accentColor = accentColor,
-                onClick = { onManageGridSize?.invoke() },
-            )
-            EditorToolbarIconButton(
                 label = stringResource(R.string.macropad_editor_thick_borders),
                 icon = Icons.Rounded.Grid4x4,
                 accentColor = accentColor,
                 onClick = { onToggleGridBorders?.invoke() },
                 isActive = layout.gridShowBorders,
+                isStrikethrough = !layout.gridShowBorders,
             )
             EditorToolbarIconButton(
                 label = stringResource(R.string.macropad_editor_grid_button_bg),
@@ -329,6 +312,12 @@ internal fun EditorToolbar(
                 accentColor = accentColor,
                 onClick = { onToggleGridButtonBg?.invoke() },
                 isActive = layout.gridShowButtonBg,
+            )
+            EditorToolbarIconButton(
+                label = stringResource(R.string.macropad_editor_grid_size),
+                icon = Icons.Rounded.GridView,
+                accentColor = accentColor,
+                onClick = { onManageGridSize?.invoke() },
             )
         }
     } else {
@@ -353,14 +342,6 @@ internal fun EditorToolbar(
                 icon = Icons.Rounded.Add,
                 accentColor = accentColor,
                 onClick = onAddButton,
-            )
-            EditorToolbarIconButton(
-                label = bgLabel,
-                icon = Icons.Rounded.Wallpaper,
-                accentColor = accentColor,
-                onClick = onManageBackground,
-                onLongClick = onToggleBackgroundVisibility,
-                isStrikethrough = isBackgroundHidden,
             )
             EditorToolbarIconButton(
                 label = lockLabel,
