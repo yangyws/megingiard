@@ -117,10 +117,10 @@ internal fun InlineDialogOverlay(
                 titleAccessory()
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         content()
         if (buttonsRow != null) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = buttonsArrangement,
@@ -153,7 +153,12 @@ internal fun InlineConfirmDeleteOverlay(
             }
         },
     ) {
-        Text(body, color = colors.onSurfaceSecondary)
+        Text(
+            text = body,
+            color = colors.onSurfaceSecondary,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

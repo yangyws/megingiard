@@ -340,6 +340,7 @@ private fun MacroListView(
     if (deletingMacroId != null) {
         val macroId = deletingMacroId!!
         val profile = MacroPadState.activeProfile.value
+        val macroName = profile?.macros?.firstOrNull { it.id == macroId }?.name ?: ""
         val refCount =
             profile
                 ?.layouts
@@ -350,12 +351,14 @@ private fun MacroListView(
             title = { Text(stringResource(R.string.macropad_macro_delete_title), color = colors.onSurface) },
             text = {
                 Text(
-                    if (refCount > 0) {
-                        stringResource(R.string.macropad_macro_delete_confirm_referenced, refCount)
-                    } else {
-                        stringResource(R.string.macropad_macro_delete_confirm)
-                    },
+                    text =
+                        if (refCount > 0) {
+                            stringResource(R.string.macropad_macro_delete_confirm_referenced_named, refCount, macroName)
+                        } else {
+                            stringResource(R.string.macropad_macro_delete_confirm_named, macroName)
+                        },
                     color = colors.onSurfaceSecondary,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {

@@ -689,7 +689,13 @@ internal fun MacroTimelineEditor(
         AppAlertDialog(
             onDismissRequest = { deleteStepIndex = null },
             title = { Text(stringResource(R.string.macropad_macro_step_delete_title), color = colors.onSurface) },
-            text = { Text(stringResource(R.string.macropad_macro_step_delete_confirm), color = colors.onSurfaceSecondary) },
+            text = {
+                Text(
+                    text = stringResource(R.string.macropad_macro_step_delete_confirm),
+                    color = colors.onSurfaceSecondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     deleteStepIndex?.let { idx ->

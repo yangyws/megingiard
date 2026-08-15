@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
@@ -250,38 +251,51 @@ internal fun PadCanvas(
                     val scale = layout?.bgImageScale ?: 1f
                     val ox = layout?.bgImageOffsetX ?: 0f
                     val oy = layout?.bgImageOffsetY ?: 0f
+                    val isCustomCrop = (scale != 1f || ox != 0f || oy != 0f)
 
                     val isFill = layout?.bgImageFill == true
-                    val scaleBase =
-                        if (isFill) {
-                            com.stormpanda.megingiard.math.ViewportMath
-                                .calculateAspectFillScale(cw, ch, iw, ih)
-                        } else {
-                            com.stormpanda.megingiard.math.ViewportMath
-                                .calculateAspectFitScale(cw, ch, iw, ih)
-                        }
-                    val ws = iw * scaleBase
-                    val hs = ih * scaleBase
+                    if (isFill && !isCustomCrop) {
+                        // Forced 4-way stretch (滿版拉伸)
+                        drawImage(
+                            image = bgBitmap!!,
+                            dstOffset = IntOffset.Zero,
+                            dstSize = IntSize(cw.toInt(), ch.toInt()),
+                            colorFilter = bgImageDimFilter,
+                            filterQuality = FilterQuality.High,
+                        )
+                    } else {
+                        val scaleBase =
+                            if (isFill || isCustomCrop) {
+                                com.stormpanda.megingiard.math.ViewportMath
+                                    .calculateAspectFillScale(cw, ch, iw, ih)
+                            } else {
+                                com.stormpanda.megingiard.math.ViewportMath
+                                    .calculateAspectFitScale(cw, ch, iw, ih)
+                            }
+                        val ws = iw * scaleBase
+                        val hs = ih * scaleBase
 
-                    val maxTx = ((ws * scale - cw) / 2f).coerceAtLeast(0f)
-                    val maxTy = ((hs * scale - ch) / 2f).coerceAtLeast(0f)
-                    val clampedX = (ox * cw).coerceIn(-maxTx, maxTx)
-                    val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
+                        val maxTx = ((ws * scale - cw) / 2f).coerceAtLeast(0f)
+                        val maxTy = ((hs * scale - ch) / 2f).coerceAtLeast(0f)
+                        val clampedX = (ox * cw).coerceIn(-maxTx, maxTx)
+                        val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
 
-                    drawImage(
-                        image = bgBitmap!!,
-                        dstOffset =
-                            IntOffset(
-                                ((cw - ws * scale) / 2f + clampedX).toInt(),
-                                ((ch - hs * scale) / 2f + clampedY).toInt(),
-                            ),
-                        dstSize =
-                            IntSize(
-                                (ws * scale).toInt(),
-                                (hs * scale).toInt(),
-                            ),
-                        colorFilter = bgImageDimFilter,
-                    )
+                        drawImage(
+                            image = bgBitmap!!,
+                            dstOffset =
+                                IntOffset(
+                                    ((cw - ws * scale) / 2f + clampedX).toInt(),
+                                    ((ch - hs * scale) / 2f + clampedY).toInt(),
+                                ),
+                            dstSize =
+                                IntSize(
+                                    (ws * scale).toInt(),
+                                    (hs * scale).toInt(),
+                                ),
+                            colorFilter = bgImageDimFilter,
+                            filterQuality = FilterQuality.High,
+                        )
+                    }
                 }
             }
         }

@@ -199,8 +199,12 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_new_profile_name">Neues Profil</string>
     <string name="macropad_editor_rename">Umbenennen</string>
     <string name="macropad_editor_delete_profile">Profil löschen</string>
-    <string name="macropad_editor_confirm_delete">Dieses Profil löschen?</string>
+    <string name="macropad_editor_confirm_delete_profile_named">Profil „%1$s“ und alle zugehörigen Layouts löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="macropad_editor_delete_layout">Layout löschen</string>
+    <string name="macropad_editor_confirm_delete_layout_named">Layout „%1$s“ löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="macropad_editor_delete_button_title">Taste löschen</string>
+    <string name="macropad_editor_confirm_delete_button_named">Taste „%1$s“ löschen?</string>
+    <string name="macropad_editor_confirm_delete_button_unnamed">Diese Taste löschen?</string>
     <string name="cd_layout_enable_toggle">Layout aktivieren/deaktivieren</string>
     <string name="macropad_editor_cancel">Abbrechen</string>
     <string name="macropad_editor_confirm">Löschen</string>
@@ -573,15 +577,10 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_macro_list_title">Makros</string>
     <string name="macropad_macro_list_new">Neues Makro</string>
     <string name="macropad_macro_list_empty">Noch keine Makros. Tippe auf +, um eines zu erstellen.</string>
-    <!-- %1$d = Anzahl Schritte, %2$s = Gesamtdauer-Text -->
-    <string name="macropad_macro_list_steps">%1$d Schritte • %2$s</string>
-    <string name="macropad_macro_duration">%1$d ms</string>
-    <string name="macropad_macro_duration_randomized">%1$d ms (randomisiert %2$d ms)</string>
     <string name="macropad_macro_default_name">Neues Makro</string>
     <string name="macropad_macro_delete_title">Makro löschen</string>
-    <string name="macropad_macro_delete_confirm">Dieses Makro löschen? Pad-Tasten, die es verwenden, funktionieren danach nicht mehr.</string>
-    <!-- %d = Anzahl referenzierender Tasten -->
-    <string name="macropad_macro_delete_confirm_referenced">Dieses Makro wird von %d Taste(n) verwendet. Trotzdem löschen?</string>
+    <string name="macropad_macro_delete_confirm_named">Makro „%1$s“ löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="macropad_macro_delete_confirm_referenced_named">Dieses Makro wird von %1$d Tasten verwendet. „%2$s“ wirklich löschen?</string>
     <string name="macropad_macro_duplicate">Makro duplizieren</string>
     <string name="macropad_macro_editor_save">Speichern</string>
     <string name="macropad_macro_editor_cancel">Abbrechen</string>
@@ -904,7 +903,8 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="help_editor_add_layout_desc">Tippe auf das Plus-Symbol (+) neben der Layout-Überschrift, um ein neues Layout im aktuellen Profil zu erstellen.</string>
     <string name="help_editor_layout_options_label">Layout-Optionen</string>
     <string name="help_editor_layout_options_desc">Tippe auf das Optionen-Symbol (drei Punkte), um Layouts umzubenennen, zu duplizieren, in ein anderes Profil zu kopieren oder zu löschen.</string>
-    <string name="help_editor_section_toolbar">Toolbar</string>
+    <string name="help_editor_section_common">Allgemein</string>
+    <string name="help_editor_section_free">Freier Modus</string>
     <string name="help_editor_toolbar_button_label">Taste</string>
     <string name="help_editor_toolbar_button_desc">Platziert eine neue Makro-Schaltfläche auf der Arbeitsfläche. Danach kannst du sie bei entsperrter Fläche beliebig verschieben.</string>
     <string name="help_editor_toolbar_background_label">Hintergrund</string>
@@ -935,8 +935,6 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="help_editor_table_add_desc">Tippen Sie auf das +-Symbol in einer leeren Zelle, um den Erstellungsdialog zu öffnen. Abbrechen lässt die Zelle leer.</string>
     <string name="help_editor_table_reorder_label">Zellen verschieben &amp; tauschen</string>
     <string name="help_editor_table_reorder_desc">Halten und ziehen Sie Tasten im Tabellenraster, um sie zu verschieben oder Positionen zu tauschen.</string>
-    <string name="help_editor_table_grid_layer_label">Oberste Rasterebene</string>
-    <string name="help_editor_table_grid_layer_desc">Rasterlinien werden immer auf der obersten Ebene gezeichnet und nicht von Tastenfarben verdeckt.</string>
 
     <!-- Macro List help -->
     <string name="help_macrolist_title">Makros — Hilfe</string>

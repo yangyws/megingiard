@@ -415,14 +415,21 @@ fun MacroPadEditor(onDone: () -> Unit) {
         // Delete button confirmation (in-tree — no Dialog window, works in Presentation)
         if (buttonPendingDelete != null && profile != null) {
             val pendingBtn = buttonPendingDelete!!
+            val btnName =
+                if (pendingBtn.action is PadAction.TrackpointMove) {
+                    stringResource(R.string.macropad_action_trackpoint)
+                } else {
+                    pendingBtn.label.trim()
+                }
+            val bodyText =
+                if (btnName.isNotEmpty()) {
+                    stringResource(R.string.macropad_editor_confirm_delete_button_named, btnName)
+                } else {
+                    stringResource(R.string.macropad_editor_confirm_delete_button_unnamed)
+                }
             InlineConfirmDeleteOverlay(
-                title = stringResource(R.string.macropad_editor_delete_button),
-                body =
-                    if (pendingBtn.action is PadAction.TrackpointMove) {
-                        stringResource(R.string.macropad_action_trackpoint)
-                    } else {
-                        pendingBtn.label
-                    },
+                title = stringResource(R.string.macropad_editor_delete_button_title),
+                body = bodyText,
                 onConfirm = {
                     val layout = MacroPadState.activeLayout.value
                     if (layout != null) {
@@ -495,7 +502,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
             val pendingLayout = layoutPendingDelete!!
             InlineConfirmDeleteOverlay(
                 title = stringResource(R.string.macropad_editor_delete_layout),
-                body = pendingLayout.name,
+                body = stringResource(R.string.macropad_editor_confirm_delete_layout_named, pendingLayout.name),
                 onConfirm = {
                     // Delete background file if it exists
                     pendingLayout.backgroundImagePath?.let { path ->
@@ -566,7 +573,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
             val activeProfile = profile
             InlineConfirmDeleteOverlay(
                 title = stringResource(R.string.macropad_editor_delete_profile),
-                body = stringResource(R.string.macropad_editor_confirm_delete),
+                body = stringResource(R.string.macropad_editor_confirm_delete_profile_named, activeProfile.name),
                 onConfirm = {
                     // Delete background files for all layouts in this profile
                     activeProfile.layouts.forEach { layout ->
@@ -875,16 +882,18 @@ private fun MacroPadEditorHelpModal(
             description = stringResource(R.string.help_editor_layout_options_desc),
         )
 
-        HelpSection(stringResource(R.string.help_editor_section_toolbar))
-        HelpEntry(
-            icon = Icons.Rounded.Add,
-            label = stringResource(R.string.help_editor_toolbar_button_label),
-            description = stringResource(R.string.help_editor_toolbar_button_desc),
-        )
+        HelpSection(stringResource(R.string.help_editor_section_common))
         HelpEntry(
             icon = Icons.Rounded.Wallpaper,
             label = stringResource(R.string.help_editor_toolbar_background_label),
             description = stringResource(R.string.help_editor_toolbar_background_desc),
+        )
+
+        HelpSection(stringResource(R.string.help_editor_section_free))
+        HelpEntry(
+            icon = Icons.Rounded.Add,
+            label = stringResource(R.string.help_editor_toolbar_button_label),
+            description = stringResource(R.string.help_editor_toolbar_button_desc),
         )
         HelpEntry(
             icon = Icons.Rounded.Mouse,
@@ -892,23 +901,19 @@ private fun MacroPadEditorHelpModal(
             description = stringResource(R.string.help_editor_toolbar_touchpad_desc),
         )
         HelpEntry(
+            icon = Icons.Rounded.Lock,
+            label = stringResource(R.string.help_editor_toolbar_lock_label),
+            description = stringResource(R.string.help_editor_toolbar_lock_desc),
+        )
+        HelpEntry(
             icon = Icons.Rounded.Grid4x4,
             label = stringResource(R.string.help_editor_toolbar_grid_label),
             description = stringResource(R.string.help_editor_toolbar_grid_desc),
         )
         HelpEntry(
-            icon = Icons.Rounded.Lock,
-            label = stringResource(R.string.help_editor_toolbar_lock_label),
-            description = stringResource(R.string.help_editor_toolbar_lock_desc),
-        )
-
-        HelpSection(stringResource(R.string.help_editor_section_canvas))
-        HelpEntry(
             label = stringResource(R.string.help_editor_canvas_drag_label),
             description = stringResource(R.string.help_editor_canvas_drag_desc),
         )
-
-        HelpSection(stringResource(R.string.help_editor_section_buttons))
         HelpEntry(
             label = stringResource(R.string.help_editor_button_edit_label),
             description = stringResource(R.string.help_editor_button_edit_desc),
@@ -921,12 +926,12 @@ private fun MacroPadEditorHelpModal(
 
         HelpSection(stringResource(R.string.help_editor_section_table))
         HelpEntry(
-            icon = Icons.Rounded.Grid4x4,
+            icon = Icons.Rounded.GridView,
             label = stringResource(R.string.help_editor_table_grid_size_label),
             description = stringResource(R.string.help_editor_table_grid_size_desc),
         )
         HelpEntry(
-            icon = Icons.Rounded.GridView,
+            icon = Icons.Rounded.Grid4x4,
             label = stringResource(R.string.help_editor_table_border_label),
             description = stringResource(R.string.help_editor_table_border_desc),
         )
@@ -944,11 +949,6 @@ private fun MacroPadEditorHelpModal(
             icon = Icons.Rounded.DragHandle,
             label = stringResource(R.string.help_editor_table_reorder_label),
             description = stringResource(R.string.help_editor_table_reorder_desc),
-        )
-        HelpEntry(
-            icon = Icons.Rounded.Grid4x4,
-            label = stringResource(R.string.help_editor_table_grid_layer_label),
-            description = stringResource(R.string.help_editor_table_grid_layer_desc),
         )
     }
 }

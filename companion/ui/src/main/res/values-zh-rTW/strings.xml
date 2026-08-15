@@ -175,8 +175,12 @@
     <string name="macropad_editor_new_profile_name">新設定檔</string>
     <string name="macropad_editor_rename">重新命名</string>
     <string name="macropad_editor_delete_profile">刪除設定檔</string>
-    <string name="macropad_editor_confirm_delete">刪除此設定檔？</string>
+    <string name="macropad_editor_confirm_delete_profile_named">確定要刪除設定檔「%1$s」及其所有配置嗎？此動作無法復原。</string>
     <string name="macropad_editor_delete_layout">刪除配置</string>
+    <string name="macropad_editor_confirm_delete_layout_named">確定要刪除配置「%1$s」嗎？此動作無法復原。</string>
+    <string name="macropad_editor_delete_button_title">刪除按鈕</string>
+    <string name="macropad_editor_confirm_delete_button_named">確定要刪除按鈕「%1$s」嗎？</string>
+    <string name="macropad_editor_confirm_delete_button_unnamed">確定要刪除此按鈕嗎？</string>
     <string name="cd_layout_enable_toggle">切換配置啟用狀態</string>
     <string name="macropad_editor_cancel">取消</string>
     <string name="macropad_editor_confirm">刪除</string>
@@ -580,8 +584,8 @@
     <string name="macropad_macro_duration_randomized">%1$d 毫秒 (隨機偏移 %2$d 毫秒)</string>
     <string name="macropad_macro_default_name">新巨集</string>
     <string name="macropad_macro_delete_title">刪除巨集</string>
-    <string name="macropad_macro_delete_confirm">刪除此巨集？引用它的按鈕將停止運作。</string>
-    <string name="macropad_macro_delete_confirm_referenced">此巨集被 %d 個按鈕使用。確定要刪除嗎？</string>
+    <string name="macropad_macro_delete_confirm_named">確定要刪除巨集「%1$s」嗎？此動作無法復原。</string>
+    <string name="macropad_macro_delete_confirm_referenced_named">此巨集正被 %1$d 個按鈕使用。確定要刪除「%2$s」嗎？</string>
     <string name="macropad_macro_duplicate">複製巨集</string>
     <string name="macropad_macro_editor_save">儲存</string>
     <string name="macropad_macro_editor_cancel">取消</string>
@@ -590,7 +594,7 @@
     <string name="macropad_macro_record_touch">錄製</string>
     <string name="macropad_macro_no_steps">尚無步驟。點擊 + 新增一個。</string>
     <string name="macropad_macro_step_delete_title">刪除步驟</string>
-    <string name="macropad_macro_step_delete_confirm">從巨集中移除此步驟？</string>
+    <string name="macropad_macro_step_delete_confirm">確定要從巨集中移除此步驟嗎？</string>
     <string name="macropad_macro_record_gamepad_title">錄製手把輸入</string>
     <string name="macropad_macro_record_gamepad_hint">觸碰螢幕上的控制器。輸入將被錄製並即時轉發到主螢幕。</string>
     <string name="macropad_macro_record_gamepad_stop">完成</string>
@@ -777,14 +781,15 @@
     <string name="help_editor_add_layout_desc">點擊「配置」標題旁的新增 (+) 按鈕，即可在目前設定檔中建立新配置。</string>
     <string name="help_editor_layout_options_label">配置選項</string>
     <string name="help_editor_layout_options_desc">點擊選項 (三個點) 圖示可重新命名、複製、複製到其他設定檔或刪除配置。</string>
-    <string name="help_editor_section_toolbar">工具列</string>
-    <string name="help_editor_toolbar_button_label">按鈕</string>
+    <string name="help_editor_section_common">共同功能</string>
+    <string name="help_editor_section_free">自由模式</string>
+    <string name="help_editor_toolbar_button_label">新增按鈕</string>
     <string name="help_editor_toolbar_button_desc">在畫布上放置新的巨集按鈕。點擊後，在畫布解鎖狀態下您可以將其拖曳到任何位置。</string>
-    <string name="help_editor_toolbar_background_label">背景</string>
+    <string name="help_editor_toolbar_background_label">背景設定</string>
     <string name="help_editor_toolbar_background_desc">開啟背景圖片設定，可以選擇或移除背景圖片、從 SteamGridDB 抓取封面、裁切／縮放圖片，或切換遮罩模式。</string>
     <string name="help_editor_profile_macros_label">巨集…</string>
     <string name="help_editor_profile_macros_desc">開啟此設定檔的巨集列表，您可以在此建立、編輯與組織可重複使用的巨集序列。</string>
-    <string name="help_editor_toolbar_grid_label">網格</string>
+    <string name="help_editor_toolbar_grid_label">網格對齊</string>
     <string name="help_editor_toolbar_grid_desc">循環切換網格模式：關閉 → 矩形 → 徑向。當網格啟用時，按鈕在拖曳時會對齊網格位置，使精確佈局更加容易。</string>
     <string name="help_editor_toolbar_lock_label">鎖定 / 解鎖</string>
     <string name="help_editor_toolbar_lock_desc">鎖定可防止意外移動按鈕。點擊鎖定圖示即可再次允許重新定位。</string>
@@ -807,9 +812,7 @@
     <string name="help_editor_table_add_label">點擊 + 新增按鈕</string>
     <string name="help_editor_table_add_desc">點擊空白儲存格上的 + 號立即開啟按鈕設定視窗進行設定；點擊取消則完整保留空白儲存格。</string>
     <string name="help_editor_table_reorder_label">長按移動與交換</string>
-    <string name="help_editor_table_reorder_desc">長按並拖曳表格中的按鈕，可快速移至空白儲存格或與另一個儲存格交換位置。</string>
-    <string name="help_editor_table_grid_layer_label">頂層格線輔助</string>
-    <string name="help_editor_table_grid_layer_desc">輔助格線一律置頂於最上層繪製，絕不會被任何按鈕底色或圖片遮擋。</string>
+    <string name="help_editor_table_reorder_desc">長按並拖曳表格中的按鈕，目標儲存格會以大方框高亮提示，放開即可移至該格或與另一個按鈕互換位置。</string>
 
     <string name="help_macrolist_title">巨集 — 說明</string>
     <string name="help_macrolist_intro">巨集列表顯示屬於當前設定檔的所有可重複使用巨集。巨集是獨立的輸入步驟序列，可以分配給一或多個按鈕。</string>

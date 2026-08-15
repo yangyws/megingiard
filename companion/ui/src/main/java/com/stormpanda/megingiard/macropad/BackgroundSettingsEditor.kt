@@ -22,6 +22,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -74,6 +75,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -126,10 +128,13 @@ private val BSE_PREVIEW_IMAGE_ROUNDING = 8.dp
 private const val BSE_CROP_MIN_SCALE = 1f
 private const val BSE_CROP_MAX_SCALE = 5f
 
+private val BSE_SPACING_4 = 4.dp
+private val BSE_SPACING_6 = 6.dp
 private val BSE_SPACING_8 = 8.dp
 private val BSE_SPACING_12 = 12.dp
 private val BSE_SPACING_16 = 16.dp
 private val BSE_SPACING_40 = 40.dp
+private val BSE_ICON_SIZE_16 = 16.dp
 private val BSE_ICON_SIZE_18 = 18.dp
 private val BSE_ICON_SIZE_40 = 40.dp
 private val BSE_ICON_SIZE_48 = 48.dp
@@ -175,6 +180,9 @@ internal fun BackgroundSettingsEditor(
     var bgOffsetX by remember { mutableFloatStateOf(initialBgImageOffsetX) }
     var bgOffsetY by remember { mutableFloatStateOf(initialBgImageOffsetY) }
     var bgImageFill by remember { mutableStateOf(initialBgImageFill) }
+    var isCustomCrop by remember {
+        mutableStateOf(initialBgImageScale != 1f || initialBgImageOffsetX != 0f || initialBgImageOffsetY != 0f)
+    }
     var bgImageDim by remember { mutableFloatStateOf(initialBackgroundImageDim) }
 
     val bgImageDimFilter =
@@ -262,6 +270,7 @@ internal fun BackgroundSettingsEditor(
                 bgScale = 1f
                 bgOffsetX = 0f
                 bgOffsetY = 0f
+                isCustomCrop = false
             }
         }
 
@@ -357,33 +366,45 @@ internal fun BackgroundSettingsEditor(
                                 val iw = bitmap.width.toFloat()
                                 val ih = bitmap.height.toFloat()
                                 if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                                    val scaleBase =
-                                        if (bgImageFill) {
-                                            ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
-                                        } else {
-                                            ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
-                                        }
-                                    val ws = iw * scaleBase
-                                    val hs = ih * scaleBase
-                                    val maxTx = ((ws * bgScale - cw) / 2f).coerceAtLeast(0f)
-                                    val maxTy = ((hs * bgScale - ch) / 2f).coerceAtLeast(0f)
-                                    val clampedX = (bgOffsetX * cw).coerceIn(-maxTx, maxTx)
-                                    val clampedY = (bgOffsetY * ch).coerceIn(-maxTy, maxTy)
+                                    if (bgImageFill && !isCustomCrop) {
+                                        // Forced 4-way stretch (滿版拉伸)
+                                        drawImage(
+                                            image = bitmap,
+                                            dstOffset = IntOffset.Zero,
+                                            dstSize = IntSize(cw.toInt(), ch.toInt()),
+                                            colorFilter = bgImageDimFilter,
+                                            filterQuality = FilterQuality.High,
+                                        )
+                                    } else {
+                                        val scaleBase =
+                                            if (bgImageFill || isCustomCrop) {
+                                                ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                                            } else {
+                                                ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                                            }
+                                        val ws = iw * scaleBase
+                                        val hs = ih * scaleBase
+                                        val maxTx = ((ws * bgScale - cw) / 2f).coerceAtLeast(0f)
+                                        val maxTy = ((hs * bgScale - ch) / 2f).coerceAtLeast(0f)
+                                        val clampedX = (bgOffsetX * cw).coerceIn(-maxTx, maxTx)
+                                        val clampedY = (bgOffsetY * ch).coerceIn(-maxTy, maxTy)
 
-                                    drawImage(
-                                        image = bitmap,
-                                        dstOffset =
-                                            IntOffset(
-                                                ((cw - ws * bgScale) / 2f + clampedX).toInt(),
-                                                ((ch - hs * bgScale) / 2f + clampedY).toInt(),
-                                            ),
-                                        dstSize =
-                                            IntSize(
-                                                (ws * bgScale).toInt(),
-                                                (hs * bgScale).toInt(),
-                                            ),
-                                        colorFilter = bgImageDimFilter,
-                                    )
+                                        drawImage(
+                                            image = bitmap,
+                                            dstOffset =
+                                                IntOffset(
+                                                    ((cw - ws * bgScale) / 2f + clampedX).toInt(),
+                                                    ((ch - hs * bgScale) / 2f + clampedY).toInt(),
+                                                ),
+                                            dstSize =
+                                                IntSize(
+                                                    (ws * bgScale).toInt(),
+                                                    (hs * bgScale).toInt(),
+                                                ),
+                                            colorFilter = bgImageDimFilter,
+                                            filterQuality = FilterQuality.High,
+                                        )
+                                    }
                                 }
                             }
                         } else {
@@ -446,22 +467,23 @@ internal fun BackgroundSettingsEditor(
                         }
 
                         // Row 3: Fit, Fill, and Crop (3 buttons in one row)
-                        val isCustomCrop = (bgScale != 1f || bgOffsetX != 0f || bgOffsetY != 0f)
                         val isFitActive = !bgImageFill && !isCustomCrop
                         val isFillActive = bgImageFill && !isCustomCrop
 
                         Row(
                             modifier = Modifier.fillMaxWidth().weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(BSE_SPACING_8),
+                            horizontalArrangement = Arrangement.spacedBy(BSE_SPACING_6),
                         ) {
                             Button(
                                 onClick = {
+                                    isCustomCrop = false
                                     bgImageFill = false
                                     bgScale = 1f
                                     bgOffsetX = 0f
                                     bgOffsetY = 0f
                                 },
                                 enabled = previewBitmap != null,
+                                contentPadding = PaddingValues(horizontal = BSE_SPACING_4, vertical = 0.dp),
                                 colors =
                                     ButtonDefaults.buttonColors(
                                         containerColor = if (isFitActive) accentColor else colors.surfaceVariant,
@@ -469,19 +491,26 @@ internal fun BackgroundSettingsEditor(
                                     ),
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                             ) {
-                                Icon(Icons.Rounded.FitScreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
-                                Spacer(Modifier.width(BSE_SPACING_8))
-                                Text(stringResource(R.string.crop_image_fit_whole), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Rounded.FitScreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_16))
+                                Spacer(Modifier.width(BSE_SPACING_4))
+                                Text(
+                                    text = stringResource(R.string.crop_image_fit_whole),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
                             }
 
                             Button(
                                 onClick = {
+                                    isCustomCrop = false
                                     bgImageFill = true
                                     bgScale = 1f
                                     bgOffsetX = 0f
                                     bgOffsetY = 0f
                                 },
                                 enabled = previewBitmap != null,
+                                contentPadding = PaddingValues(horizontal = BSE_SPACING_4, vertical = 0.dp),
                                 colors =
                                     ButtonDefaults.buttonColors(
                                         containerColor = if (isFillActive) accentColor else colors.surfaceVariant,
@@ -489,14 +518,20 @@ internal fun BackgroundSettingsEditor(
                                     ),
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                             ) {
-                                Icon(Icons.Rounded.Fullscreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
-                                Spacer(Modifier.width(BSE_SPACING_8))
-                                Text(stringResource(R.string.crop_image_fit_fill), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Rounded.Fullscreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_16))
+                                Spacer(Modifier.width(BSE_SPACING_4))
+                                Text(
+                                    text = stringResource(R.string.crop_image_fit_fill),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
                             }
 
                             Button(
                                 onClick = { showPreviewModal = true },
                                 enabled = previewBitmap != null,
+                                contentPadding = PaddingValues(horizontal = BSE_SPACING_4, vertical = 0.dp),
                                 colors =
                                     ButtonDefaults.buttonColors(
                                         containerColor = if (isCustomCrop) accentColor else colors.surfaceVariant,
@@ -504,9 +539,14 @@ internal fun BackgroundSettingsEditor(
                                     ),
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                             ) {
-                                Icon(Icons.Rounded.Crop, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
-                                Spacer(Modifier.width(BSE_SPACING_8))
-                                Text(stringResource(R.string.layout_settings_bg_image_crop), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Rounded.Crop, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_16))
+                                Spacer(Modifier.width(BSE_SPACING_4))
+                                Text(
+                                    text = stringResource(R.string.layout_settings_bg_image_crop),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
                             }
                         }
 
@@ -616,7 +656,8 @@ internal fun BackgroundSettingsEditor(
                     bgScale = scale
                     bgOffsetX = ox
                     bgOffsetY = oy
-                    bgImageFill = true
+                    isCustomCrop = true
+                    bgImageFill = false
                     showPreviewModal = false
                 },
                 onDismiss = { showPreviewModal = false },
@@ -632,6 +673,7 @@ internal fun BackgroundSettingsEditor(
                     bgScale = 1f
                     bgOffsetX = 0f
                     bgOffsetY = 0f
+                    isCustomCrop = false
                 },
                 onDismiss = { showScrapeDialog = false },
                 accentColor = accentColor,

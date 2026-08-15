@@ -194,8 +194,12 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_new_profile_name">New Profile</string>
     <string name="macropad_editor_rename">Rename</string>
     <string name="macropad_editor_delete_profile">Delete Profile</string>
-    <string name="macropad_editor_confirm_delete">Delete this profile?</string>
+    <string name="macropad_editor_confirm_delete_profile_named">Delete profile \"%1$s\" and all its layouts? This action cannot be undone.</string>
     <string name="macropad_editor_delete_layout">Delete Layout</string>
+    <string name="macropad_editor_confirm_delete_layout_named">Delete layout \"%1$s\"? This action cannot be undone.</string>
+    <string name="macropad_editor_delete_button_title">Delete Button</string>
+    <string name="macropad_editor_confirm_delete_button_named">Delete button \"%1$s\"?</string>
+    <string name="macropad_editor_confirm_delete_button_unnamed">Delete this button?</string>
     <string name="cd_layout_enable_toggle">Toggle layout enabled</string>
     <string name="macropad_editor_cancel">Cancel</string>
     <string name="macropad_editor_confirm">Delete</string>
@@ -668,8 +672,8 @@ Open Settings to create a layout.</string>
     <string name="macropad_macro_duration_randomized">%1$d ms (randomized %2$d ms)</string>
     <string name="macropad_macro_default_name">New Macro</string>
     <string name="macropad_macro_delete_title">Delete Macro</string>
-    <string name="macropad_macro_delete_confirm">Delete this macro? Pad buttons that reference it will stop working.</string>
-    <string name="macropad_macro_delete_confirm_referenced">This macro is used by %d button(s). Delete anyway?</string>
+    <string name="macropad_macro_delete_confirm_named">Delete macro \"%1$s\"? This action cannot be undone.</string>
+    <string name="macropad_macro_delete_confirm_referenced_named">This macro is used by %1$d button(s). Delete \"%2$s\"?</string>
     <string name="macropad_macro_duplicate">Duplicate Macro</string>
 
     <!-- MacroTimelineEditor -->
@@ -898,7 +902,8 @@ Open Settings to create a layout.</string>
     <string name="help_editor_add_layout_desc">Tap the add (+) button next to the Layouts header to create a new layout inside the current profile.</string>
     <string name="help_editor_layout_options_label">Layout options</string>
     <string name="help_editor_layout_options_desc">Tap the options (three dots) icon to rename, duplicate, copy to another profile, or delete layouts.</string>
-    <string name="help_editor_section_toolbar">Toolbar</string>
+    <string name="help_editor_section_common">Common</string>
+    <string name="help_editor_section_free">Free Mode</string>
     <string name="help_editor_toolbar_button_label">Button</string>
     <string name="help_editor_toolbar_button_desc">Places a new macro button on the canvas. After tapping, you can drag it to any position while the canvas is unlocked.</string>
     <string name="help_editor_toolbar_background_label">Background</string>
@@ -929,8 +934,6 @@ Open Settings to create a layout.</string>
     <string name="help_editor_table_add_desc">Tap the + icon on any empty table cell to open the button creation dialog. Tapping Cancel leaves the cell clean and empty.</string>
     <string name="help_editor_table_reorder_label">Move &amp; swap cells</string>
     <string name="help_editor_table_reorder_desc">Long-press and drag any table button to move it to an empty cell or swap positions with another button.</string>
-    <string name="help_editor_table_grid_layer_label">Topmost grid overlay</string>
-    <string name="help_editor_table_grid_layer_desc">Grid lines are drawn on the topmost layer so they are never obscured by button backgrounds or artwork.</string>
 
     <!-- Macro List help -->
     <string name="help_macrolist_title">Macros — Help</string>
