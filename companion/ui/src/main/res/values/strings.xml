@@ -568,6 +568,8 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_section_buttons">Buttons</string>
     <string name="macropad_editor_section_button_settings">Button Settings</string>
     <string name="macropad_editor_section_layout_settings">Layout Settings</string>
+    <string name="macropad_editor_group_expand">Expand group</string>
+    <string name="macropad_editor_group_collapse">Collapse group</string>
     <string name="macropad_macro_section_list">List</string>
     <string name="macropad_macro_section_steps">Macro-Steps</string>
     <string name="macropad_macro_section_settings">Macro Settings</string>

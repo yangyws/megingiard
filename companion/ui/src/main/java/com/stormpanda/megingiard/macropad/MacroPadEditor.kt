@@ -926,15 +926,16 @@ private fun EditorBody(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var gridMode by remember { mutableStateOf(GridMode.OFF) }
+    var expandedSections by remember { mutableStateOf(EditorSectionRules.DEFAULT_EXPANDED) }
+    val isProfileExpanded = EditorSection.PROFILE in expandedSections
+    val isLayoutExpanded = EditorSection.LAYOUT in expandedSections
     val profileRef by rememberUpdatedState(profile)
     val layoutRef by rememberUpdatedState(layout)
 
     val lazyListState = rememberLazyListState()
-    // Items before buttons: section_profile(0), profiles(1), section_layout(2), layouts(3),
-    // toolbar(4), canvas(5), section_buttons(6) → offset = 7
     val reorderState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            val offset = 7
+            val offset = EditorSectionRules.buttonListIndexOffset(expandedSections)
             val curLayout = layoutRef
             if (curLayout != null) {
                 val newButtons = curLayout.buttons.toMutableList()
@@ -956,61 +957,68 @@ private fun EditorBody(
                 actionIcon = Icons.Rounded.Add,
                 actionContentDescription = stringResource(R.string.settings_macropad_new_profile),
                 onActionClick = onNewProfile,
+                expanded = isProfileExpanded,
+                collapsedSummary = profile?.name,
+                onToggleExpanded = {
+                    expandedSections = EditorSectionRules.toggled(expandedSections, EditorSection.PROFILE)
+                },
             )
         }
 
-        // 2. Profile management bar
-        item(key = "profiles") {
-            EditorProfileChipsBar(
-                profiles = profiles,
-                activeProfile = profile,
-                onSelectProfile = onSelectProfile,
-                onEditProfile = onEditProfile,
-                onDuplicateProfile = {
-                    val originalProfile = profile
-                    val originalLayouts = originalProfile?.layouts ?: emptyList()
-                    val layoutMapping = originalProfile?.id?.let { MacroPadState.duplicateProfile(it) }
-                    if (layoutMapping != null) {
-                        for (origLayout in originalLayouts) {
-                            val originalPath = origLayout.backgroundImagePath
-                            val newLayoutId = layoutMapping[origLayout.id]
-                            if (originalPath != null && newLayoutId != null) {
-                                scope.launch {
-                                    MacroPadMediaRepository.duplicateBackgroundImage(context, origLayout.id, newLayoutId)
+        if (isProfileExpanded) {
+            // 2. Profile management bar
+            item(key = "profiles") {
+                EditorProfileChipsBar(
+                    profiles = profiles,
+                    activeProfile = profile,
+                    onSelectProfile = onSelectProfile,
+                    onEditProfile = onEditProfile,
+                    onDuplicateProfile = {
+                        val originalProfile = profile
+                        val originalLayouts = originalProfile?.layouts ?: emptyList()
+                        val layoutMapping = originalProfile?.id?.let { MacroPadState.duplicateProfile(it) }
+                        if (layoutMapping != null) {
+                            for (origLayout in originalLayouts) {
+                                val originalPath = origLayout.backgroundImagePath
+                                val newLayoutId = layoutMapping[origLayout.id]
+                                if (originalPath != null && newLayoutId != null) {
+                                    scope.launch {
+                                        MacroPadMediaRepository.duplicateBackgroundImage(context, origLayout.id, newLayoutId)
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                onReorderProfiles = onReorderProfiles,
-                onDeleteProfile = onDeleteProfile,
-                modifier =
-                    Modifier
-                        .background(colors.surface)
-                        .padding(horizontal = MPE_PADDING)
-                        .padding(top = MPE_PADDING, bottom = 4.dp),
-            )
-        }
-
-        // 2b. Profile Action Toolbar (Macros button row)
-        item(key = "profile_toolbar") {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface)
-                        .padding(horizontal = MPE_PADDING)
-                        .padding(top = 4.dp, bottom = MPE_PADDING),
-                horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                EditorActionChip(
-                    label = stringResource(R.string.macropad_editor_manage_macros),
-                    icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
-                    accentColor = accentColor,
-                    onClick = onManageMacros,
-                    modifier = Modifier.weight(1f),
+                    },
+                    onReorderProfiles = onReorderProfiles,
+                    onDeleteProfile = onDeleteProfile,
+                    modifier =
+                        Modifier
+                            .background(colors.surface)
+                            .padding(horizontal = MPE_PADDING)
+                            .padding(top = MPE_PADDING, bottom = 4.dp),
                 )
+            }
+
+            // 2b. Profile Action Toolbar (Macros button row)
+            item(key = "profile_toolbar") {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(colors.surface)
+                            .padding(horizontal = MPE_PADDING)
+                            .padding(top = 4.dp, bottom = MPE_PADDING),
+                    horizontalArrangement = Arrangement.spacedBy(MPE_ITEM_PADDING),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    EditorActionChip(
+                        label = stringResource(R.string.macropad_editor_manage_macros),
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        accentColor = accentColor,
+                        onClick = onManageMacros,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
 
@@ -1021,62 +1029,70 @@ private fun EditorBody(
                 actionIcon = Icons.Rounded.Add,
                 actionContentDescription = stringResource(R.string.settings_macropad_new_layout),
                 onActionClick = onNewLayout,
+                expanded = isLayoutExpanded,
+                collapsedSummary = layout?.name,
+                summaryIcon = if (layout?.isGridMode == true) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
+                onToggleExpanded = {
+                    expandedSections = EditorSectionRules.toggled(expandedSections, EditorSection.LAYOUT)
+                },
             )
         }
 
-        // 4. Layout management bar (layouts + toolbar)
-        item(key = "layouts") {
-            EditorLayoutChipsBar(
-                layouts = profile.layouts,
-                activeLayout = layout,
-                profile = profile,
-                accentColor = accentColor,
-                gridMode = gridMode,
-                isCanvasLocked = isCanvasLocked,
-                onToggleCanvasLock = onToggleCanvasLock,
-                onAddButton = onAddButton,
-                onGridModeChange = { nextMode -> gridMode = nextMode },
-                onManageBackground = onManageBackground,
-                onManageTouchpadSettings = onManageTouchpadSettings,
-                onChangeGridCols = { newCols ->
-                    val currentLayout = layout ?: return@EditorLayoutChipsBar
-                    MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
-                },
-                onManageGridSize = onManageGridSize,
-                onToggleGridBorders = {
-                    val currentLayout = layout ?: return@EditorLayoutChipsBar
-                    MacroPadState.updateLayout(currentLayout.copy(gridShowBorders = !currentLayout.gridShowBorders))
-                },
-                onToggleGridButtonBg = {
-                    val currentLayout = layout ?: return@EditorLayoutChipsBar
-                    MacroPadState.updateLayout(currentLayout.copy(gridShowButtonBg = !currentLayout.gridShowButtonBg))
-                },
-                onLayoutModeChange = { newLayoutMode ->
-                    val curLayout = layout ?: return@EditorLayoutChipsBar
-                    val updated = curLayout.withLayoutMode(newLayoutMode)
-                    MacroPadState.updateLayout(updated)
-                },
-                onSelectLayout = onSelectLayout,
-                onEditLayout = onEditLayout,
-                onDuplicateLayout = {
-                    val originalLayout = layout
-                    val originalPath = originalLayout?.backgroundImagePath
-                    val newLayoutId = originalLayout?.id?.let { MacroPadState.duplicateLayout(it) }
-                    if (originalLayout != null && originalPath != null && newLayoutId != null) {
-                        scope.launch {
-                            MacroPadMediaRepository.duplicateBackgroundImage(context, originalLayout.id, newLayoutId)
+        if (isLayoutExpanded) {
+            // 4. Layout management bar (layouts + toolbar)
+            item(key = "layouts") {
+                EditorLayoutChipsBar(
+                    layouts = profile.layouts,
+                    activeLayout = layout,
+                    profile = profile,
+                    accentColor = accentColor,
+                    gridMode = gridMode,
+                    isCanvasLocked = isCanvasLocked,
+                    onToggleCanvasLock = onToggleCanvasLock,
+                    onAddButton = onAddButton,
+                    onGridModeChange = { nextMode -> gridMode = nextMode },
+                    onManageBackground = onManageBackground,
+                    onManageTouchpadSettings = onManageTouchpadSettings,
+                    onChangeGridCols = { newCols ->
+                        val currentLayout = layout ?: return@EditorLayoutChipsBar
+                        MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
+                    },
+                    onManageGridSize = onManageGridSize,
+                    onToggleGridBorders = {
+                        val currentLayout = layout ?: return@EditorLayoutChipsBar
+                        MacroPadState.updateLayout(currentLayout.copy(gridShowBorders = !currentLayout.gridShowBorders))
+                    },
+                    onToggleGridButtonBg = {
+                        val currentLayout = layout ?: return@EditorLayoutChipsBar
+                        MacroPadState.updateLayout(currentLayout.copy(gridShowButtonBg = !currentLayout.gridShowButtonBg))
+                    },
+                    onLayoutModeChange = { newLayoutMode ->
+                        val curLayout = layout ?: return@EditorLayoutChipsBar
+                        val updated = curLayout.withLayoutMode(newLayoutMode)
+                        MacroPadState.updateLayout(updated)
+                    },
+                    onSelectLayout = onSelectLayout,
+                    onEditLayout = onEditLayout,
+                    onDuplicateLayout = {
+                        val originalLayout = layout
+                        val originalPath = originalLayout?.backgroundImagePath
+                        val newLayoutId = originalLayout?.id?.let { MacroPadState.duplicateLayout(it) }
+                        if (originalLayout != null && originalPath != null && newLayoutId != null) {
+                            scope.launch {
+                                MacroPadMediaRepository.duplicateBackgroundImage(context, originalLayout.id, newLayoutId)
+                            }
                         }
-                    }
-                },
-                onCopyToProfile = onCopyToProfile,
-                onReorderLayouts = onReorderLayouts,
-                onDeleteLayout = { layout?.let { onDeleteLayoutRequested(it) } },
-                modifier =
-                    Modifier
-                        .background(colors.surface)
-                        .padding(horizontal = MPE_PADDING)
-                        .padding(top = MPE_PADDING, bottom = MPE_PADDING),
-            )
+                    },
+                    onCopyToProfile = onCopyToProfile,
+                    onReorderLayouts = onReorderLayouts,
+                    onDeleteLayout = { layout?.let { onDeleteLayoutRequested(it) } },
+                    modifier =
+                        Modifier
+                            .background(colors.surface)
+                            .padding(horizontal = MPE_PADDING)
+                            .padding(top = MPE_PADDING, bottom = MPE_PADDING),
+                )
+            }
         }
 
         // 4. Pad canvas

@@ -18,8 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.CropSquare
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridOff
@@ -61,12 +63,25 @@ private const val EBC_PREVIEW_BG_ALPHA = 0.25f
 private const val EBC_PREVIEW_GRADIENT_SCALE = 2.8f
 private val EBC_PREVIEW_ICON_SIZE = 44.dp
 
+private val EBC_SECTION_CHEVRON_SIZE = 18.dp
+private val EBC_SECTION_HANDLE_SPACING = 6.dp
+private val EBC_SECTION_HANDLE_CORNER = 4.dp
+private val EBC_SECTION_HANDLE_END_PADDING = 8.dp
+private const val EBC_SECTION_SUMMARY_SEPARATOR = "·"
+private const val EBC_SECTION_SEPARATOR_ALPHA = 0.7f
+private val EBC_SECTION_SUMMARY_ICON_SIZE = 14.dp
+
 @Composable
 internal fun EditorSectionHeader(
     @StringRes textRes: Int,
     actionIcon: ImageVector? = null,
     actionContentDescription: String? = null,
     onActionClick: (() -> Unit)? = null,
+    expanded: Boolean = true,
+    collapsedSummary: String? = null,
+    summaryIcon: ImageVector? = null,
+    summaryIconContentDescription: String? = null,
+    onToggleExpanded: (() -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
     Row(
@@ -78,11 +93,64 @@ internal fun EditorSectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(textRes).uppercase(Locale.ROOT),
-            color = colors.sectionHeaderColor,
-            style = MaterialTheme.typography.labelSmall,
-        )
+        Row(
+            modifier =
+                Modifier
+                    .weight(1f, fill = false)
+                    .then(
+                        if (onToggleExpanded != null) {
+                            Modifier
+                                .clip(RoundedCornerShape(EBC_SECTION_HANDLE_CORNER))
+                                .clickable(onClick = onToggleExpanded)
+                                .padding(end = EBC_SECTION_HANDLE_END_PADDING)
+                        } else {
+                            Modifier
+                        },
+                    ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(EBC_SECTION_HANDLE_SPACING),
+        ) {
+            if (onToggleExpanded != null) {
+                Icon(
+                    imageVector = if (expanded) Icons.Rounded.ExpandMore else Icons.Rounded.ChevronRight,
+                    contentDescription =
+                        stringResource(
+                            if (expanded) R.string.macropad_editor_group_collapse else R.string.macropad_editor_group_expand,
+                        ),
+                    tint = colors.sectionHeaderColor,
+                    modifier = Modifier.size(EBC_SECTION_CHEVRON_SIZE),
+                )
+            }
+            Text(
+                text = stringResource(textRes).uppercase(Locale.ROOT),
+                color = colors.sectionHeaderColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+            )
+            if (!expanded && !collapsedSummary.isNullOrBlank()) {
+                Text(
+                    text = EBC_SECTION_SUMMARY_SEPARATOR,
+                    color = colors.onSurfaceSecondary.copy(alpha = EBC_SECTION_SEPARATOR_ALPHA),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                if (summaryIcon != null) {
+                    Icon(
+                        imageVector = summaryIcon,
+                        contentDescription = summaryIconContentDescription,
+                        tint = colors.onSurface,
+                        modifier = Modifier.size(EBC_SECTION_SUMMARY_ICON_SIZE),
+                    )
+                }
+                Text(
+                    text = collapsedSummary,
+                    color = colors.onSurface,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if (actionIcon != null && onActionClick != null) {
             Row(
                 modifier =

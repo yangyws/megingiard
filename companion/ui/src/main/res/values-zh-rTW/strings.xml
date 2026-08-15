@@ -496,6 +496,8 @@
     <string name="macropad_editor_section_buttons">按鈕</string>
     <string name="macropad_editor_section_button_settings">按鈕設定</string>
     <string name="macropad_editor_section_layout_settings">配置設定</string>
+    <string name="macropad_editor_group_expand">展開分組</string>
+    <string name="macropad_editor_group_collapse">收折分組</string>
     <string name="macropad_macro_section_list">列表</string>
     <string name="macropad_macro_section_steps">巨集步驟</string>
     <string name="macropad_macro_section_settings">巨集設定</string>
