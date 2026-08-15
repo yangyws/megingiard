@@ -437,6 +437,7 @@ data class PadLayout(
     val gridCols: Int = DEFAULT_GRID_COLS,
     val gridRows: Int = DEFAULT_GRID_ROWS,
     val gridShowBorders: Boolean = true,
+    val gridShowButtonBg: Boolean = true,
 ) {
     val isGridMode: Boolean get() = layoutMode == PadLayoutMode.GRID
 

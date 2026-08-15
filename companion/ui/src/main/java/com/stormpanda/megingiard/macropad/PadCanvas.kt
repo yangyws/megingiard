@@ -1236,7 +1236,13 @@ private fun PadTableGrid(
                                         Modifier
                                     },
                                 )
-                                .background(PTC_TABLE_BASE_BG, cellShape)
+                                .then(
+                                    if (layout.gridShowButtonBg) {
+                                        Modifier.background(PTC_TABLE_BASE_BG, cellShape)
+                                    } else {
+                                        Modifier.background(PTC_TABLE_BASE_BG.copy(alpha = 0.2f), cellShape)
+                                    },
+                                )
                                 .clip(cellShape),
                         contentAlignment = Alignment.Center,
                     ) {

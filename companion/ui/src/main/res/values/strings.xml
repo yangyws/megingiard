@@ -551,6 +551,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_grid_cols_count_single">%1$d Column</string>
     <string name="macropad_editor_grid_size">Grid Size</string>
     <string name="macropad_editor_thick_borders">Border Style</string>
+    <string name="macropad_editor_grid_button_bg">Button Background</string>
     <string name="layout_settings_grid_cols">Columns</string>
     <string name="layout_settings_grid_rows">Rows</string>
     <string name="layout_settings_grid_cell_size">%1$ddp × %2$ddp (%3$s mm × %4$s mm)</string>

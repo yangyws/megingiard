@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CropSquare
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridOff
 import androidx.compose.material.icons.rounded.GridView
@@ -183,6 +184,7 @@ internal fun EditorToolbar(
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
     onToggleGridBorders: (() -> Unit)? = null,
+    onToggleGridButtonBg: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -219,6 +221,13 @@ internal fun EditorToolbar(
                 accentColor = accentColor,
                 onClick = { onToggleGridBorders?.invoke() },
                 isActive = layout.gridShowBorders,
+            )
+            EditorToolbarIconButton(
+                label = stringResource(R.string.macropad_editor_grid_button_bg),
+                icon = Icons.Rounded.FormatColorFill,
+                accentColor = accentColor,
+                onClick = { onToggleGridButtonBg?.invoke() },
+                isActive = layout.gridShowButtonBg,
             )
         }
     } else {

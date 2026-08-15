@@ -108,14 +108,22 @@ internal fun PadTableCell(
                 }
                 .clip(shape)
                 .drawBehind {
-                    val baseColor = if (isPressed) PTC_TABLE_BASE_BG_PRESSED else PTC_TABLE_BASE_BG
-                    drawRect(baseColor)
-                    if (button.buttonBgColor != null || layout.buttonBgColor != null) {
-                        val alpha = if (isPressed) 0.55f else 0.30f
-                        val effectiveCustomBg = if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = alpha)
-                        drawRect(effectiveCustomBg)
-                    } else if (isPickedUp) {
-                        drawRect(PTC_TABLE_SELECTED_BG)
+                    if (layout.gridShowButtonBg) {
+                        val baseColor = if (isPressed) PTC_TABLE_BASE_BG_PRESSED else PTC_TABLE_BASE_BG
+                        drawRect(baseColor)
+                        if (button.buttonBgColor != null || layout.buttonBgColor != null) {
+                            val alpha = if (isPressed) 0.55f else 0.30f
+                            val effectiveCustomBg = if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = alpha)
+                            drawRect(effectiveCustomBg)
+                        } else if (isPickedUp) {
+                            drawRect(PTC_TABLE_SELECTED_BG)
+                        }
+                    } else {
+                        if (isPressed) {
+                            drawRect(PTC_TABLE_BASE_BG_PRESSED.copy(alpha = 0.5f))
+                        } else if (isPickedUp) {
+                            drawRect(PTC_TABLE_SELECTED_BG)
+                        }
                     }
                 }
                 .then(
@@ -248,7 +256,13 @@ internal fun PadLiveTableGrid(
                                 Modifier
                             },
                         )
-                        .background(PTC_TABLE_BASE_BG, shape)
+                        .then(
+                            if (layout.gridShowButtonBg) {
+                                Modifier.background(PTC_TABLE_BASE_BG, shape)
+                            } else {
+                                Modifier
+                            },
+                        )
                         .clip(shape),
             )
         }

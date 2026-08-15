@@ -104,4 +104,14 @@ class GridLayoutMathTest {
         // At (3, 2), expanding rowSpan past 1 exceeds gridRows = 3 (2 + 2 = 4 > 3)
         assertEquals(false, GridLayoutMath.canSpanButton(layout, btn1, 1, 2))
     }
+
+    @Test
+    fun testGridShowButtonBgDefault() {
+        val layout = PadLayout(id = "layout1", name = "Test Layout")
+        assertEquals(true, layout.gridShowButtonBg)
+        assertEquals(true, layout.gridShowBorders)
+
+        val updated = layout.copy(gridShowButtonBg = false)
+        assertEquals(false, updated.gridShowButtonBg)
+    }
 }
