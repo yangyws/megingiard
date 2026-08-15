@@ -296,7 +296,7 @@ internal fun EditorLayoutChipsBar(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                stringResource(R.string.macropad_editor_rename),
+                                stringResource(R.string.macropad_editor_title),
                                 color = colors.onSurface,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
