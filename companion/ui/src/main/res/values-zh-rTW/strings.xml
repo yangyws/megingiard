@@ -445,7 +445,7 @@
     <string name="settings_name_error_duplicate">此名稱已存在。</string>
     <string name="wrong_screen_retry">重試偵測</string>
     <string name="wrong_screen_help_title">設定與放置說明</string>
-    <string name="wrong_screen_help_step1">1. 在次螢幕重新開啟 Megingiard，然後點擊「重試」。</string>
+    <string name="wrong_screen_help_step1">1. 在副螢幕重新開啟 Megingiard，然後點擊「重試」。</string>
     <string name="wrong_screen_help_step2">2. 建議：如果您的啟動器支援，請將 Megingiard 固定在底部螢幕以保持其位置。</string>
     <string name="wrong_screen_help_step3">3. 焦點模式：由於 Megingiard 僅使用觸控控制，請在 AYN 設定中將焦點模式設為「主螢幕」。</string>
     <string name="mirror_control_label_start">開始</string>
@@ -841,7 +841,7 @@
     <string name="help_ambient_title">螢幕投影設定 — 說明</string>
     <string name="help_ambient_intro">這些設定控制投影的上方螢幕圖像在背景模式下的外觀 — 即當 Megingiard 在按鈕後方背景運行時。所有變更僅套用於當前活動的配置。</string>
     <string name="help_ambient_dim_label">調暗</string>
-    <string name="help_ambient_dim_desc" formatted="false">透過覆蓋一層黑色蒙版來降低投影圖像的亮度。0% 表示不調暗；90% 幾乎為全黑。使用眼睛圖示可在次螢幕上即時預覽效果而不儲存。</string>
+    <string name="help_ambient_dim_desc" formatted="false">透過覆蓋一層黑色蒙版來降低投影圖像的亮度。0% 表示不調暗；90% 幾乎為全黑。使用眼睛圖示可在副螢幕上即時預覽效果而不儲存。</string>
     <string name="help_ambient_blend_label">邊緣融合</string>
     <string name="help_ambient_blend_desc">使投影圖像的邊緣向內淡出，讓投影內容與背景平滑過渡而非生硬切斷。較高的值會產生更強的暈影效果。</string>
     <string name="help_ambient_follow_touch_desc">將投影視窗中心對齊您在主螢幕上最後觸碰的位置。從下拉選單中選擇一個區塊以啟用，或選擇「關閉」以禁用。</string>
@@ -851,14 +851,14 @@
     <string name="help_ambient_smoothing_desc">套用運動平滑於區塊平移 (關閉、輕微、中等或強烈)。較高的值會使視窗移動在平移過程中更加平滑，但可能會增加極少量的延遲。</string>
     <string name="help_ambient_touch_projection_desc">將投影區塊區域上的觸控輸入轉換回主螢幕。啟用後，區塊內的觸碰會觸發主螢幕上相應的動作。</string>
     <string name="help_ambient_preview_label">預覽</string>
-    <string name="help_ambient_preview_desc">在次螢幕上啟用該滑桿值的即時預覽。與次螢幕的控制項互動以確認或取消該值。這讓您無需離開當前頁面即可看到效果。</string>
+    <string name="help_ambient_preview_desc">在副螢幕上啟用該滑桿值的即時預覽。與副螢幕的控制項互動以確認或取消該值。這讓您無需離開當前頁面即可看到效果。</string>
     <string name="help_mirror_editor_title">投影編輯器 — 說明</string>
-    <string name="help_mirror_editor_intro">投影編輯器讓您在投影過程中，於次螢幕上新增、定位、調整大小與設定視窗區塊。點擊螢幕上的區塊即可選取，然後使用下方的工具列按鈕進行操作。</string>
+    <string name="help_mirror_editor_intro">投影編輯器讓您在投影過程中，於副螢幕上新增、定位、調整大小與設定視窗區塊。點擊螢幕上的區塊即可選取，然後使用下方的工具列按鈕進行操作。</string>
     <string name="help_mirror_editor_section_global">全域動作</string>
-    <string name="help_mirror_editor_add_desc">在次螢幕的空閒位置建立新的視窗區塊。每個配置最多允許 10 個區塊。新區塊會自動被選取。</string>
+    <string name="help_mirror_editor_add_desc">在副螢幕的空閒位置建立新的視窗區塊。每個配置最多允許 10 個區塊。新區塊會自動被選取。</string>
     <string name="help_mirror_editor_settings_desc">開啟該配置的環境顯示設定（亮度、邊緣融合、平滑度）。變更僅套用於目前使用中的配置。</string>
     <string name="help_mirror_editor_section_selected">所選區塊</string>
-    <string name="help_mirror_editor_aspect_desc">為所選區塊循環切換三種長寬比模式。「自由」— 無限制，可獨立調整大小。「頂部」— 鎖定長寬比以匹配主螢幕的裁切。「底部」— 鎖定長寬比以匹配次螢幕的區塊。</string>
+    <string name="help_mirror_editor_aspect_desc">為所選區塊循環切換三種長寬比模式。「自由」— 無限制，可獨立調整大小。「主螢幕」— 鎖定長寬比以匹配主螢幕的裁切。「副螢幕」— 鎖定長寬比以匹配副螢幕的區塊。</string>
     <string name="help_mirror_editor_shape_label">形狀</string>
     <string name="help_mirror_editor_shape_desc">在矩形與圓形之間切換所選區塊的形狀。適用於遊戲小地圖或圓形儀表，圓形裁切外觀更佳。</string>
     <string name="help_mirror_editor_crop_desc">開啟所選區塊的裁切選擇器，讓您在主螢幕拖曳框架以選擇投影到此區塊的區域。</string>
@@ -899,7 +899,7 @@
     <string name="help_quickmenu_start_desc">開始或停止螢幕投影擷取。投影進行時，頂端卡片會展開以顯示更多控制項。</string>
     <string name="help_quickmenu_freeze_label">凍結 / 解除凍結</string>
     <string name="help_quickmenu_freeze_desc">凍結投影影像，使其顯示靜態畫面而非即時畫面。適合在您需要仔細閱讀遊戲畫面時暫停。</string>
-    <string name="help_quickmenu_viewport_desc">在次螢幕開啟區塊配置編輯器，讓您在投影覆蓋層中調整大小、移動或新增透明區塊視窗。</string>
+    <string name="help_quickmenu_viewport_desc">在副螢幕開啟區塊配置編輯器，讓您在投影覆蓋層中調整大小、移動或新增透明區塊視窗。</string>
     <string name="help_quickmenu_screenshot_label">擷取螢幕截圖</string>
     <string name="help_quickmenu_screenshot_desc">擷取主螢幕的截圖。若未在投影中，則需要特權模式已連接。</string>
     <string name="help_quickmenu_section_macropad">MacroPad 控制項 (底端卡片)</string>
@@ -918,7 +918,7 @@
     <string name="help_companion_hub_title">副螢幕輔助工具 — 說明</string>
     <string name="help_companion_hub_intro">副螢幕輔助工具是您在副螢幕上的中央控制儀表板，用於管理特定遊戲的巨集控制、查看活動遊戲狀態，以及快速存取各項副螢幕功能。</string>
     <string name="help_companion_hub_sec_hero">活動遊戲與控制設定檔</string>
-    <string name="help_companion_hub_hero_show_desc">在下方螢幕全螢幕開啟當前活動遊戲的 MacroPad 觸控版面。</string>
+    <string name="help_companion_hub_hero_show_desc">在副螢幕全螢幕開啟當前活動遊戲的 MacroPad 觸控配置。</string>
     <string name="help_companion_hub_hero_edit_desc">開啟設定檔與版面編輯器，以自訂按鈕位置、樣式及巨集設定。</string>
     <string name="help_companion_hub_hero_link_desc">將自訂 MacroPad 控制設定檔連結至當前活動或選取的遊戲，或為其建立專屬設定檔。</string>
     <string name="help_companion_hub_sec_tools">副螢幕工具</string>
