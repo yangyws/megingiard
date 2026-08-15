@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.OpenWith
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.ui.AppDivider
@@ -41,6 +43,7 @@ import com.stormpanda.megingiard.ui.AppDropdown
 import com.stormpanda.megingiard.ui.AppSelectableChip
 import com.stormpanda.megingiard.ui.AppSettingsRow
 import com.stormpanda.megingiard.ui.LocalAppColors
+import java.util.Locale
 
 private const val TAG = "EditorLayoutComponents"
 
@@ -49,6 +52,7 @@ internal fun EditorProfileChipsBar(
     profiles: List<PadProfile>,
     activeProfile: PadProfile?,
     onSelectProfile: (String) -> Unit,
+    onNewProfile: () -> Unit,
     onEditProfile: (PadProfile) -> Unit,
     onDuplicateProfile: () -> Unit,
     onReorderProfiles: () -> Unit,
@@ -74,6 +78,12 @@ internal fun EditorProfileChipsBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Text(
+            text = stringResource(R.string.quick_menu_profile_label).uppercase(Locale.ROOT),
+            color = colors.sectionHeaderColor,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
         LazyRow(
             state = listState,
             modifier = Modifier.weight(1f),
@@ -89,6 +99,18 @@ internal fun EditorProfileChipsBar(
                     onLongClick = { onEditProfile(profile) },
                 )
             }
+        }
+
+        IconButton(
+            onClick = onNewProfile,
+            modifier = Modifier.size(28.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Add,
+                contentDescription = stringResource(R.string.settings_macropad_new_profile),
+                tint = colors.accent,
+                modifier = Modifier.size(20.dp),
+            )
         }
 
         Box {
@@ -185,6 +207,7 @@ internal fun EditorLayoutChipsBar(
     onToggleGridButtonBg: (() -> Unit)? = null,
     onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
+    onNewLayout: () -> Unit,
     onEditLayout: (PadLayout) -> Unit,
     onDuplicateLayout: () -> Unit,
     onCopyToProfile: () -> Unit,
@@ -216,6 +239,12 @@ internal fun EditorLayoutChipsBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Text(
+                text = stringResource(R.string.macropad_editor_section_layout).uppercase(Locale.ROOT),
+                color = colors.sectionHeaderColor,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
             LazyRow(
                 state = lazyRowState,
                 modifier = Modifier.weight(1f),
@@ -239,6 +268,18 @@ internal fun EditorLayoutChipsBar(
                         },
                     )
                 }
+            }
+
+            IconButton(
+                onClick = onNewLayout,
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.settings_macropad_new_layout),
+                    tint = colors.accent,
+                    modifier = Modifier.size(20.dp),
+                )
             }
 
             Box {
