@@ -77,6 +77,8 @@ android {
             val releaseSigningConfig = signingConfigs.findByName("release")
             if (releaseSigningConfig != null && releaseSigningConfig.storeFile?.exists() == true) {
                 signingConfig = releaseSigningConfig
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -91,9 +93,7 @@ android {
         val variant = this
         variant.outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            if (variant.buildType.name == "release") {
-                output.outputFileName = "Megingiard-v${variant.versionName}.apk"
-            }
+            output.outputFileName = "megingiard-v0.9.0-zh.apk"
         }
     }
     buildFeatures {

@@ -34,8 +34,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew :companion:ui:assembleDebug --no-daemon --stacktrace
+      - name: Build Release APK
+        run: ./gradlew :companion:ui:assembleRelease -Pmegingiard.allowUnpinnedRelease=true --no-daemon --stacktrace
 
       - name: Prepare APK artifact
         run: |
