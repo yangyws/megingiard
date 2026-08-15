@@ -98,6 +98,7 @@ import com.stormpanda.megingiard.ui.AppAlertDialog
 import com.stormpanda.megingiard.ui.AppColors
 import com.stormpanda.megingiard.ui.AppDivider
 import com.stormpanda.megingiard.ui.AppModalDialog
+import com.stormpanda.megingiard.ui.AppSelectableChip
 import com.stormpanda.megingiard.ui.FullScreenTopBar
 import com.stormpanda.megingiard.ui.HelpEntry
 import com.stormpanda.megingiard.ui.HelpIconButton
@@ -132,6 +133,7 @@ private val BSE_ICON_SIZE_40 = 40.dp
 private val BSE_ICON_SIZE_48 = 48.dp
 private val BSE_ICON_SIZE_72 = 72.dp
 private val BSE_BORDER_WIDTH_1 = 1.dp
+private val BSE_PANEL_ROUNDING = 16.dp
 
 @Composable
 internal fun BackgroundSettingsEditor(
@@ -143,6 +145,7 @@ internal fun BackgroundSettingsEditor(
     initialBgImageScale: Float = 1f,
     initialBgImageOffsetX: Float = 0f,
     initialBgImageOffsetY: Float = 0f,
+    initialBgImageFill: Boolean = false,
     initialBackgroundImageDim: Float = 0f,
     onConfirm: (
         bgImagePath: String?,
@@ -151,6 +154,7 @@ internal fun BackgroundSettingsEditor(
         bgScale: Float,
         bgOffsetX: Float,
         bgOffsetY: Float,
+        bgImageFill: Boolean,
         bgImageDim: Float,
     ) -> Unit,
     onDismiss: () -> Unit,
@@ -168,6 +172,7 @@ internal fun BackgroundSettingsEditor(
     var bgScale by remember { mutableFloatStateOf(initialBgImageScale) }
     var bgOffsetX by remember { mutableFloatStateOf(initialBgImageOffsetX) }
     var bgOffsetY by remember { mutableFloatStateOf(initialBgImageOffsetY) }
+    var bgImageFill by remember { mutableStateOf(initialBgImageFill) }
     var bgImageDim by remember { mutableFloatStateOf(initialBackgroundImageDim) }
 
     val bgImageDimFilter =
@@ -288,7 +293,7 @@ internal fun BackgroundSettingsEditor(
                                             } else {
                                                 currentBgPath
                                             }
-                                        onConfirm(finalBgPath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageDim)
+                                        onConfirm(finalBgPath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageFill, bgImageDim)
                                         isSaving = false
                                     }
                                 }
@@ -347,7 +352,7 @@ internal fun BackgroundSettingsEditor(
                             Image(
                                 bitmap = bitmap,
                                 contentDescription = stringResource(R.string.layout_settings_bg_image_preview_desc),
-                                contentScale = ContentScale.Fit,
+                                contentScale = if (bgImageFill) ContentScale.Crop else ContentScale.Fit,
                                 colorFilter = bgImageDimFilter,
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -453,9 +458,34 @@ internal fun BackgroundSettingsEditor(
 
                 Spacer(Modifier.height(BSE_SPACING_16))
 
-                // 3. Mask option
+                // 2. Scale Mode (Fit / Fill) & Mask option & Dimming
                 if (pendingImageUri != null || currentBgPath != null) {
                     Spacer(Modifier.height(BSE_SPACING_8))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.layout_settings_bg_image_scale_mode_title),
+                            color = colors.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(BSE_SPACING_8)) {
+                            AppSelectableChip(
+                                text = stringResource(R.string.layout_settings_bg_image_fit),
+                                selected = !bgImageFill,
+                                onClick = { bgImageFill = false },
+                            )
+                            AppSelectableChip(
+                                text = stringResource(R.string.layout_settings_bg_image_fill),
+                                selected = bgImageFill,
+                                onClick = { bgImageFill = true },
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(BSE_SPACING_16))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,

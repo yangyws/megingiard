@@ -318,7 +318,5 @@ internal fun PadLiveTableGrid(
                 )
             }
         }
-
-        PadTableGridLines(layout = layout)
     }
 }

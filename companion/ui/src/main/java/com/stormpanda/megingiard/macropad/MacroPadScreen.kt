@@ -457,7 +457,8 @@ internal fun PadSurface(
                         val ox = layout.bgImageOffsetX
                         val oy = layout.bgImageOffsetY
 
-                        val scaleBase = maxOf(cw / iw, ch / ih)
+                        val isFill = layout.bgImageFill
+                        val scaleBase = if (isFill) maxOf(cw / iw, ch / ih) else minOf(cw / iw, ch / ih)
                         val ws = iw * scaleBase
                         val hs = ih * scaleBase
 

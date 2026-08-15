@@ -266,12 +266,6 @@ internal fun EditorToolbar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EditorToolbarIconButton(
-                label = buttonLabel,
-                icon = Icons.Rounded.Add,
-                accentColor = accentColor,
-                onClick = onAddButton,
-            )
-            EditorToolbarIconButton(
                 label = bgLabel,
                 icon = Icons.Rounded.Wallpaper,
                 accentColor = accentColor,

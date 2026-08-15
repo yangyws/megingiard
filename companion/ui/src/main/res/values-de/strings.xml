@@ -233,6 +233,8 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_grid_rectangular">Rechteckiges Raster</string>
     <string name="macropad_editor_grid_radial">Radiales Raster</string>
     <string name="macropad_editor_grid_toggle">Raster ändern</string>
+    <!-- Layout mode strings -->
+    <string name="macropad_editor_mode_prefix">Modus:</string>
     <string name="layout_settings_mode_free">Freier Modus</string>
     <string name="layout_settings_mode_grid">Tabellen-Modus</string>
     <string name="macropad_editor_toolbar_button">Taste hinzufügen</string>
@@ -511,6 +513,9 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="layout_settings_crop_image_instructions">Ziehen zum Verschieben • Zoomen durch Auf-/Zuziehen</string>
     <!-- Custom Layout Settings Buttons Colors -->
     <string name="layout_settings_bg_section_title">Hintergrund</string>
+    <string name="layout_settings_bg_image_scale_mode_title">Skalierungsmodus</string>
+    <string name="layout_settings_bg_image_fit">Einpassen</string>
+    <string name="layout_settings_bg_image_fill">Ausfüllen</string>
     <string name="layout_settings_bg_image_dimming_title">Dimmung</string>
     <string name="layout_settings_colors_section_title">Tastenfarben-Standardwerte</string>
     <string name="button_settings_colors_section_title">Tastenfarben</string>

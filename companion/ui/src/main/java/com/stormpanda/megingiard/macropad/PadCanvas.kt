@@ -250,9 +250,15 @@ internal fun PadCanvas(
                     val ox = layout?.bgImageOffsetX ?: 0f
                     val oy = layout?.bgImageOffsetY ?: 0f
 
+                    val isFill = layout?.bgImageFill == true
                     val scaleBase =
-                        com.stormpanda.megingiard.math.ViewportMath
-                            .calculateAspectFillScale(cw, ch, iw, ih)
+                        if (isFill) {
+                            com.stormpanda.megingiard.math.ViewportMath
+                                .calculateAspectFillScale(cw, ch, iw, ih)
+                        } else {
+                            com.stormpanda.megingiard.math.ViewportMath
+                                .calculateAspectFitScale(cw, ch, iw, ih)
+                        }
                     val ws = iw * scaleBase
                     val hs = ih * scaleBase
 

@@ -601,8 +601,9 @@ fun MacroPadEditor(onDone: () -> Unit) {
                 initialBgImageScale = curLayout.bgImageScale,
                 initialBgImageOffsetX = curLayout.bgImageOffsetX,
                 initialBgImageOffsetY = curLayout.bgImageOffsetY,
+                initialBgImageFill = curLayout.bgImageFill,
                 initialBackgroundImageDim = curLayout.backgroundImageDim,
-                onConfirm = { bgImagePath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageDim ->
+                onConfirm = { bgImagePath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageFill, bgImageDim ->
                     MacroPadState.updateLayout(
                         curLayout.copy(
                             backgroundImagePath = bgImagePath,
@@ -611,6 +612,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
                             bgImageScale = bgScale,
                             bgImageOffsetX = bgOffsetX,
                             bgImageOffsetY = bgOffsetY,
+                            bgImageFill = bgImageFill,
                             backgroundImageDim = bgImageDim,
                         ),
                     )

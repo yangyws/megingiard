@@ -581,6 +581,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_button_color_neutral">Neutral</string>
 
     <!-- Layout mode strings -->
+    <string name="macropad_editor_mode_prefix">Mode:</string>
     <string name="layout_settings_mode_free">Free Mode</string>
     <string name="layout_settings_mode_grid">Table Mode</string>
 
@@ -601,6 +602,9 @@ Open Settings to create a layout.</string>
     <string name="layout_settings_crop_image_title">Crop Background Image</string>
     <string name="layout_settings_crop_image_instructions">Drag to pan • Pinch to zoom</string>
     <string name="layout_settings_bg_section_title">Background</string>
+    <string name="layout_settings_bg_image_scale_mode_title">Scale Mode</string>
+    <string name="layout_settings_bg_image_fit">Fit</string>
+    <string name="layout_settings_bg_image_fill">Fill</string>
     <string name="layout_settings_bg_image_dimming_title">Dimming</string>
     <string name="layout_settings_colors_section_title">Button Color Defaults</string>
     <string name="button_settings_colors_section_title">Button Color</string>

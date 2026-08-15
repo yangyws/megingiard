@@ -1034,6 +1034,7 @@ class MirrorPresentation(
                 val scale = layout?.bgImageScale ?: 1f
                 val ox = layout?.bgImageOffsetX ?: 0f
                 val oy = layout?.bgImageOffsetY ?: 0f
+                val isFill = layout?.bgImageFill == true
                 val dim = layout?.backgroundImageDim ?: 0f
                 if (path != null) {
                     if (path != lastLoadedPath) {
@@ -1053,6 +1054,7 @@ class MirrorPresentation(
                             multiCutoutContainer?.bgImageScale = scale
                             multiCutoutContainer?.bgImageOffsetX = ox
                             multiCutoutContainer?.bgImageOffsetY = oy
+                            multiCutoutContainer?.bgImageFill = isFill
                             multiCutoutContainer?.bgImageDim = dim
                             container.setBackgroundColor(Color.BLACK)
                             container.background = null
@@ -1064,6 +1066,7 @@ class MirrorPresentation(
                             multiCutoutContainer?.bgImageScale = 1f
                             multiCutoutContainer?.bgImageOffsetX = 0f
                             multiCutoutContainer?.bgImageOffsetY = 0f
+                            multiCutoutContainer?.bgImageFill = false
                             multiCutoutContainer?.bgImageDim = 0f
                             multiCutoutContainer?.useAsMask = false
                             multiCutoutContainer?.bgBitmap = null
@@ -1167,6 +1170,11 @@ class MultiCutoutContainer(
             invalidate()
         }
     var bgImageOffsetY: Float = 0f
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var bgImageFill: Boolean = false
         set(value) {
             field = value
             invalidate()
@@ -1302,8 +1310,13 @@ class MultiCutoutContainer(
                 val iw = bg.width.toFloat()
                 val ih = bg.height.toFloat()
                 val scaleBase =
-                    com.stormpanda.megingiard.math.ViewportMath
-                        .calculateAspectFillScale(cw, ch, iw, ih)
+                    if (bgImageFill) {
+                        com.stormpanda.megingiard.math.ViewportMath
+                            .calculateAspectFillScale(cw, ch, iw, ih)
+                    } else {
+                        com.stormpanda.megingiard.math.ViewportMath
+                            .calculateAspectFitScale(cw, ch, iw, ih)
+                    }
                 val ws = iw * scaleBase
                 val hs = ih * scaleBase
 
@@ -1516,8 +1529,13 @@ class MultiCutoutContainer(
                 val iw = mask.width.toFloat()
                 val ih = mask.height.toFloat()
                 val scaleBase =
-                    com.stormpanda.megingiard.math.ViewportMath
-                        .calculateAspectFillScale(cw, ch, iw, ih)
+                    if (bgImageFill) {
+                        com.stormpanda.megingiard.math.ViewportMath
+                            .calculateAspectFillScale(cw, ch, iw, ih)
+                    } else {
+                        com.stormpanda.megingiard.math.ViewportMath
+                            .calculateAspectFitScale(cw, ch, iw, ih)
+                    }
                 val ws = iw * scaleBase
                 val hs = ih * scaleBase
 

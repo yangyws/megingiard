@@ -431,6 +431,7 @@ data class PadLayout(
     val bgImageScale: Float = 1f,
     val bgImageOffsetX: Float = 0f,
     val bgImageOffsetY: Float = 0f,
+    val bgImageFill: Boolean = false,
     val backgroundImageDim: Float = 0f,
     val backgroundTouchpad: BackgroundTouchpadConfig = BackgroundTouchpadConfig(),
     val layoutMode: PadLayoutMode = PadLayoutMode.FREE,

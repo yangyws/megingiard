@@ -472,6 +472,8 @@
     <string name="macropad_editor_grid_rectangular">矩形網格</string>
     <string name="macropad_editor_grid_radial">徑向網格</string>
     <string name="macropad_editor_grid_toggle">更改網格</string>
+    <!-- Layout mode strings -->
+    <string name="macropad_editor_mode_prefix">模式：</string>
     <string name="layout_settings_mode_free">自由模式</string>
     <string name="layout_settings_mode_grid">表格模式</string>
     <string name="macropad_editor_toolbar_button">新增按鈕</string>
@@ -521,6 +523,9 @@
     <string name="layout_settings_crop_image_title">裁切背景圖片</string>
     <string name="layout_settings_crop_image_instructions">拖曳以平移 • 雙指縮放</string>
     <string name="layout_settings_bg_section_title">背景</string>
+    <string name="layout_settings_bg_image_scale_mode_title">縮放模式</string>
+    <string name="layout_settings_bg_image_fit">完整顯示</string>
+    <string name="layout_settings_bg_image_fill">滿版填滿</string>
     <string name="layout_settings_bg_image_dimming_title">調暗</string>
     <string name="layout_settings_colors_section_title">按鈕預設顏色</string>
     <string name="button_settings_colors_section_title">按鈕顏色</string>

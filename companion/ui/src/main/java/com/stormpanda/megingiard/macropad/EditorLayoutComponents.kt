@@ -44,6 +44,8 @@ import com.stormpanda.megingiard.ui.AppSelectableChip
 import com.stormpanda.megingiard.ui.AppSettingsRow
 import com.stormpanda.megingiard.ui.LocalAppColors
 import java.util.Locale
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val TAG = "EditorLayoutComponents"
 
@@ -59,10 +61,21 @@ internal fun EditorProfileChipsBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
+    val latestProfiles by rememberUpdatedState(profiles)
     var menuExpanded by remember { mutableStateOf(false) }
     val canDelete = profiles.size > 1
 
     val listState = rememberLazyListState()
+    val reorderState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            val fromIdx = latestProfiles.indexOfFirst { it.id == from.key as? String }
+            val toIdx = latestProfiles.indexOfFirst { it.id == to.key as? String }
+            if (fromIdx >= 0 && toIdx >= 0) {
+                val mutable = latestProfiles.toMutableList()
+                mutable.add(toIdx, mutable.removeAt(fromIdx))
+                MacroPadState.reorderProfiles(mutable)
+            }
+        }
 
     LaunchedEffect(activeProfile?.id, profiles) {
         val activeId = activeProfile?.id ?: return@LaunchedEffect
@@ -84,14 +97,16 @@ internal fun EditorProfileChipsBar(
             contentPadding = PaddingValues(vertical = 4.dp),
         ) {
             items(profiles, key = { it.id }) { profile ->
-                val isActive = profile.id == activeProfile?.id
-                AppSelectableChip(
-                    text = profile.name,
-                    selected = isActive,
-                    onClick = { onSelectProfile(profile.id) },
-                    onDoubleClick = { onEditProfile(profile) },
-                    onLongClick = onReorderProfiles,
-                )
+                ReorderableItem(reorderState, key = profile.id) {
+                    val isActive = profile.id == activeProfile?.id
+                    AppSelectableChip(
+                        text = profile.name,
+                        selected = isActive,
+                        onClick = { onSelectProfile(profile.id) },
+                        onDoubleClick = { onEditProfile(profile) },
+                        modifier = Modifier.longPressDraggableHandle(),
+                    )
+                }
             }
         }
 
@@ -203,6 +218,16 @@ internal fun EditorLayoutChipsBar(
     val canDelete = layouts.size > 1
 
     val lazyRowState = rememberLazyListState()
+    val reorderState =
+        rememberReorderableLazyListState(lazyRowState) { from, to ->
+            val fromIdx = latestLayouts.indexOfFirst { it.id == from.key as? String }
+            val toIdx = latestLayouts.indexOfFirst { it.id == to.key as? String }
+            if (fromIdx >= 0 && toIdx >= 0) {
+                val mutable = latestLayouts.toMutableList()
+                mutable.add(toIdx, mutable.removeAt(fromIdx))
+                MacroPadState.reorderLayouts(mutable)
+            }
+        }
 
     LaunchedEffect(activeLayout?.id, layouts) {
         val activeId = activeLayout?.id ?: return@LaunchedEffect
@@ -228,22 +253,24 @@ internal fun EditorLayoutChipsBar(
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
                 items(layouts, key = { it.id }) { layout ->
-                    val isActive = layout.id == activeLayout?.id
-                    AppSelectableChip(
-                        text = layout.name,
-                        selected = isActive,
-                        onClick = { onSelectLayout(layout.id) },
-                        onDoubleClick = { onEditLayout(layout) },
-                        onLongClick = onReorderLayouts,
-                        leadingIcon = { contentColor ->
-                            Icon(
-                                imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        },
-                    )
+                    ReorderableItem(reorderState, key = layout.id) {
+                        val isActive = layout.id == activeLayout?.id
+                        AppSelectableChip(
+                            text = layout.name,
+                            selected = isActive,
+                            onClick = { onSelectLayout(layout.id) },
+                            onDoubleClick = { onEditLayout(layout) },
+                            leadingIcon = { contentColor ->
+                                Icon(
+                                    imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            },
+                            modifier = Modifier.longPressDraggableHandle(),
+                        )
+                    }
                 }
             }
 
@@ -262,6 +289,7 @@ internal fun EditorLayoutChipsBar(
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(colors.surface),
                 ) {
                     DropdownMenuItem(
                         text = {
@@ -320,7 +348,7 @@ internal fun EditorLayoutChipsBar(
                             text = {
                                 Text(
                                     stringResource(R.string.macropad_editor_delete_layout),
-                                    color = colors.accent,
+                                    color = colors.error,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             },
@@ -342,9 +370,15 @@ internal fun EditorLayoutChipsBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Text(
+                    text = stringResource(R.string.macropad_editor_mode_prefix),
+                    color = colors.sectionHeaderColor,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 AppSelectableChip(
                     text = stringResource(R.string.layout_settings_mode_free),
                     selected = !isGrid,
