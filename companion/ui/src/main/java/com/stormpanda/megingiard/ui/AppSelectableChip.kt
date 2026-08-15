@@ -59,6 +59,7 @@ fun AppSelectableChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentDescription: String? = null,
+    onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     leadingIcon: (@Composable (contentColor: Color) -> Unit)? = null,
     trailingContent: (@Composable (contentColor: Color) -> Unit)? = null,
@@ -66,6 +67,7 @@ fun AppSelectableChip(
     val colors = LocalAppColors.current
     val contentColor = if (selected) colors.onAccent else colors.onControlOverlay
     val effectiveAlpha = if (enabled) 1f else 0.38f
+    val hasCombined = onLongClick != null || onDoubleClick != null
 
     Box(
         modifier =
@@ -88,10 +90,11 @@ fun AppSelectableChip(
                         .copy(alpha = effectiveAlpha),
                     RoundedCornerShape(CHIP_CORNER),
                 ).then(
-                    if (onLongClick != null) {
+                    if (hasCombined) {
                         Modifier.combinedClickable(
                             enabled = enabled,
                             onClick = onClick,
+                            onDoubleClick = onDoubleClick,
                             onLongClick = onLongClick,
                         )
                     } else {

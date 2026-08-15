@@ -89,7 +89,8 @@ internal fun EditorProfileChipsBar(
                     text = profile.name,
                     selected = isActive,
                     onClick = { onSelectProfile(profile.id) },
-                    onLongClick = { onEditProfile(profile) },
+                    onDoubleClick = { onEditProfile(profile) },
+                    onLongClick = onReorderProfiles,
                 )
             }
         }
@@ -232,7 +233,8 @@ internal fun EditorLayoutChipsBar(
                         text = layout.name,
                         selected = isActive,
                         onClick = { onSelectLayout(layout.id) },
-                        onLongClick = { onEditLayout(layout) },
+                        onDoubleClick = { onEditLayout(layout) },
+                        onLongClick = onReorderLayouts,
                         leadingIcon = { contentColor ->
                             Icon(
                                 imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
