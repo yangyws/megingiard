@@ -36,7 +36,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.stormpanda.megingiard"
+        applicationId = "com.stormpanda.megingiard.zh"
         minSdk = 33
         targetSdk = 35
         versionCode = 9
