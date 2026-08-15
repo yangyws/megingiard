@@ -105,6 +105,7 @@ fun GlobalSettingsScreen(
     val accentColor = Color(accentColorArgb)
     val overlayAtBottom by viewModel.overlayAtBottom.collectAsState()
     val overlayFadeOut by viewModel.overlayFadeOut.collectAsState()
+    val overlayTransitionHaptics by viewModel.overlayTransitionHaptics.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val logLevel by viewModel.logLevel.collectAsState()
@@ -295,6 +296,13 @@ fun GlobalSettingsScreen(
                             description = stringResource(R.string.settings_gamepad_swap_face_buttons_desc),
                             checked = gamepadSwapFaceButtons,
                             onCheckedChange = { viewModel.setGamepadSwapFaceButtons(it) },
+                        )
+                        AppDivider()
+                        RememberSettingRow(
+                            label = stringResource(R.string.settings_overlay_transition_haptics),
+                            description = stringResource(R.string.settings_overlay_transition_haptics_desc),
+                            checked = overlayTransitionHaptics,
+                            onCheckedChange = { viewModel.setOverlayTransitionHaptics(it) },
                         )
                         AppDivider()
                         PrivdDeadzoneSettingsRow(
@@ -752,6 +760,10 @@ private fun GlobalSettingsHelpModal(
         HelpEntry(
             label = stringResource(R.string.settings_gamepad_swap_face_buttons),
             description = stringResource(R.string.help_settings_gamepad_swap_desc),
+        )
+        HelpEntry(
+            label = stringResource(R.string.settings_overlay_transition_haptics),
+            description = stringResource(R.string.help_overlay_transition_haptics_desc),
         )
         HelpEntry(
             label = stringResource(R.string.privd_deadzone_title),

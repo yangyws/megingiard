@@ -44,4 +44,13 @@ class SettingsManagerTest {
         assertEquals(0, SettingsManager.welcomeTourCompletedVersion.value)
         assertTrue(SettingsManager.showMacroEditorTutorial.value)
     }
+
+    @Test
+    fun testOverlayTransitionHaptics() {
+        assertTrue(SettingsManager.overlayTransitionHaptics.value)
+        SettingsManager.setOverlayTransitionHaptics(false)
+        assertFalse(SettingsManager.overlayTransitionHaptics.value)
+        SettingsManager.setOverlayTransitionHaptics(true)
+        assertTrue(SettingsManager.overlayTransitionHaptics.value)
+    }
 }

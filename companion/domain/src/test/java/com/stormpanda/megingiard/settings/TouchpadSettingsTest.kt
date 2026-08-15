@@ -185,4 +185,58 @@ class TouchpadSettingsTest {
             val prefs = testDataStore.data.first()
             assertTrue(prefs[KEY_TOUCHPAD_HAPTICS_ENABLED] == false)
         }
+
+    @Test
+    fun testPositionAndFillModeSettingsDefaultAndUpdates() =
+        runTest(testDispatcher) {
+            val testScope = CoroutineScope(SupervisorJob() + testDispatcher)
+            val testDataStore =
+                PreferenceDataStoreFactory.create(
+                    produceFile = { tempFile },
+                    scope = testScope,
+                )
+
+            TouchpadSettings.init(testDataStore, testScope)
+
+            // Defaults
+            assertEquals("BOTTOM", TouchpadSettings.touchpadPosition.value)
+            assertEquals("FIT_16_9", TouchpadSettings.touchpadFillMode.value)
+
+            // Updates
+            TouchpadSettings.setTouchpadPosition("TOP")
+            TouchpadSettings.setTouchpadFillMode("FILL")
+            testScheduler.advanceUntilIdle()
+
+            assertEquals("TOP", TouchpadSettings.touchpadPosition.value)
+            assertEquals("FILL", TouchpadSettings.touchpadFillMode.value)
+
+            val prefs = testDataStore.data.first()
+            assertEquals("TOP", prefs[KEY_TOUCHPAD_POSITION])
+            assertEquals("FILL", prefs[KEY_TOUCHPAD_FILL_MODE])
+        }
+
+    @Test
+    fun testMouseMiddleModeSettingDefaultAndUpdates() =
+        runTest(testDispatcher) {
+            val testScope = CoroutineScope(SupervisorJob() + testDispatcher)
+            val testDataStore =
+                PreferenceDataStoreFactory.create(
+                    produceFile = { tempFile },
+                    scope = testScope,
+                )
+
+            TouchpadSettings.init(testDataStore, testScope)
+
+            // Defaults
+            assertEquals("SCROLL", TouchpadSettings.touchpadMouseMiddleMode.value)
+
+            // Updates
+            TouchpadSettings.setTouchpadMouseMiddleMode("CLICK")
+            testScheduler.advanceUntilIdle()
+
+            assertEquals("CLICK", TouchpadSettings.touchpadMouseMiddleMode.value)
+
+            val prefs = testDataStore.data.first()
+            assertEquals("CLICK", prefs[KEY_TOUCHPAD_MOUSE_MIDDLE_MODE])
+        }
 }

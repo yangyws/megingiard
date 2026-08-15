@@ -76,6 +76,18 @@ object TouchpadSettings {
     private val _touchpadHapticsEnabled = MutableStateFlow(true)
     val touchpadHapticsEnabled: StateFlow<Boolean> = _touchpadHapticsEnabled.asStateFlow()
 
+    // Touchpad position in touch mode: "BOTTOM" (default), "CENTER", "TOP"
+    private val _touchpadPosition = MutableStateFlow("BOTTOM")
+    val touchpadPosition: StateFlow<String> = _touchpadPosition.asStateFlow()
+
+    // Touchpad fill mode: "FIT_16_9" (default), "FILL"
+    private val _touchpadFillMode = MutableStateFlow("FIT_16_9")
+    val touchpadFillMode: StateFlow<String> = _touchpadFillMode.asStateFlow()
+
+    // Mouse middle button mode: "SCROLL" (default, scroll up/down), "CLICK" (middle mouse click)
+    private val _touchpadMouseMiddleMode = MutableStateFlow("SCROLL")
+    val touchpadMouseMiddleMode: StateFlow<String> = _touchpadMouseMiddleMode.asStateFlow()
+
     internal fun init(
         dataStore: DataStore<Preferences>,
         scope: CoroutineScope,
@@ -98,6 +110,27 @@ object TouchpadSettings {
         _touchpadNaturalScroll.value = prefs[KEY_TOUCHPAD_NATURAL_SCROLL] ?: true
         _touchpadScrollSpeed.value = prefs[KEY_TOUCHPAD_SCROLL_SPEED] ?: 1.0f
         _touchpadHapticsEnabled.value = prefs[KEY_TOUCHPAD_HAPTICS_ENABLED] ?: true
+        _touchpadPosition.value = prefs[KEY_TOUCHPAD_POSITION] ?: "BOTTOM"
+        _touchpadFillMode.value = prefs[KEY_TOUCHPAD_FILL_MODE] ?: "FIT_16_9"
+        _touchpadMouseMiddleMode.value = prefs[KEY_TOUCHPAD_MOUSE_MIDDLE_MODE] ?: "SCROLL"
+    }
+
+    fun setTouchpadPosition(value: String) {
+        AppLog.d(TAG, "setTouchpadPosition($value)")
+        _touchpadPosition.value = value
+        scope.launch { dataStore.edit { prefs -> prefs[KEY_TOUCHPAD_POSITION] = value } }
+    }
+
+    fun setTouchpadFillMode(value: String) {
+        AppLog.d(TAG, "setTouchpadFillMode($value)")
+        _touchpadFillMode.value = value
+        scope.launch { dataStore.edit { prefs -> prefs[KEY_TOUCHPAD_FILL_MODE] = value } }
+    }
+
+    fun setTouchpadMouseMiddleMode(value: String) {
+        AppLog.d(TAG, "setTouchpadMouseMiddleMode($value)")
+        _touchpadMouseMiddleMode.value = value
+        scope.launch { dataStore.edit { prefs -> prefs[KEY_TOUCHPAD_MOUSE_MIDDLE_MODE] = value } }
     }
 
     fun setTouchpadUseMouse(value: Boolean) {

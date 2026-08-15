@@ -324,10 +324,12 @@ object AppStateManager {
         _uiMode.map { it == UiMode.VIEWPORT_EDIT }.stateIn(scope, SharingStarted.Eagerly, false)
 
     val isFullscreenKeyboardActive: StateFlow<Boolean> =
-        _uiMode.map { it == UiMode.FULLSCREEN_KEYBOARD }.stateIn(scope, SharingStarted.Eagerly, false)
+        _uiMode.map { it == UiMode.FULLSCREEN_KEYBOARD || (it == UiMode.KEYBOARD_SETTINGS && wasFullscreenKeyboardActiveBeforeSettings) }
+            .stateIn(scope, SharingStarted.Eagerly, false)
 
     val isFullscreenMouseActive: StateFlow<Boolean> =
-        _uiMode.map { it == UiMode.FULLSCREEN_MOUSE }.stateIn(scope, SharingStarted.Eagerly, false)
+        _uiMode.map { it == UiMode.FULLSCREEN_MOUSE || (it == UiMode.TOUCHPAD_SETTINGS && wasFullscreenMouseActiveBeforeSettings) }
+            .stateIn(scope, SharingStarted.Eagerly, false)
 
     fun openQuickMenu() {
         if (OnboardingWizardManager.isWizardActive.value) {
@@ -454,14 +456,27 @@ object AppStateManager {
         _uiMode.value = if (open) UiMode.GLOBAL_SETTINGS else UiMode.MACROPAD_USE
     }
 
+    private var wasFullscreenKeyboardActiveBeforeSettings = false
+    private var wasFullscreenMouseActiveBeforeSettings = false
+
     fun setKeyboardSettingsOpen(open: Boolean) {
         AppLog.d(TAG, "setKeyboardSettingsOpen($open)")
-        _uiMode.value = if (open) UiMode.KEYBOARD_SETTINGS else UiMode.MACROPAD_USE
+        if (open) {
+            wasFullscreenKeyboardActiveBeforeSettings = (_uiMode.value == UiMode.FULLSCREEN_KEYBOARD)
+            _uiMode.value = UiMode.KEYBOARD_SETTINGS
+        } else {
+            _uiMode.value = if (wasFullscreenKeyboardActiveBeforeSettings) UiMode.FULLSCREEN_KEYBOARD else UiMode.MACROPAD_USE
+        }
     }
 
     fun setTouchpadSettingsOpen(open: Boolean) {
         AppLog.d(TAG, "setTouchpadSettingsOpen($open)")
-        _uiMode.value = if (open) UiMode.TOUCHPAD_SETTINGS else UiMode.MACROPAD_USE
+        if (open) {
+            wasFullscreenMouseActiveBeforeSettings = (_uiMode.value == UiMode.FULLSCREEN_MOUSE)
+            _uiMode.value = UiMode.TOUCHPAD_SETTINGS
+        } else {
+            _uiMode.value = if (wasFullscreenMouseActiveBeforeSettings) UiMode.FULLSCREEN_MOUSE else UiMode.MACROPAD_USE
+        }
     }
 
     private var wasViewportEditActiveBeforeSettings = false
@@ -565,6 +580,8 @@ object AppStateManager {
         _activeCropCutoutId.value = null
         _selectedCutoutId.value = null
         wasViewportEditActiveBeforeSettings = false
+        wasFullscreenKeyboardActiveBeforeSettings = false
+        wasFullscreenMouseActiveBeforeSettings = false
         MacroPadState.resetPeek()
     }
 

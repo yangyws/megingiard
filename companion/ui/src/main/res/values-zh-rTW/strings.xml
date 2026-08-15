@@ -320,6 +320,9 @@
     <string name="settings_log_level">日誌級別</string>
     <string name="settings_gamepad_swap_face_buttons">交換面按鈕標籤 (A/B 與 X/Y)</string>
     <string name="settings_gamepad_swap_face_buttons_desc">在手把選擇器中顯示任天堂風格標籤 (A↔B 且 X↔Y)。注入的鍵碼保持不變。</string>
+    <string name="settings_overlay_transition_haptics">進出功能震動回饋</string>
+    <string name="settings_overlay_transition_haptics_desc">在開啟或關閉虛擬鍵盤與觸控板時提供輕微震動。</string>
+    <string name="help_overlay_transition_haptics_desc">在開啟或收合虛擬鍵盤或觸控板功能時提供輕微的觸覺震動回饋。</string>
     <string name="privd_title">特權模式</string>
     <string name="privd_description">提高相容性並增強特定功能。查看說明以獲取更多資訊。</string>
     <string name="privd_status_off">關閉</string>
@@ -1180,4 +1183,12 @@
     <string name="crop_image_fit_fill">滿版</string>
     <string name="macropad_bg_temp_hidden">背景圖片：已暫時隱藏</string>
     <string name="macropad_bg_temp_visible">背景圖片：已恢復顯示</string>
+    <string name="cd_touchpad_position">觸控板位置</string>
+    <string name="cd_touchpad_fill_mode">畫面縮放模式</string>
+    <string name="touchpad_pos_top">靠上</string>
+    <string name="touchpad_pos_center">置中</string>
+    <string name="touchpad_pos_bottom">靠下</string>
+    <string name="touchpad_mode_fit">16:9</string>
+    <string name="touchpad_mode_fill">滿版</string>
+    <string name="cd_touchpad_mouse_middle_mode">切換滑鼠中鍵 / 滾輪</string>
 </resources>

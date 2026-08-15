@@ -48,6 +48,7 @@ class GlobalSettingsViewModel : ViewModel() {
     val themeMode: StateFlow<ThemeMode> = SettingsManager.themeMode
     val overlayAtBottom: StateFlow<Boolean> = SettingsManager.overlayAtBottom
     val overlayFadeOut: StateFlow<Boolean> = SettingsManager.overlayFadeOut
+    val overlayTransitionHaptics: StateFlow<Boolean> = SettingsManager.overlayTransitionHaptics
     val appLanguage: StateFlow<AppLanguage> = SettingsManager.appLanguage
     val logLevel: StateFlow<AppLog.Level> = SettingsManager.logLevel
     val steamGridDbApiToken: StateFlow<String> = SettingsManager.steamGridDbApiToken
@@ -87,6 +88,8 @@ class GlobalSettingsViewModel : ViewModel() {
     fun setOverlayAtBottom(value: Boolean) = SettingsManager.setOverlayAtBottom(value)
 
     fun setOverlayFadeOut(value: Boolean) = SettingsManager.setOverlayFadeOut(value)
+
+    fun setOverlayTransitionHaptics(value: Boolean) = SettingsManager.setOverlayTransitionHaptics(value)
 
     fun setAppLanguage(value: AppLanguage) = SettingsManager.setAppLanguage(value)
 

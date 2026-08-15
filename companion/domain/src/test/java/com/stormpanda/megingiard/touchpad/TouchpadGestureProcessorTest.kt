@@ -35,6 +35,23 @@ class TouchpadGestureProcessorTest {
         }
 
     @Test
+    fun `absolute mode triggers onHapticFeedback on press`() =
+        runTest(testDispatcher) {
+            var hapticCount = 0
+            val processor =
+                TouchpadGestureProcessor(
+                    useMouse = { false },
+                    scope = this,
+                    sensitivity = { 1.0f },
+                    twoFingerScrollEnabled = { true },
+                    onHapticFeedback = { hapticCount++ },
+                )
+
+            processor.onPress(1L, 100f, 200f, 1000f, 1000f, false)
+            assertEquals(1, hapticCount)
+        }
+
+    @Test
     fun `absolute mode multi touch allocates distinct slots`() =
         runTest(testDispatcher) {
             val processor =
@@ -130,8 +147,9 @@ class TouchpadGestureProcessorTest {
             traditionalProcessor.onPress(1L, 100f, 200f, 1000f, 1000f, false)
             traditionalProcessor.onPress(2L, 120f, 220f, 1000f, 1000f, false)
 
-            // Drag down 24px (should produce -2 scroll wheel units, traditional direction)
-            traditionalProcessor.onMove(1L, 100f, 224f, 0f, 24f, 1000f, 1000f)
+            // Drag down 100px with both pointers (should produce -2 scroll wheel units, traditional direction at scrollThreshold = 50f)
+            traditionalProcessor.onMove(1L, 100f, 300f, 0f, 100f, 1000f, 1000f)
+            traditionalProcessor.onMove(2L, 120f, 320f, 0f, 100f, 1000f, 1000f)
 
             // Test natural scrolling (naturalScrollEnabled = true, scrollSpeed = 2.0f)
             val naturalProcessor =
@@ -147,12 +165,13 @@ class TouchpadGestureProcessorTest {
             naturalProcessor.onPress(1L, 100f, 200f, 1000f, 1000f, false)
             naturalProcessor.onPress(2L, 120f, 220f, 1000f, 1000f, false)
 
-            // Drag down 24px:
-            // scrollThreshold = 12f / 2.0f = 6f
-            // units = 24 / 6 = 4 units.
+            // Drag down 100px with both pointers:
+            // scrollThreshold = 50f / 2.0f = 25f
+            // units = 100 / 25 = 4 units.
             // directionMultiplier = 1 (natural scroll active).
             // Should produce +4 scroll wheel units.
-            naturalProcessor.onMove(1L, 100f, 224f, 0f, 24f, 1000f, 1000f)
+            naturalProcessor.onMove(1L, 100f, 300f, 0f, 100f, 1000f, 1000f)
+            naturalProcessor.onMove(2L, 120f, 320f, 0f, 100f, 1000f, 1000f)
         }
 
     @Test

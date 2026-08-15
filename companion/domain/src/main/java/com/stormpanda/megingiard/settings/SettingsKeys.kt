@@ -24,6 +24,7 @@ internal val KEY_EXCLUDE_FROM_RECENTS = booleanPreferencesKey("exclude_from_rece
 internal val KEY_ACCENT_COLOR = intPreferencesKey("accent_color")
 internal val KEY_OVERLAY_AT_BOTTOM = booleanPreferencesKey("overlay_at_bottom")
 internal val KEY_OVERLAY_FADE_OUT = booleanPreferencesKey("overlay_fade_out")
+internal val KEY_OVERLAY_TRANSITION_HAPTICS = booleanPreferencesKey("overlay_transition_haptics")
 internal val KEY_STEAMGRIDDB_API_TOKEN = stringPreferencesKey("steamgriddb_api_token")
 
 // Mirror session state persistence — "remember" flags
@@ -67,6 +68,9 @@ internal val KEY_TOUCHPAD_SENSITIVITY = floatPreferencesKey("touchpad_sensitivit
 internal val KEY_TOUCHPAD_NATURAL_SCROLL = booleanPreferencesKey("touchpad_natural_scroll")
 internal val KEY_TOUCHPAD_SCROLL_SPEED = floatPreferencesKey("touchpad_scroll_speed")
 internal val KEY_TOUCHPAD_HAPTICS_ENABLED = booleanPreferencesKey("touchpad_haptics_enabled")
+internal val KEY_TOUCHPAD_POSITION = stringPreferencesKey("touchpad_position")
+internal val KEY_TOUCHPAD_FILL_MODE = stringPreferencesKey("touchpad_fill_mode")
+internal val KEY_TOUCHPAD_MOUSE_MIDDLE_MODE = stringPreferencesKey("touchpad_mouse_middle_mode")
 
 // MacroPad touch recording
 internal val KEY_SKIP_TOUCH_RECORD_DIALOG = booleanPreferencesKey("skip_touch_record_dialog")
@@ -114,6 +118,7 @@ private val GLOBAL_KEYS: Set<Preferences.Key<*>> =
         KEY_ACCENT_COLOR,
         KEY_OVERLAY_AT_BOTTOM,
         KEY_OVERLAY_FADE_OUT,
+        KEY_OVERLAY_TRANSITION_HAPTICS,
         KEY_THEME_MODE,
         KEY_APP_LANGUAGE,
         KEY_LOG_LEVEL,
@@ -143,6 +148,9 @@ private val TOUCHPAD_KEYS: Set<Preferences.Key<*>> =
         KEY_TOUCHPAD_NATURAL_SCROLL,
         KEY_TOUCHPAD_SCROLL_SPEED,
         KEY_TOUCHPAD_HAPTICS_ENABLED,
+        KEY_TOUCHPAD_POSITION,
+        KEY_TOUCHPAD_FILL_MODE,
+        KEY_TOUCHPAD_MOUSE_MIDDLE_MODE,
     )
 private val KEYBOARD_KEYS: Set<Preferences.Key<*>> =
     setOf(
@@ -207,6 +215,7 @@ internal val BOOLEAN_KEYS: Set<Preferences.Key<*>> =
         KEY_EXCLUDE_FROM_RECENTS,
         KEY_OVERLAY_AT_BOTTOM,
         KEY_OVERLAY_FADE_OUT,
+        KEY_OVERLAY_TRANSITION_HAPTICS,
         KEY_REMEMBER_VIEWPORT,
         KEY_REMEMBER_LOCK,
         KEY_REMEMBER_PROJECTION,
@@ -260,6 +269,9 @@ internal val STRING_KEYS: Set<Preferences.Key<*>> =
         KEY_KB_MOUSE_BTN_POS,
         KEY_APP_LANGUAGE,
         KEY_LOG_LEVEL,
+        KEY_TOUCHPAD_POSITION,
+        KEY_TOUCHPAD_FILL_MODE,
+        KEY_TOUCHPAD_MOUSE_MIDDLE_MODE,
         KEY_MACROPAD_RECENT_COLORS,
         KEY_INTERNAL_BACKUPS,
         KEY_LATEST_RELEASE_TAG,

@@ -364,6 +364,9 @@ Open Settings to create a layout.</string>
     <string name="settings_log_level">Log Level</string>
     <string name="settings_gamepad_swap_face_buttons">Swap face button labels (A/B and X/Y)</string>
     <string name="settings_gamepad_swap_face_buttons_desc">Display Nintendo-style labels in the gamepad picker (A↔B and X↔Y). Injected keycodes remain unchanged.</string>
+    <string name="settings_overlay_transition_haptics">Feature switch haptic feedback</string>
+    <string name="settings_overlay_transition_haptics_desc">Vibrate lightly when entering or exiting keyboard and touchpad modes.</string>
+    <string name="help_overlay_transition_haptics_desc">Provides a subtle haptic vibration when opening or closing the virtual keyboard or touchpad overlay.</string>
 
     <!-- Privileged Mode -->
     <string name="privd_title">Privileged Mode</string>
@@ -1340,5 +1343,13 @@ Open Settings to create a layout.</string>
     <string name="crop_image_fit_fill">Fill</string>
     <string name="macropad_bg_temp_hidden">Background image temporarily hidden</string>
     <string name="macropad_bg_temp_visible">Background image visible</string>
+    <string name="cd_touchpad_position">Touchpad Position</string>
+    <string name="cd_touchpad_fill_mode">Touchpad Scale Mode</string>
+    <string name="touchpad_pos_top">Top</string>
+    <string name="touchpad_pos_center">Center</string>
+    <string name="touchpad_pos_bottom">Bottom</string>
+    <string name="touchpad_mode_fit">16:9</string>
+    <string name="touchpad_mode_fill">Fill</string>
+    <string name="cd_touchpad_mouse_middle_mode">Toggle Middle Button / Scroll Wheel</string>
 </resources>
 

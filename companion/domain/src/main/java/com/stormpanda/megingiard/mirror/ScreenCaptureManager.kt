@@ -289,6 +289,7 @@ object ScreenCaptureManager {
         ny: Float,
     ) {
         if (!_isCapturing.value || !_isFollowActive.value) return
+        if (AppStateManager.isFullscreenMouseActive.value) return
         if (MacroExecutor.runningMacroIds.value.isNotEmpty()) {
             return
         }

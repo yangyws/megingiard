@@ -716,4 +716,35 @@ class AppStateManagerTest {
             AppStateManager.setPromptInFlight(false)
             assertFalse(AppStateManager.promptInFlight.value)
         }
+
+    @Test
+    fun `touchpad and keyboard settings back navigation restores previous fullscreen state`() =
+        runTest {
+            // 1. From Fullscreen Mouse -> Touchpad Settings -> Back restores Fullscreen Mouse
+            AppStateManager.setFullscreenMouseActive(true)
+            assertTrue(AppStateManager.isFullscreenMouseActive.value)
+
+            AppStateManager.setTouchpadSettingsOpen(true)
+            assertTrue(AppStateManager.isTouchpadSettingsOpen.value)
+            assertTrue(AppStateManager.isFullscreenMouseActive.value)
+
+            AppStateManager.setTouchpadSettingsOpen(false)
+            assertFalse(AppStateManager.isTouchpadSettingsOpen.value)
+            assertTrue(AppStateManager.isFullscreenMouseActive.value)
+
+            // 2. From Fullscreen Keyboard -> Keyboard Settings -> Back restores Fullscreen Keyboard
+            AppStateManager.setFullscreenKeyboardActive(true)
+            assertTrue(AppStateManager.isFullscreenKeyboardActive.value)
+
+            AppStateManager.setKeyboardSettingsOpen(true)
+            assertTrue(AppStateManager.isKeyboardSettingsOpen.value)
+            assertTrue(AppStateManager.isFullscreenKeyboardActive.value)
+
+            AppStateManager.setKeyboardSettingsOpen(false)
+            assertFalse(AppStateManager.isKeyboardSettingsOpen.value)
+            assertTrue(AppStateManager.isFullscreenKeyboardActive.value)
+
+            // Cleanup
+            AppStateManager.closeActiveModal()
+        }
 }

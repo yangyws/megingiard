@@ -96,6 +96,9 @@ object SettingsManager {
     private val _overlayFadeOut = MutableStateFlow(false)
     val overlayFadeOut: StateFlow<Boolean> = _overlayFadeOut.asStateFlow()
 
+    private val _overlayTransitionHaptics = MutableStateFlow(true)
+    val overlayTransitionHaptics: StateFlow<Boolean> = _overlayTransitionHaptics.asStateFlow()
+
     private val _steamGridDbApiToken = MutableStateFlow("")
     val steamGridDbApiToken: StateFlow<String> = _steamGridDbApiToken.asStateFlow()
 
@@ -179,6 +182,7 @@ object SettingsManager {
                     _themeMode.value = ThemeMode.entries.firstOrNull { it.name == prefs[KEY_THEME_MODE] } ?: ThemeMode.DARK
                     _overlayAtBottom.value = prefs[KEY_OVERLAY_AT_BOTTOM] ?: false
                     _overlayFadeOut.value = prefs[KEY_OVERLAY_FADE_OUT] ?: false
+                    _overlayTransitionHaptics.value = prefs[KEY_OVERLAY_TRANSITION_HAPTICS] ?: true
                     _steamGridDbApiToken.value = prefs[KEY_STEAMGRIDDB_API_TOKEN] ?: ""
 
                     _showMacroEditorTutorial.value = prefs[KEY_SHOW_MACRO_EDITOR_TUTORIAL] ?: true
@@ -288,6 +292,10 @@ object SettingsManager {
 
     fun setOverlayFadeOut(value: Boolean) {
         updateSettingPref(KEY_OVERLAY_FADE_OUT, value, _overlayFadeOut, scope, optionalDataStore, TAG, "setOverlayFadeOut")
+    }
+
+    fun setOverlayTransitionHaptics(value: Boolean) {
+        updateSettingPref(KEY_OVERLAY_TRANSITION_HAPTICS, value, _overlayTransitionHaptics, scope, optionalDataStore, TAG, "setOverlayTransitionHaptics")
     }
 
     fun setSteamGridDbApiToken(value: String) {

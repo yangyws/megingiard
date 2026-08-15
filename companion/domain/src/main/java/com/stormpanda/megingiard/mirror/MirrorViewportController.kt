@@ -1,6 +1,7 @@
 package com.stormpanda.megingiard.mirror
 
 import com.stormpanda.megingiard.AppLog
+import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.settings.MirrorSettings
 import kotlinx.coroutines.CoroutineScope
@@ -109,6 +110,10 @@ object MirrorViewportController {
      * and when the active layout changes while capturing.
      */
     fun restoreFromLayout() {
+        if (AppStateManager.isFullscreenMouseActive.value) {
+            AppLog.d(TAG, "restoreFromLayout: skipped because fullscreen touchpad mode is active")
+            return
+        }
         val layout = MacroPadState.activeLayout.value ?: return
         val sw = ScreenCaptureManager.surfaceWidth.value
         val sh = ScreenCaptureManager.surfaceHeight.value
@@ -188,6 +193,9 @@ object MirrorViewportController {
                 ScreenCaptureManager.setOffsetY(snapshot.offsetY)
             }.debounce(VIEWPORT_SAVE_DEBOUNCE_MS)
                 .collectLatest { snapshot ->
+                    if (AppStateManager.isFullscreenMouseActive.value) {
+                        return@collectLatest
+                    }
                     if (ScreenCaptureManager.isCapturing.value &&
                         MirrorSettings.rememberViewport.value
                     ) {

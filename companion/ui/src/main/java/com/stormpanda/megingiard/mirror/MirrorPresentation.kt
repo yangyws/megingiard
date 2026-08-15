@@ -205,6 +205,19 @@ class MirrorPresentation(
         val smoothingCutout = if (!isFullscreenMouseActive) activeCutouts.firstOrNull { it.motionSmoothing } else null
         val effectiveStrength = smoothingCutout?.motionSmoothingStrength ?: 0
 
+        if (effectiveStrength <= 0) {
+            if (gpuMotionSmoother != null) {
+                AppLog.i(TAG, "updateSurfaceRouting: releasing GpuMotionSmoother for direct pass-through")
+                gpuMotionSmoother?.release()
+                gpuMotionSmoother = null
+            }
+            if (currentRoutedSurface != master) {
+                currentRoutedSurface = master
+                onSurfaceReady?.invoke(master)
+            }
+            return
+        }
+
         var smoother = gpuMotionSmoother
         if (smoother == null && srcWidth > 0 && srcHeight > 0) {
             AppLog.i(TAG, "Initializing GpuMotionSmoother unified pipeline for master Surface (strength=$effectiveStrength)")
@@ -318,7 +331,9 @@ class MirrorPresentation(
                     st: SurfaceTexture,
                     width: Int,
                     height: Int,
-                ) {}
+                ) {
+                    st.setDefaultBufferSize(srcWidth, srcHeight)
+                }
 
                 override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
                     AppLog.d(TAG, "master TextureView surface destroyed")
@@ -930,10 +945,14 @@ class MirrorPresentation(
         return tv
     }
 
-    fun releaseMasterTextureView() {
+    fun releaseMasterTextureView(fromView: View? = null) {
         val tv = masterTextureView ?: return
-        AppLog.d(TAG, "releaseMasterTextureView: reattaching master TextureView to mcc")
         val parent = tv.parent as? ViewGroup
+        if (fromView != null && parent != fromView) {
+            AppLog.d(TAG, "releaseMasterTextureView: ignored because tv parent is $parent, not fromView $fromView")
+            return
+        }
+        AppLog.d(TAG, "releaseMasterTextureView: reattaching master TextureView to mcc")
         if (parent != multiCutoutContainer) {
             parent?.removeView(tv)
             multiCutoutContainer?.addView(tv)

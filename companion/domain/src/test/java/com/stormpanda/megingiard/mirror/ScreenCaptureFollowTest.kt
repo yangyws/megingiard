@@ -2,6 +2,7 @@ package com.stormpanda.megingiard.mirror
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.macropad.MacroExecutor
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.settings.MirrorSettings
@@ -208,6 +209,17 @@ class ScreenCaptureFollowTest {
         // Now it should center: targetSrcX = 0.5f
         cutout = ScreenCaptureManager.cutouts.value.find { it.id == cutoutId }!!
         assertEquals(0.5f, cutout.srcX, 0.001f)
+
+        // Set isFullscreenMouseActive to true
+        AppStateManager.setFullscreenMouseActive(true)
+
+        // Send touch event (0.1f, 0.1f) - should be ignored
+        ScreenCaptureManager.onTouchReceived(0.1f, 0.1f)
+        cutout = ScreenCaptureManager.cutouts.value.find { it.id == cutoutId }!!
+        assertEquals(0.5f, cutout.srcX, 0.001f)
+
+        // Reset
+        AppStateManager.setFullscreenMouseActive(false)
     }
 
     @Test

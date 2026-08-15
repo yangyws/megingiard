@@ -335,6 +335,9 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="settings_log_level">Log-Level</string>
     <string name="settings_gamepad_swap_face_buttons">Face-Button-Beschriftung tauschen (A/B und X/Y)</string>
     <string name="settings_gamepad_swap_face_buttons_desc">Zeigt Nintendo-Layout-Beschriftungen im Gamepad-Picker (A↔B und X↔Y). Die gesendeten Keycodes bleiben unverändert.</string>
+    <string name="settings_overlay_transition_haptics">Haptisches Feedback beim Öffnen/Schließen</string>
+    <string name="settings_overlay_transition_haptics_desc">Vibriert leicht beim Öffnen oder Schließen der Tastatur- und Touchpad-Modi.</string>
+    <string name="help_overlay_transition_haptics_desc">Bietet ein subtiles haptisches Feedback beim Ein- und Ausblenden der virtuellen Tastatur oder des Touchpads.</string>
 
     <!-- Privilegierter Modus -->
     <string name="privd_title">Privilegierter Modus</string>
@@ -1346,5 +1349,13 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="crop_image_fit_fill">Ausfüllen</string>
     <string name="macropad_bg_temp_hidden">Hintergrundbild vorübergehend ausgeblendet</string>
     <string name="macropad_bg_temp_visible">Hintergrundbild sichtbar</string>
+    <string name="cd_touchpad_position">Touchpad-Position</string>
+    <string name="cd_touchpad_fill_mode">Touchpad-Skalierungsmodus</string>
+    <string name="touchpad_pos_top">Oben</string>
+    <string name="touchpad_pos_center">Mitte</string>
+    <string name="touchpad_pos_bottom">Unten</string>
+    <string name="touchpad_mode_fit">16:9</string>
+    <string name="touchpad_mode_fill">Vollbild</string>
+    <string name="cd_touchpad_mouse_middle_mode">Mittlere Maustaste / Scrollrad umschalten</string>
 </resources>
 

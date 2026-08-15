@@ -50,6 +50,7 @@ import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.input.MouseInjector
 import com.stormpanda.megingiard.macropad.HapticStrength
 import com.stormpanda.megingiard.macropad.triggerHaptic
+import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.settings.TouchpadSettings
 import com.stormpanda.megingiard.touchpad.TouchpadGestureProcessor
 import com.stormpanda.megingiard.ui.LocalAppColors
@@ -113,9 +114,14 @@ fun KeyboardScreen(
     val isCapsActive = capsState != ModifierState.INACTIVE
     val isAltGrActive = altGrState != ModifierState.INACTIVE
 
+    val overlayTransitionHaptics by SettingsManager.overlayTransitionHaptics.collectAsState()
+
     // Start injectors via ViewModel
     LaunchedEffect(Unit) {
         AppLog.d(TAG, "KeyboardScreen composed: starting injectors")
+        if (overlayTransitionHaptics && vibrator != null) {
+            triggerHaptic(vibrator, HapticStrength.LIGHT)
+        }
         viewModel.startInjectors(context)
     }
 
@@ -288,7 +294,12 @@ fun KeyboardScreen(
                     }
                 }
             } else {
-                Spacer(modifier = Modifier.fillMaxSize())
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(colors.keyboardBackground),
+                )
             }
         }
 
@@ -378,7 +389,12 @@ fun KeyboardScreen(
                     viewModel.setKeyboardMode(nextMode)
                     KeyboardState.reset()
                 },
-                onCollapseClick = { AppStateManager.setFullscreenKeyboardActive(false) },
+                onCollapseClick = {
+                    if (overlayTransitionHaptics && vibrator != null) {
+                        triggerHaptic(vibrator, HapticStrength.LIGHT)
+                    }
+                    AppStateManager.setFullscreenKeyboardActive(false)
+                },
                 onSettingsClick = { AppStateManager.setKeyboardSettingsOpen(true) },
             )
         }
