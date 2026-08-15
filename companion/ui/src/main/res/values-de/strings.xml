@@ -1344,5 +1344,7 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="button_settings_show_label_bg_desc">Dunklen Hintergrund hinter der Beschriftung anzeigen</string>
     <string name="crop_image_fit_whole">Ganz</string>
     <string name="crop_image_fit_fill">Ausfüllen</string>
+    <string name="macropad_bg_temp_hidden">Hintergrundbild vorübergehend ausgeblendet</string>
+    <string name="macropad_bg_temp_visible">Hintergrundbild sichtbar</string>
 </resources>
 

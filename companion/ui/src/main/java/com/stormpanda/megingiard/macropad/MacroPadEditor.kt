@@ -1,5 +1,6 @@
 package com.stormpanda.megingiard.macropad
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -145,6 +146,7 @@ fun MacroPadEditor(onDone: () -> Unit) {
     var showReorderProfilesOverlay by remember { mutableStateOf(false) }
     var showReorderLayoutsOverlay by remember { mutableStateOf(false) }
     var isCanvasLocked by remember { mutableStateOf(true) }
+    var isBackgroundHiddenTemporarily by remember { mutableStateOf(false) }
     var showCopyLayoutProfileDialog by remember { mutableStateOf(false) }
     var showCopyButtonLayoutDialog by remember { mutableStateOf(false) }
     var showGridSizeDialog by remember { mutableStateOf(false) }
@@ -298,6 +300,19 @@ fun MacroPadEditor(onDone: () -> Unit) {
                     onManageBackground = { showBackgroundSettingsDialog = true },
                     onManageTouchpadSettings = { showTouchpadSettingsDialog = true },
                     onManageGridSize = { showGridSizeDialog = true },
+                    isBackgroundHidden = isBackgroundHiddenTemporarily,
+                    onToggleBackgroundVisibility = {
+                        if (activeLayout?.backgroundImagePath != null) {
+                            isBackgroundHiddenTemporarily = !isBackgroundHiddenTemporarily
+                            val msgRes =
+                                if (isBackgroundHiddenTemporarily) {
+                                    R.string.macropad_bg_temp_hidden
+                                } else {
+                                    R.string.macropad_bg_temp_visible
+                                }
+                            Toast.makeText(context, msgRes, Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -923,6 +938,8 @@ private fun EditorBody(
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
     onManageGridSize: () -> Unit,
+    isBackgroundHidden: Boolean = false,
+    onToggleBackgroundVisibility: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -1056,6 +1073,7 @@ private fun EditorBody(
                     onGridModeChange = { nextMode -> gridMode = nextMode },
                     onManageBackground = onManageBackground,
                     onManageTouchpadSettings = onManageTouchpadSettings,
+                    onToggleBackgroundVisibility = onToggleBackgroundVisibility,
                     onChangeGridCols = { newCols ->
                         val currentLayout = layout ?: return@EditorLayoutChipsBar
                         MacroPadState.updateLayout(currentLayout.copy(gridCols = newCols))
@@ -1106,6 +1124,7 @@ private fun EditorBody(
                 accentColor = accentColor,
                 gridMode = gridMode,
                 isLocked = isCanvasLocked,
+                isBackgroundHidden = isBackgroundHidden,
                 onCellTap = { col, row ->
                     val lay = layout ?: return@PadCanvas
                     val button = GridLayoutMath.buttonAt(lay, col, row)

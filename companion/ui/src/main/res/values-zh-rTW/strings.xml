@@ -1178,4 +1178,6 @@
     <string name="button_settings_show_label_bg_desc">在文字背後顯示半透明深色底色</string>
     <string name="crop_image_fit_whole">完整</string>
     <string name="crop_image_fit_fill">滿版</string>
+    <string name="macropad_bg_temp_hidden">背景圖片：已暫時隱藏</string>
+    <string name="macropad_bg_temp_visible">背景圖片：已恢復顯示</string>
 </resources>

@@ -1,9 +1,11 @@
 package com.stormpanda.megingiard.macropad
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -204,6 +206,7 @@ internal fun EditorActionChip(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun EditorToolbarIconButton(
     label: String,
@@ -211,6 +214,7 @@ internal fun EditorToolbarIconButton(
     accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
     isActive: Boolean = false,
 ) {
     val colors = LocalAppColors.current
@@ -218,6 +222,7 @@ internal fun EditorToolbarIconButton(
     val border = if (isActive) accentColor else colors.onSurfaceSecondary.copy(alpha = 0.3f)
     val tint = if (isActive) accentColor else colors.onSurface
 
+    val hasCombined = onLongClick != null
     Box(
         modifier =
             modifier
@@ -225,7 +230,13 @@ internal fun EditorToolbarIconButton(
                 .clip(RoundedCornerShape(8.dp))
                 .background(bg)
                 .border(1.dp, border, RoundedCornerShape(8.dp))
-                .clickable(onClick = onClick),
+                .then(
+                    if (hasCombined) {
+                        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    } else {
+                        Modifier.clickable(onClick = onClick)
+                    }
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -249,6 +260,7 @@ internal fun EditorToolbar(
     onGridModeChange: () -> Unit,
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
+    onToggleBackgroundVisibility: (() -> Unit)? = null,
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
     onToggleGridBorders: (() -> Unit)? = null,
@@ -270,6 +282,7 @@ internal fun EditorToolbar(
                 icon = Icons.Rounded.Wallpaper,
                 accentColor = accentColor,
                 onClick = onManageBackground,
+                onLongClick = onToggleBackgroundVisibility,
             )
             EditorToolbarIconButton(
                 label = stringResource(R.string.macropad_editor_grid_size),
@@ -320,6 +333,7 @@ internal fun EditorToolbar(
                 icon = Icons.Rounded.Wallpaper,
                 accentColor = accentColor,
                 onClick = onManageBackground,
+                onLongClick = onToggleBackgroundVisibility,
             )
             EditorToolbarIconButton(
                 label = lockLabel,

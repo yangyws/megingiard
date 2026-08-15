@@ -1338,5 +1338,7 @@ Open Settings to create a layout.</string>
     <string name="button_settings_show_label_bg_desc">Display dark background behind label text</string>
     <string name="crop_image_fit_whole">Whole</string>
     <string name="crop_image_fit_fill">Fill</string>
+    <string name="macropad_bg_temp_hidden">Background image temporarily hidden</string>
+    <string name="macropad_bg_temp_visible">Background image visible</string>
 </resources>
 

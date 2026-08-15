@@ -162,6 +162,7 @@ internal fun PadCanvas(
     accentColor: Color,
     gridMode: GridMode,
     isLocked: Boolean,
+    isBackgroundHidden: Boolean = false,
     onCellTap: ((col: Int, row: Int) -> Unit)? = null,
     onCellMove: ((from: Pair<Int, Int>, to: Pair<Int, Int>) -> Unit)? = null,
     onCellMenu: ((PadButton) -> Unit)? = null,
@@ -239,7 +240,7 @@ internal fun PadCanvas(
             .onSizeChanged { canvasSize = it }
 
     Box(modifier = padModifier) {
-        if (bgBitmap != null) {
+        if (bgBitmap != null && !isBackgroundHidden) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cw = size.width
                 val ch = size.height
