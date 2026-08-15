@@ -135,6 +135,7 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_editor_title_edit_profile">Profil bearbeiten</string>
     <string name="macropad_editor_done">Speichern</string>
     <string name="macropad_editor_add_button">Taste hinzufügen</string>
+    <string name="macropad_editor_edit_button">Taste bearbeiten</string>
     <string name="macropad_editor_add">Hinzufügen</string>
     <string name="macropad_editor_delete_button">Löschen</string>
     <string name="macropad_editor_button_label">Beschriftung</string>
@@ -556,11 +557,17 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="help_layout_settings_palette_desc">Tippe auf das Palette-Symbol neben einer Farbe, um standardmäßige neutrale/Akzent-Stile oder kürzlich genutzte Farben auszuwählen.</string>
 
     <!-- Help menu strings for Background settings -->
-    <string name="help_bg_settings_intro">Konfiguriere das Hintergrundbild, die Dimmung, das Scrapen und die Masken-Überlagerung des Layouts.</string>
-    <string name="help_bg_settings_dimming_title">Dimmung</string>
-    <string name="help_bg_settings_dimming_desc">Dimme das Hintergrundbild mit dem Schieberegler. Der Bereich reicht von 0% (keine Dimmung) bis 90% (maximale Dimmung), damit Tasten gut lesbar bleiben.</string>
+    <string name="help_bg_settings_intro">Konfiguriere das Hintergrundbild, die Dimmung, das Scrapen, Skalierungsmodi und die Masken-Überlagerung des Layouts.</string>
+    <string name="help_bg_settings_scrape_desc">Durchsuche SteamGridDB nach Spiel-Covern und lade sie direkt als Hintergrundbild herunter.</string>
+    <string name="help_bg_settings_browse_desc">Wähle ein Bild aus dem lokalen Gerätespeicher (unterstützt PNG, JPG, WebP).</string>
+    <string name="help_bg_settings_fit_desc">Proportional skalieren, um das gesamte Bild mit Rändern anzuzeigen, und Zuschnitt zurücksetzen.</string>
+    <string name="help_bg_settings_fill_desc">Proportional vergrößern, um den Bildschirm randlos auszufüllen, und Zuschnitt zurücksetzen.</string>
     <string name="help_bg_settings_crop_title">Zuschneiden &amp; Verschieben</string>
-    <string name="help_bg_settings_crop_desc">Schneide und skaliere das Bild per Zieh- und Zoomgesten zu, um es an das Dual-Screen-Seitenverhältnis anzupassen.</string>
+    <string name="help_bg_settings_crop_desc">Öffne den interaktiven Zuschneidedialog im Seitenverhältnis des Bildschirms, um den Ausschnitt per Ziehen und Zoomen anzupassen.</string>
+    <string name="help_bg_settings_delete_desc">Entferne das aktuelle Hintergrundbild aus diesem Layout.</string>
+    <string name="help_bg_settings_dimming_title">Dimmung</string>
+    <string name="help_bg_settings_dimming_desc" formatted="false">Dimme das Hintergrundbild mit dem Schieberegler (0% bis 90%), damit Tastenbeschriftungen gut lesbar bleiben.</string>
+    <string name="help_bg_settings_scale_mode_desc">Wechseln Sie zwischen Einpassen (vollständiges Bild mit Rändern anzeigen) und Ausfüllen (Vollbild ohne Ränder).</string>
 
     <!-- Makro-Listenverwaltung -->
     <string name="macropad_macro_list_title">Makros</string>
@@ -916,6 +923,20 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="help_editor_button_edit_desc">Tippe auf eine beliebige Taste in der Liste unter der Arbeitsfläche, um den Bearbeitungsdialog zu öffnen. Hier kannst du Beschriftung, Symbol, Größe, Form, Farbe, Haptik und die zugewiesene Makro-Aktion ändern.</string>
     <string name="help_editor_button_reorder_label">Tasten sortieren</string>
     <string name="help_editor_button_reorder_desc">Ziehe den Anfasser auf der rechten Seite eines Listeneintrags, um die Tasten in der Liste neu zu sortieren.</string>
+
+    <string name="help_editor_section_table">Tabellenmodus</string>
+    <string name="help_editor_table_grid_size_label">Rastergröße</string>
+    <string name="help_editor_table_grid_size_desc">Passen Sie Spalten und Zeilen des Tabellenrasters (von 1×1 bis 8×6) an Ihr Tastenlayout an.</string>
+    <string name="help_editor_table_border_label">Rahmenstil</string>
+    <string name="help_editor_table_border_desc">Wechseln Sie zwischen kräftigen schwarzen Rahmen und dezenten, dünnen weißen Rasterlinien.</string>
+    <string name="help_editor_table_bg_label">Tastenhintergrund</string>
+    <string name="help_editor_table_bg_desc">Schalten Sie zwischen deckenden Tastenhintergründen und transparenten Feldern um, um das Hintergrundbild sichtbar zu machen.</string>
+    <string name="help_editor_table_add_label">Taste hinzufügen (+)</string>
+    <string name="help_editor_table_add_desc">Tippen Sie auf das +-Symbol in einer leeren Zelle, um den Erstellungsdialog zu öffnen. Abbrechen lässt die Zelle leer.</string>
+    <string name="help_editor_table_reorder_label">Zellen verschieben &amp; tauschen</string>
+    <string name="help_editor_table_reorder_desc">Halten und ziehen Sie Tasten im Tabellenraster, um sie zu verschieben oder Positionen zu tauschen.</string>
+    <string name="help_editor_table_grid_layer_label">Oberste Rasterebene</string>
+    <string name="help_editor_table_grid_layer_desc">Rasterlinien werden immer auf der obersten Ebene gezeichnet und nicht von Tastenfarben verdeckt.</string>
 
     <!-- Macro List help -->
     <string name="help_macrolist_title">Makros — Hilfe</string>

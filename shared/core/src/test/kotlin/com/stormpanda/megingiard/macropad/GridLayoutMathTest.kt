@@ -114,4 +114,24 @@ class GridLayoutMathTest {
         val updated = layout.copy(gridShowButtonBg = false)
         assertEquals(false, updated.gridShowButtonBg)
     }
+
+    @Test
+    fun testGridLinesDrawnBetweenOccupiedCells() {
+        val btn1 = createButton("btn1", 0, 0)
+        val btn2 = createButton("btn2", 1, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 2,
+                gridRows = 2,
+                gridShowBorders = false,
+            )
+
+        val lines = GridLayoutMath.gridLines(layout, outlineEmptyCells = true)
+        // With a 2x2 grid, all cell borders must be ruled: 3 vertical lines (col 0, 1, 2) and 3 horizontal lines (row 0, 1, 2)
+        assertEquals(6, lines.size)
+    }
 }

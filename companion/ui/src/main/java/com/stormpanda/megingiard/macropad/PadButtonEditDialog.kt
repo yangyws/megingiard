@@ -341,10 +341,10 @@ internal fun ButtonEditDialog(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             val topBarTitle =
-                when {
-                    button == null -> stringResource(R.string.macropad_editor_add_button)
-                    button.action is PadAction.TrackpointMove -> stringResource(R.string.macropad_action_trackpoint)
-                    else -> button.label
+                if (button == null || (activeLayout != null && activeLayout.buttons.none { it.id == button.id })) {
+                    stringResource(R.string.macropad_editor_add_button)
+                } else {
+                    stringResource(R.string.macropad_editor_edit_button)
                 }
             FullScreenTopBar(title = topBarTitle, onDismiss = onDismiss) {
                 Row(

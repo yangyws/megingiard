@@ -49,7 +49,7 @@ internal val PTC_TABLE_SELECTED_BORDER = Color(0xFFE53935)
 internal val PTC_TABLE_SELECTED_BG = Color(0x40E53935)
 internal val PTC_TABLE_CELL_CORNER_RADIUS = 4.dp
 internal val PTC_TABLE_GRID_LINE_WIDTH = 1.dp
-internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x33FFFFFF)
+internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x66FFFFFF)
 internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 
 internal val PTC_TABLE_THICK_BORDER_WIDTH = 2.5.dp

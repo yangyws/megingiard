@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.Grid4x4
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Lock
@@ -363,6 +364,8 @@ fun MacroPadEditor(onDone: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
         ) {
             if (editingButton != null && profile != null) {
+                val layout = MacroPadState.activeLayout.value
+                val isExistingButton = layout?.buttons?.any { it.id == editingButton?.id } == true
                 ButtonEditDialog(
                     button = editingButton,
                     accentColor = colors.accent,
@@ -370,14 +373,19 @@ fun MacroPadEditor(onDone: () -> Unit) {
                         pendingMacroEditId = macro.id
                         showMacroListEditor = true
                     },
-                    onDelete = {
-                        val toDelete = editingButton
-                        if (toDelete != null) {
-                            buttonPendingDelete = toDelete
-                            editingButtonActive = false
-                            editingButton = null
-                        }
-                    },
+                    onDelete =
+                        if (isExistingButton) {
+                            {
+                                val toDelete = editingButton
+                                if (toDelete != null) {
+                                    buttonPendingDelete = toDelete
+                                    editingButtonActive = false
+                                    editingButton = null
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     onConfirm = { updated ->
                         val layout = MacroPadState.activeLayout.value ?: return@ButtonEditDialog
                         val cols = layout.effectiveGridCols
@@ -385,7 +393,13 @@ fun MacroPadEditor(onDone: () -> Unit) {
                         val safeCol = (updated.gridCol ?: 0).coerceIn(0, (cols - updated.effectiveColSpan).coerceAtLeast(0))
                         val safeRow = (updated.gridRow ?: 0).coerceIn(0, (rows - updated.effectiveRowSpan).coerceAtLeast(0))
                         val bounded = updated.copy(gridCol = safeCol, gridRow = safeRow)
-                        val updatedLayout = layout.copy(buttons = layout.buttons.map { if (it.id == bounded.id) bounded else it })
+                        val updatedButtons =
+                            if (layout.buttons.any { it.id == bounded.id }) {
+                                layout.buttons.map { if (it.id == bounded.id) bounded else it }
+                            } else {
+                                layout.buttons + bounded
+                            }
+                        val updatedLayout = layout.copy(buttons = updatedButtons)
                         MacroPadState.updateLayout(if (layout.isGridMode) updatedLayout.withCellsAssigned() else updatedLayout)
                         editingButtonActive = false
                         editingButton = null
@@ -904,6 +918,38 @@ private fun MacroPadEditorHelpModal(
             label = stringResource(R.string.help_editor_button_reorder_label),
             description = stringResource(R.string.help_editor_button_reorder_desc),
         )
+
+        HelpSection(stringResource(R.string.help_editor_section_table))
+        HelpEntry(
+            icon = Icons.Rounded.Grid4x4,
+            label = stringResource(R.string.help_editor_table_grid_size_label),
+            description = stringResource(R.string.help_editor_table_grid_size_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.GridView,
+            label = stringResource(R.string.help_editor_table_border_label),
+            description = stringResource(R.string.help_editor_table_border_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.FormatColorFill,
+            label = stringResource(R.string.help_editor_table_bg_label),
+            description = stringResource(R.string.help_editor_table_bg_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.Add,
+            label = stringResource(R.string.help_editor_table_add_label),
+            description = stringResource(R.string.help_editor_table_add_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.DragHandle,
+            label = stringResource(R.string.help_editor_table_reorder_label),
+            description = stringResource(R.string.help_editor_table_reorder_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.Grid4x4,
+            label = stringResource(R.string.help_editor_table_grid_layer_label),
+            description = stringResource(R.string.help_editor_table_grid_layer_desc),
+        )
     }
 }
 
@@ -1132,19 +1178,19 @@ private fun EditorBody(
                     if (button != null) {
                         onEditButton(button)
                     } else {
-                        val currentLayout = layout
-                        if (currentLayout != null) {
-                            val newBtn = PadButton(
-                                id = java.util.UUID.randomUUID().toString(),
+                        val newBtn =
+                            PadButton(
+                                id = UUID.randomUUID().toString(),
                                 label = "",
                                 posX = 0.5f,
                                 posY = 0.5f,
                                 action = PadAction.KeyboardKey(keycode = 30, label = "A"),
                                 gridCol = col,
                                 gridRow = row,
+                                colSpan = 1,
+                                rowSpan = 1,
                             )
-                            MacroPadState.updateLayout(currentLayout.copy(buttons = currentLayout.buttons + newBtn))
-                        }
+                        onEditButton(newBtn)
                     }
                 },
                 onCellMove = { from, to ->

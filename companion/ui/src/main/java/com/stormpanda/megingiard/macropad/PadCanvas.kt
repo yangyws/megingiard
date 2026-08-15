@@ -285,14 +285,6 @@ internal fun PadCanvas(
                 }
             }
         }
-        // Grid overlay — drawn behind buttons in free mode
-        if (layout?.isGridMode != true && gridMode != GridMode.OFF && canvasSize.width > 0 && canvasSize.height > 0) {
-            GridOverlay(
-                gridMode = gridMode,
-                gridStepPx = gridStepPx,
-                gridColor = accentColor.copy(alpha = PC_GRID_LINE_ALPHA),
-            )
-        }
 
         if (layout?.isGridMode == true) {
             PadTableGrid(
@@ -438,6 +430,22 @@ internal fun PadCanvas(
                 layoutId = layout?.id,
                 accentColor = accentColor,
             )
+        }
+
+        // Grid overlay — drawn on topmost layer so it is never covered by buttons or backgrounds
+        if (gridMode != GridMode.OFF && canvasSize.width > 0 && canvasSize.height > 0) {
+            if (layout?.isGridMode == true) {
+                TableGridOverlay(
+                    layout = layout,
+                    gridColor = accentColor.copy(alpha = PC_GRID_LINE_ALPHA),
+                )
+            } else {
+                GridOverlay(
+                    gridMode = gridMode,
+                    gridStepPx = gridStepPx,
+                    gridColor = accentColor.copy(alpha = PC_GRID_LINE_ALPHA),
+                )
+            }
         }
     }
 }
@@ -697,6 +705,47 @@ private fun DraggableButton(
 // ─────────────────────────────────────────────────────────────────────────────
 // Grid overlay
 // ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TableGridOverlay(
+    layout: PadLayout,
+    gridColor: Color,
+) {
+    val cols = layout.effectiveGridCols
+    val rows = layout.effectiveGridRows
+    if (cols <= 0 || rows <= 0) return
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        if (w <= 0f || h <= 0f) return@Canvas
+
+        val cellW = w / cols
+        val cellH = h / rows
+
+        // Vertical division lines
+        for (c in 1 until cols) {
+            val x = c * cellW
+            drawLine(
+                color = gridColor,
+                start = Offset(x, 0f),
+                end = Offset(x, h),
+                strokeWidth = PC_GRID_STROKE_PX,
+            )
+        }
+
+        // Horizontal division lines
+        for (r in 1 until rows) {
+            val y = r * cellH
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, y),
+                end = Offset(w, y),
+                strokeWidth = PC_GRID_STROKE_PX,
+            )
+        }
+    }
+}
 
 @Composable
 private fun GridOverlay(

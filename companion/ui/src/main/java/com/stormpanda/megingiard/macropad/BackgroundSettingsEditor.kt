@@ -38,6 +38,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FitScreen
+import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Pinch
 import androidx.compose.material.icons.rounded.Search
@@ -349,13 +351,41 @@ internal fun BackgroundSettingsEditor(
                     ) {
                         val bitmap = previewBitmap
                         if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap,
-                                contentDescription = stringResource(R.string.layout_settings_bg_image_preview_desc),
-                                contentScale = if (bgImageFill) ContentScale.Crop else ContentScale.Fit,
-                                colorFilter = bgImageDimFilter,
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val cw = size.width
+                                val ch = size.height
+                                val iw = bitmap.width.toFloat()
+                                val ih = bitmap.height.toFloat()
+                                if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                                    val scaleBase =
+                                        if (bgImageFill) {
+                                            ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                                        } else {
+                                            ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                                        }
+                                    val ws = iw * scaleBase
+                                    val hs = ih * scaleBase
+                                    val maxTx = ((ws * bgScale - cw) / 2f).coerceAtLeast(0f)
+                                    val maxTy = ((hs * bgScale - ch) / 2f).coerceAtLeast(0f)
+                                    val clampedX = (bgOffsetX * cw).coerceIn(-maxTx, maxTx)
+                                    val clampedY = (bgOffsetY * ch).coerceIn(-maxTy, maxTy)
+
+                                    drawImage(
+                                        image = bitmap,
+                                        dstOffset =
+                                            IntOffset(
+                                                ((cw - ws * bgScale) / 2f + clampedX).toInt(),
+                                                ((ch - hs * bgScale) / 2f + clampedY).toInt(),
+                                            ),
+                                        dstSize =
+                                            IntSize(
+                                                (ws * bgScale).toInt(),
+                                                (hs * bgScale).toInt(),
+                                            ),
+                                        colorFilter = bgImageDimFilter,
+                                    )
+                                }
+                            }
                         } else {
                             Icon(
                                 imageVector = Icons.Rounded.Image,
@@ -374,7 +404,7 @@ internal fun BackgroundSettingsEditor(
                                 .height(previewHeight),
                         verticalArrangement = Arrangement.spacedBy(BSE_SPACING_8, Alignment.CenterVertically),
                     ) {
-                        // 1. Scrape from SteamGridDB
+                        // Row 1: Search online from SteamGridDB
                         Button(
                             onClick = {
                                 val token = SettingsManager.steamGridDbApiToken.value
@@ -396,7 +426,7 @@ internal fun BackgroundSettingsEditor(
                             Text(stringResource(R.string.layout_settings_bg_image_scrape), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
 
-                        // 2. Browse local images
+                        // Row 2: Browse local images
                         Button(
                             onClick = { launcher.launch("image/*") },
                             colors =
@@ -415,23 +445,72 @@ internal fun BackgroundSettingsEditor(
                             )
                         }
 
-                        // 3. Crop button
-                        Button(
-                            onClick = { showPreviewModal = true },
-                            enabled = previewBitmap != null,
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor = colors.surfaceVariant,
-                                    contentColor = colors.onSurface,
-                                ),
+                        // Row 3: Fit, Fill, and Crop (3 buttons in one row)
+                        val isCustomCrop = (bgScale != 1f || bgOffsetX != 0f || bgOffsetY != 0f)
+                        val isFitActive = !bgImageFill && !isCustomCrop
+                        val isFillActive = bgImageFill && !isCustomCrop
+
+                        Row(
                             modifier = Modifier.fillMaxWidth().weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(BSE_SPACING_8),
                         ) {
-                            Icon(Icons.Rounded.Crop, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
-                            Spacer(Modifier.width(BSE_SPACING_8))
-                            Text(stringResource(R.string.layout_settings_bg_image_crop), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Button(
+                                onClick = {
+                                    bgImageFill = false
+                                    bgScale = 1f
+                                    bgOffsetX = 0f
+                                    bgOffsetY = 0f
+                                },
+                                enabled = previewBitmap != null,
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = if (isFitActive) accentColor else colors.surfaceVariant,
+                                        contentColor = if (isFitActive) colors.onAccent else colors.onSurface,
+                                    ),
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                            ) {
+                                Icon(Icons.Rounded.FitScreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
+                                Spacer(Modifier.width(BSE_SPACING_8))
+                                Text(stringResource(R.string.crop_image_fit_whole), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+
+                            Button(
+                                onClick = {
+                                    bgImageFill = true
+                                    bgScale = 1f
+                                    bgOffsetX = 0f
+                                    bgOffsetY = 0f
+                                },
+                                enabled = previewBitmap != null,
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = if (isFillActive) accentColor else colors.surfaceVariant,
+                                        contentColor = if (isFillActive) colors.onAccent else colors.onSurface,
+                                    ),
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                            ) {
+                                Icon(Icons.Rounded.Fullscreen, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
+                                Spacer(Modifier.width(BSE_SPACING_8))
+                                Text(stringResource(R.string.crop_image_fit_fill), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+
+                            Button(
+                                onClick = { showPreviewModal = true },
+                                enabled = previewBitmap != null,
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = if (isCustomCrop) accentColor else colors.surfaceVariant,
+                                        contentColor = if (isCustomCrop) colors.onAccent else colors.onSurface,
+                                    ),
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                            ) {
+                                Icon(Icons.Rounded.Crop, contentDescription = null, modifier = Modifier.size(BSE_ICON_SIZE_18))
+                                Spacer(Modifier.width(BSE_SPACING_8))
+                                Text(stringResource(R.string.layout_settings_bg_image_crop), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
 
-                        // 4. Delete button
+                        // Row 4: Delete button
                         Button(
                             onClick = {
                                 pendingImageUri = null
@@ -458,32 +537,8 @@ internal fun BackgroundSettingsEditor(
 
                 Spacer(Modifier.height(BSE_SPACING_16))
 
-                // 2. Scale Mode (Fit / Fill) & Mask option & Dimming
+                // 2. Mask option & Dimming
                 if (pendingImageUri != null || currentBgPath != null) {
-                    Spacer(Modifier.height(BSE_SPACING_8))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.layout_settings_bg_image_scale_mode_title),
-                            color = colors.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(BSE_SPACING_8)) {
-                            AppSelectableChip(
-                                text = stringResource(R.string.layout_settings_bg_image_fit),
-                                selected = !bgImageFill,
-                                onClick = { bgImageFill = false },
-                            )
-                            AppSelectableChip(
-                                text = stringResource(R.string.layout_settings_bg_image_fill),
-                                selected = bgImageFill,
-                                onClick = { bgImageFill = true },
-                            )
-                        }
-                    }
 
                     Spacer(Modifier.height(BSE_SPACING_16))
                     Row(
@@ -561,6 +616,7 @@ internal fun BackgroundSettingsEditor(
                     bgScale = scale
                     bgOffsetX = ox
                     bgOffsetY = oy
+                    bgImageFill = true
                     showPreviewModal = false
                 },
                 onDismiss = { showPreviewModal = false },
@@ -662,18 +718,42 @@ private fun BackgroundSettingsHelpModal(
 
         HelpSection(stringResource(R.string.help_layout_settings_sec_properties))
         HelpEntry(
-            label = stringResource(R.string.help_layout_settings_bg_title),
-            description = stringResource(R.string.help_layout_settings_bg_desc),
+            icon = Icons.Rounded.Search,
+            label = stringResource(R.string.layout_settings_bg_image_scrape),
+            description = stringResource(R.string.help_bg_settings_scrape_desc),
         )
         HelpEntry(
-            label = stringResource(R.string.help_bg_settings_dimming_title),
-            description = stringResource(R.string.help_bg_settings_dimming_desc),
+            icon = Icons.Rounded.Image,
+            label = stringResource(R.string.layout_settings_bg_image_browse_local),
+            description = stringResource(R.string.help_bg_settings_browse_desc),
         )
         HelpEntry(
+            icon = Icons.Rounded.FitScreen,
+            label = stringResource(R.string.crop_image_fit_whole),
+            description = stringResource(R.string.help_bg_settings_fit_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.Fullscreen,
+            label = stringResource(R.string.crop_image_fit_fill),
+            description = stringResource(R.string.help_bg_settings_fill_desc),
+        )
+        HelpEntry(
+            icon = Icons.Rounded.Crop,
             label = stringResource(R.string.help_bg_settings_crop_title),
             description = stringResource(R.string.help_bg_settings_crop_desc),
         )
         HelpEntry(
+            icon = Icons.Rounded.Delete,
+            label = stringResource(R.string.macropad_editor_delete_button),
+            description = stringResource(R.string.help_bg_settings_delete_desc),
+        )
+        HelpEntry(
+            icon = null,
+            label = stringResource(R.string.help_bg_settings_dimming_title),
+            description = stringResource(R.string.help_bg_settings_dimming_desc),
+        )
+        HelpEntry(
+            icon = null,
             label = stringResource(R.string.help_layout_settings_mask_title),
             description = stringResource(R.string.help_layout_settings_mask_desc),
         )

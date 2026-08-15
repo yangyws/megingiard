@@ -130,6 +130,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_title_edit_profile">Edit Profile</string>
     <string name="macropad_editor_done">Save</string>
     <string name="macropad_editor_add_button">Add Button</string>
+    <string name="macropad_editor_edit_button">Edit Button</string>
     <string name="macropad_editor_add">Add</string>
     <string name="macropad_editor_delete_button">Delete</string>
     <string name="macropad_editor_button_label">Label</string>
@@ -645,11 +646,17 @@ Open Settings to create a layout.</string>
     <string name="help_layout_settings_palette_desc">Tap the palette icon next to a color to choose from standard neutral/accent styles or recently selected custom colors.</string>
 
     <!-- Help menu strings for Background settings -->
-    <string name="help_bg_settings_intro">Configure this layout\'s background image settings, dimming, scraping, and mask options.</string>
-    <string name="help_bg_settings_dimming_title">Dimming</string>
-    <string name="help_bg_settings_dimming_desc">Dim the background image using the slider. Dimming ranges from 0% (no dimming) to 90% (maximum dimming) to keep buttons visible.</string>
+    <string name="help_bg_settings_intro">Configure this layout\'s background image settings, dimming, scraping, scaling, and mask options.</string>
+    <string name="help_bg_settings_scrape_desc">Search and download game artworks directly from SteamGridDB to use as the background image.</string>
+    <string name="help_bg_settings_browse_desc">Pick an image from your device storage (supports PNG, JPG, WebP).</string>
+    <string name="help_bg_settings_fit_desc">Scale proportionally to display the full image with letterboxing and reset crop.</string>
+    <string name="help_bg_settings_fill_desc">Expand proportionally to fill the secondary display completely without black borders and reset crop.</string>
     <string name="help_bg_settings_crop_title">Crop &amp; Pan</string>
-    <string name="help_bg_settings_crop_desc">Crop and scale the image using drag to pan and pinch to zoom gestures to fit it to the dual-screen aspect ratio.</string>
+    <string name="help_bg_settings_crop_desc">Open the interactive crop dialog locked to the secondary screen aspect ratio to pan and zoom into a custom crop region.</string>
+    <string name="help_bg_settings_delete_desc">Remove the current background image from this layout.</string>
+    <string name="help_bg_settings_dimming_title">Dimming</string>
+    <string name="help_bg_settings_dimming_desc" formatted="false">Dim the background image using the slider (0% to 90%) so button labels and icons remain clear and readable.</string>
+    <string name="help_bg_settings_scale_mode_desc">Switch between Aspect Fit (show full image with letterboxing) and Aspect Fill (expand to fill screen completely without borders).</string>
 
     <!-- MacroListEditor -->
     <string name="macropad_macro_list_title">Macros</string>
@@ -910,6 +917,20 @@ Open Settings to create a layout.</string>
     <string name="help_editor_button_edit_desc">Tap any button in the list below the canvas to open the Edit dialog. Here you can change its label, icon, size, shape, color, haptics, and assigned macro action.</string>
     <string name="help_editor_button_reorder_label">Reorder buttons</string>
     <string name="help_editor_button_reorder_desc">Drag the handle on the right side of a list item to reorder buttons in the list.</string>
+
+    <string name="help_editor_section_table">Table Mode</string>
+    <string name="help_editor_table_grid_size_label">Grid size</string>
+    <string name="help_editor_table_grid_size_desc">Configure the table grid columns and rows (from 1×1 up to 8×6) to fit your control layout.</string>
+    <string name="help_editor_table_border_label">Border style</string>
+    <string name="help_editor_table_border_desc">Toggle between thick black framed borders and clean, unobtrusive thin white grid lines.</string>
+    <string name="help_editor_table_bg_label">Button background</string>
+    <string name="help_editor_table_bg_desc">Toggle between solid button face backgrounds and transparent cells that reveal the custom background image.</string>
+    <string name="help_editor_table_add_label">Add button (+)</string>
+    <string name="help_editor_table_add_desc">Tap the + icon on any empty table cell to open the button creation dialog. Tapping Cancel leaves the cell clean and empty.</string>
+    <string name="help_editor_table_reorder_label">Move &amp; swap cells</string>
+    <string name="help_editor_table_reorder_desc">Long-press and drag any table button to move it to an empty cell or swap positions with another button.</string>
+    <string name="help_editor_table_grid_layer_label">Topmost grid overlay</string>
+    <string name="help_editor_table_grid_layer_desc">Grid lines are drawn on the topmost layer so they are never obscured by button backgrounds or artwork.</string>
 
     <!-- Macro List help -->
     <string name="help_macrolist_title">Macros — Help</string>

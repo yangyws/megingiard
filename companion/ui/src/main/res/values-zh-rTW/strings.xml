@@ -561,11 +561,17 @@
     <string name="help_layout_settings_colors_desc">設定此配置中所有按鈕的預設顏色（文字／圖示、外框與漸隱顏色）。個別按鈕可以各自覆寫這些預設值。</string>
     <string name="help_layout_settings_palette_title">快速調色盤</string>
     <string name="help_layout_settings_palette_desc">點擊顏色旁邊的調色盤圖示，即可從標準的中性／主題重點色樣式，或最近選過的自訂顏色中挑選。</string>
-    <string name="help_bg_settings_intro">設定此配置的背景圖片設定、調暗、抓取與遮罩選項。</string>
-    <string name="help_bg_settings_dimming_title">調暗</string>
-    <string name="help_bg_settings_dimming_desc" formatted="false">使用滑桿調暗背景圖片。範圍從 0% (不調暗) 到 90% (最大調暗)，以保持按鈕清晰可見。</string>
+    <string name="help_bg_settings_intro">設定此配置的背景圖片設定、調暗、抓取、縮放模式與遮罩選項。</string>
+    <string name="help_bg_settings_scrape_desc">直接從 SteamGridDB 搜尋並下載遊戲封面圖片作為配置背景。</string>
+    <string name="help_bg_settings_browse_desc">從裝置本機儲存空間挑選圖片（支援 PNG、JPG、WebP 格式）。</string>
+    <string name="help_bg_settings_fit_desc">等比例縮放以完整呈現整張圖片（留黑邊），並重設裁切區域。</string>
+    <string name="help_bg_settings_fill_desc">等比例放大填滿整個副螢幕（無黑邊），並重設裁切區域。</string>
     <string name="help_bg_settings_crop_title">裁切與平移</string>
-    <string name="help_bg_settings_crop_desc">使用拖曳平移與捏合縮放手勢裁切並縮放圖片，使其符合雙螢幕長寬比。</string>
+    <string name="help_bg_settings_crop_desc">開啟鎖定副螢幕長寬比的互動式裁切視窗，使用拖曳與雙指縮放微調想要的畫面區域。</string>
+    <string name="help_bg_settings_delete_desc">清除並移除此配置當前的背景圖片。</string>
+    <string name="help_bg_settings_dimming_title">調暗</string>
+    <string name="help_bg_settings_dimming_desc" formatted="false">使用滑桿調暗背景圖片（0% 到 90%），確保按鈕文字與圖示清晰可讀。</string>
+    <string name="help_bg_settings_scale_mode_desc">在完整顯示（留黑邊呈現整張圖）與滿版填滿（放大填滿整個螢幕）之間快速切換。</string>
     <string name="macropad_macro_list_title">巨集</string>
     <string name="macropad_macro_list_new">新增巨集</string>
     <string name="macropad_macro_list_empty">尚無巨集。點擊 + 建立一個。</string>
@@ -790,6 +796,21 @@
     <string name="help_editor_button_edit_desc">點擊畫布下方列表中的任何按鈕以開啟編輯對話視窗。在此您可以更改其標籤、圖示、大小、形狀、顏色、觸感以及分配的巨集動作。</string>
     <string name="help_editor_button_reorder_label">重新排序按鈕</string>
     <string name="help_editor_button_reorder_desc">拖曳列表項右側的控制把手以重新排序列表中的按鈕。</string>
+
+    <string name="help_editor_section_table">表格模式</string>
+    <string name="help_editor_table_grid_size_label">表格大小</string>
+    <string name="help_editor_table_grid_size_desc">自訂表格的欄數與列數（從 1×1 到 8×6），靈活配置不同數量的按鈕陣列。</string>
+    <string name="help_editor_table_border_label">邊框樣式</string>
+    <string name="help_editor_table_border_desc">在加粗立體黑框線與乾淨俐落的細白格線之間快速切換。</string>
+    <string name="help_editor_table_bg_label">按鈕底色</string>
+    <string name="help_editor_table_bg_desc">切換實心按鈕底色或透明背景，透明時可直接透出底層的自訂背景圖片。</string>
+    <string name="help_editor_table_add_label">點擊 + 新增按鈕</string>
+    <string name="help_editor_table_add_desc">點擊空白儲存格上的 + 號立即開啟按鈕設定視窗進行設定；點擊取消則完整保留空白儲存格。</string>
+    <string name="help_editor_table_reorder_label">長按移動與交換</string>
+    <string name="help_editor_table_reorder_desc">長按並拖曳表格中的按鈕，可快速移至空白儲存格或與另一個儲存格交換位置。</string>
+    <string name="help_editor_table_grid_layer_label">頂層格線輔助</string>
+    <string name="help_editor_table_grid_layer_desc">輔助格線一律置頂於最上層繪製，絕不會被任何按鈕底色或圖片遮擋。</string>
+
     <string name="help_macrolist_title">巨集 — 說明</string>
     <string name="help_macrolist_intro">巨集列表顯示屬於當前設定檔的所有可重複使用巨集。巨集是獨立的輸入步驟序列，可以分配給一或多個按鈕。</string>
     <string name="help_macrolist_section_actions">動作</string>

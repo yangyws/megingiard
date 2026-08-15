@@ -795,12 +795,8 @@ object GridLayoutMath {
                 // button, so it is never drawn whatever the setting says.
                 if (a != null && a == idAt(bCol, bRow)) return false
             }
-            if (showAll) return true
-            // Reached only with the grid switched off. gridLines() returns early in that
-            // case unless the editor asked for empty cells to keep their outline; spelled
-            // out here because cellCorners() has no such early return to lean on.
-            if (!outlineEmptyCells) return false
-            return (aIn && idAt(aCol, aRow) == null) || (bIn && idAt(bCol, bRow) == null)
+            if (showAll || outlineEmptyCells) return true
+            return false
         }
     }
 
