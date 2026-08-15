@@ -135,11 +135,11 @@ fun MacroPadEditor(onDone: () -> Unit) {
     var editingButtonActive by remember { mutableStateOf(false) }
     var buttonPendingDelete by remember { mutableStateOf<PadButton?>(null) }
     var showNewProfileDialog by remember { mutableStateOf(false) }
-    var showRenameProfileDialog by remember { mutableStateOf(false) }
+    var editingProfile by remember { mutableStateOf<PadProfile?>(null) }
     var showDeleteProfileConfirm by remember { mutableStateOf(false) }
     var showNewLayoutDialog by remember { mutableStateOf(false) }
     var layoutPendingDelete by remember { mutableStateOf<PadLayout?>(null) }
-    var showEditLayoutDialog by remember { mutableStateOf(false) }
+    var editingLayout by remember { mutableStateOf<PadLayout?>(null) }
     var showBackgroundSettingsDialog by remember { mutableStateOf(false) }
     var showTouchpadSettingsDialog by remember { mutableStateOf(false) }
     var showReorderProfilesOverlay by remember { mutableStateOf(false) }
@@ -156,8 +156,8 @@ fun MacroPadEditor(onDone: () -> Unit) {
         showMacroListEditor || showAddButton ||
             editingButtonActive || buttonPendingDelete != null ||
             showNewLayoutDialog || layoutPendingDelete != null ||
-            showNewProfileDialog || showRenameProfileDialog || showDeleteProfileConfirm ||
-            showEditLayoutDialog || showBackgroundSettingsDialog || showTouchpadSettingsDialog || showReorderProfilesOverlay ||
+            showNewProfileDialog || editingProfile != null || showDeleteProfileConfirm ||
+            editingLayout != null || showBackgroundSettingsDialog || showTouchpadSettingsDialog || showReorderProfilesOverlay ||
             showReorderLayoutsOverlay ||
             showCopyLayoutProfileDialog || showCopyButtonLayoutDialog || showGridSizeDialog
     BackHandler(enabled = anyOverlayVisible) {
@@ -195,16 +195,16 @@ fun MacroPadEditor(onDone: () -> Unit) {
                 showNewProfileDialog = false
             }
 
-            showRenameProfileDialog -> {
-                showRenameProfileDialog = false
+            editingProfile != null -> {
+                editingProfile = null
             }
 
             showDeleteProfileConfirm -> {
                 showDeleteProfileConfirm = false
             }
 
-            showEditLayoutDialog -> {
-                showEditLayoutDialog = false
+            editingLayout != null -> {
+                editingLayout = null
             }
 
             showBackgroundSettingsDialog -> {
@@ -270,14 +270,14 @@ fun MacroPadEditor(onDone: () -> Unit) {
                         AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                     },
                     onNewProfile = { showNewProfileDialog = true },
-                    onEditProfile = { showRenameProfileDialog = true },
+                    onEditProfile = { prof -> editingProfile = prof },
                     onDeleteProfile = { showDeleteProfileConfirm = true },
                     onSelectLayout = {
                         MacroPadState.setActiveLayoutId(it)
                         AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                     },
                     onNewLayout = { showNewLayoutDialog = true },
-                    onEditLayout = { showEditLayoutDialog = true },
+                    onEditLayout = { lay -> editingLayout = lay },
                     onDeleteLayoutRequested = { lay -> layoutPendingDelete = lay },
                     onManageMacros = { showMacroListEditor = true },
                     onAddButton = { showAddButton = true },
@@ -505,17 +505,18 @@ fun MacroPadEditor(onDone: () -> Unit) {
         }
 
         // Rename profile (in-tree input overlay — no Dialog window)
-        if (showRenameProfileDialog && profile != null) {
+        val targetProfile = editingProfile
+        if (targetProfile != null) {
             InlineProfileSettingsOverlay(
                 title = stringResource(R.string.profile_settings_title),
-                initialName = profile.name,
-                initialPackage = profile.association?.packageName,
+                initialName = targetProfile.name,
+                initialPackage = targetProfile.association?.packageName,
                 accentColor = colors.accent,
-                existingNames = profiles.filter { it.id != profile.id }.map { it.name },
+                existingNames = profiles.filter { it.id != targetProfile.id }.map { it.name },
                 onConfirm = { name, pkg ->
                     val assoc =
                         if (pkg != null) {
-                            val existing = profile.association
+                            val existing = targetProfile.association
                             if (existing != null && existing.packageName.equals(pkg, ignoreCase = true)) {
                                 existing
                             } else {
@@ -524,10 +525,10 @@ fun MacroPadEditor(onDone: () -> Unit) {
                         } else {
                             null
                         }
-                    MacroPadState.renameProfile(profile.id, name, assoc)
-                    showRenameProfileDialog = false
+                    MacroPadState.renameProfile(targetProfile.id, name, assoc)
+                    editingProfile = null
                 },
-                onDismiss = { showRenameProfileDialog = false },
+                onDismiss = { editingProfile = null },
             )
         }
 
@@ -559,21 +560,21 @@ fun MacroPadEditor(onDone: () -> Unit) {
         }
 
         // Edit layout overlay
-        if (showEditLayoutDialog && activeLayout != null) {
-            val curLayout = activeLayout!!
+        val targetLayout = editingLayout
+        if (targetLayout != null) {
             LayoutSettingsEditor(
                 title = stringResource(R.string.macropad_editor_title),
-                layoutId = curLayout.id,
-                initialName = curLayout.name,
-                initialButtonTextColor = curLayout.buttonTextColor,
-                initialButtonBorderColor = curLayout.buttonBorderColor,
-                initialButtonBgColor = curLayout.buttonBgColor,
-                initialInvisibleButtons = curLayout.invisibleButtons,
+                layoutId = targetLayout.id,
+                initialName = targetLayout.name,
+                initialButtonTextColor = targetLayout.buttonTextColor,
+                initialButtonBorderColor = targetLayout.buttonBorderColor,
+                initialButtonBgColor = targetLayout.buttonBgColor,
+                initialInvisibleButtons = targetLayout.invisibleButtons,
                 accentColor = colors.accent,
-                existingNames = profile?.layouts?.filter { it.id != curLayout.id }?.map { it.name } ?: emptyList(),
+                existingNames = profile?.layouts?.filter { it.id != targetLayout.id }?.map { it.name } ?: emptyList(),
                 onConfirm = { name, textCol, borderCol, bgCol, invisibleBtns ->
                     MacroPadState.updateLayout(
-                        curLayout.copy(
+                        targetLayout.copy(
                             name = name,
                             enabled = true,
                             buttonTextColor = textCol,
@@ -582,9 +583,9 @@ fun MacroPadEditor(onDone: () -> Unit) {
                             invisibleButtons = invisibleBtns,
                         ),
                     )
-                    showEditLayoutDialog = false
+                    editingLayout = null
                 },
-                onDismiss = { showEditLayoutDialog = false },
+                onDismiss = { editingLayout = null },
             )
         }
 
@@ -901,11 +902,11 @@ private fun EditorBody(
     accentColor: Color,
     onSelectProfile: (String) -> Unit,
     onNewProfile: () -> Unit,
-    onEditProfile: () -> Unit,
+    onEditProfile: (PadProfile) -> Unit,
     onDeleteProfile: () -> Unit,
     onSelectLayout: (String) -> Unit,
     onNewLayout: () -> Unit,
-    onEditLayout: () -> Unit,
+    onEditLayout: (PadLayout) -> Unit,
     onDeleteLayoutRequested: (PadLayout) -> Unit,
     onManageMacros: () -> Unit,
     onAddButton: () -> Unit,

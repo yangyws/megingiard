@@ -49,7 +49,7 @@ internal fun EditorProfileChipsBar(
     profiles: List<PadProfile>,
     activeProfile: PadProfile?,
     onSelectProfile: (String) -> Unit,
-    onEditProfile: () -> Unit,
+    onEditProfile: (PadProfile) -> Unit,
     onDuplicateProfile: () -> Unit,
     onReorderProfiles: () -> Unit,
     onDeleteProfile: () -> Unit,
@@ -86,10 +86,7 @@ internal fun EditorProfileChipsBar(
                     text = profile.name,
                     selected = isActive,
                     onClick = { onSelectProfile(profile.id) },
-                    onLongClick = {
-                        onSelectProfile(profile.id)
-                        onEditProfile()
-                    },
+                    onLongClick = { onEditProfile(profile) },
                 )
             }
         }
@@ -121,7 +118,7 @@ internal fun EditorProfileChipsBar(
                     },
                     onClick = {
                         menuExpanded = false
-                        onEditProfile()
+                        activeProfile?.let { onEditProfile(it) }
                     },
                 )
                 DropdownMenuItem(
@@ -188,7 +185,7 @@ internal fun EditorLayoutChipsBar(
     onToggleGridButtonBg: (() -> Unit)? = null,
     onLayoutModeChange: (PadLayoutMode) -> Unit,
     onSelectLayout: (String) -> Unit,
-    onEditLayout: () -> Unit,
+    onEditLayout: (PadLayout) -> Unit,
     onDuplicateLayout: () -> Unit,
     onCopyToProfile: () -> Unit,
     onReorderLayouts: () -> Unit,
@@ -231,10 +228,7 @@ internal fun EditorLayoutChipsBar(
                         text = layout.name,
                         selected = isActive,
                         onClick = { onSelectLayout(layout.id) },
-                        onLongClick = {
-                            onSelectLayout(layout.id)
-                            onEditLayout()
-                        },
+                        onLongClick = { onEditLayout(layout) },
                         leadingIcon = { contentColor ->
                             Icon(
                                 imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
@@ -273,7 +267,7 @@ internal fun EditorLayoutChipsBar(
                         },
                         onClick = {
                             menuExpanded = false
-                            onEditLayout()
+                            activeLayout?.let { onEditLayout(it) }
                         },
                     )
                     DropdownMenuItem(
