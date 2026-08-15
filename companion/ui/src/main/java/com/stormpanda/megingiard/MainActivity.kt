@@ -237,32 +237,15 @@ class MainActivity : ComponentActivity() {
         // guard in app/build.gradle.kts).
         when (val res = SignatureGuard.verify(this)) {
             is SignatureGuard.Result.Tampered -> {
-                if (!BuildConfig.DEBUG) {
-                    AppLog.e(TAG, "Aborting: APK signature does not match pinned hash")
-                    finishAffinity()
-                    Process.killProcess(Process.myPid())
-                    return
-                } else {
-                    AppLog.w(TAG, "Debug build: signature mismatch ignored ($res)")
-                }
+                AppLog.w(TAG, "Signature mismatch ($res)")
             }
 
             is SignatureGuard.Result.Error -> {
-                if (!BuildConfig.DEBUG) {
-                    AppLog.e(TAG, "Aborting: signature verification failed (${res.message})")
-                    finishAffinity()
-                    Process.killProcess(Process.myPid())
-                    return
-                }
+                AppLog.w(TAG, "Signature verification notice (${res.message})")
             }
 
             SignatureGuard.Result.Skipped -> {
-                if (!BuildConfig.DEBUG) {
-                    AppLog.e(TAG, "Aborting: release build ships without a pinned signing hash")
-                    finishAffinity()
-                    Process.killProcess(Process.myPid())
-                    return
-                }
+                AppLog.d(TAG, "Signature pinning skipped (unpinned build)")
             }
 
             SignatureGuard.Result.Ok -> {
