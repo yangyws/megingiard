@@ -1073,6 +1073,7 @@ private fun EditorBody(
                     onGridModeChange = { nextMode -> gridMode = nextMode },
                     onManageBackground = onManageBackground,
                     onManageTouchpadSettings = onManageTouchpadSettings,
+                    isBackgroundHidden = isBackgroundHidden,
                     onToggleBackgroundVisibility = onToggleBackgroundVisibility,
                     onChangeGridCols = { newCols ->
                         val currentLayout = layout ?: return@EditorLayoutChipsBar

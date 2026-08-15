@@ -1,6 +1,7 @@
 package com.stormpanda.megingiard.macropad
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,7 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.ui.LocalAppColors
 import java.util.Locale
+
+private val EBC_STRIKE_COLOR = Color(0xFFEF5350)
 
 private const val TAG = "EditorBaseComponents"
 
@@ -216,11 +221,19 @@ internal fun EditorToolbarIconButton(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     isActive: Boolean = false,
+    isStrikethrough: Boolean = false,
 ) {
     val colors = LocalAppColors.current
     val bg = if (isActive) accentColor.copy(alpha = 0.2f) else colors.surface
     val border = if (isActive) accentColor else colors.onSurfaceSecondary.copy(alpha = 0.3f)
-    val tint = if (isActive) accentColor else colors.onSurface
+    val tint =
+        if (isStrikethrough) {
+            colors.onSurfaceSecondary.copy(alpha = 0.5f)
+        } else if (isActive) {
+            accentColor
+        } else {
+            colors.onSurface
+        }
 
     val hasCombined = onLongClick != null
     Box(
@@ -245,6 +258,17 @@ internal fun EditorToolbarIconButton(
             tint = tint,
             modifier = Modifier.size(20.dp),
         )
+        if (isStrikethrough) {
+            Canvas(modifier = Modifier.size(20.dp)) {
+                drawLine(
+                    color = EBC_STRIKE_COLOR,
+                    start = Offset(size.width * 0.15f, size.height * 0.15f),
+                    end = Offset(size.width * 0.85f, size.height * 0.85f),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
     }
 }
 
@@ -260,6 +284,7 @@ internal fun EditorToolbar(
     onGridModeChange: () -> Unit,
     onManageBackground: () -> Unit,
     onManageTouchpadSettings: () -> Unit,
+    isBackgroundHidden: Boolean = false,
     onToggleBackgroundVisibility: (() -> Unit)? = null,
     onChangeGridCols: ((Int) -> Unit)? = null,
     onManageGridSize: (() -> Unit)? = null,
@@ -283,6 +308,7 @@ internal fun EditorToolbar(
                 accentColor = accentColor,
                 onClick = onManageBackground,
                 onLongClick = onToggleBackgroundVisibility,
+                isStrikethrough = isBackgroundHidden,
             )
             EditorToolbarIconButton(
                 label = stringResource(R.string.macropad_editor_grid_size),
@@ -334,6 +360,7 @@ internal fun EditorToolbar(
                 accentColor = accentColor,
                 onClick = onManageBackground,
                 onLongClick = onToggleBackgroundVisibility,
+                isStrikethrough = isBackgroundHidden,
             )
             EditorToolbarIconButton(
                 label = lockLabel,
