@@ -1164,12 +1164,12 @@
     <string name="button_settings_clear_image">移除自訂圖案</string>
     <string name="button_settings_enlarge_icon">放大</string>
     <string name="button_settings_enlarge_icon_desc">放大圖示尺寸</string>
-    <string name="button_settings_full_bleed_icon">填滿</string>
+    <string name="button_settings_full_bleed_icon">滿版</string>
     <string name="button_settings_full_bleed_icon_desc">直接跟按鈕滿版顯示</string>
     <string name="button_settings_show_label">顯示文字</string>
     <string name="button_settings_show_label_desc">在按鈕表面顯示標籤文字</string>
     <string name="button_settings_show_label_bg">文字底色</string>
     <string name="button_settings_show_label_bg_desc">在文字背後顯示半透明深色底色</string>
     <string name="crop_image_fit_whole">完整</string>
-    <string name="crop_image_fit_fill">填滿</string>
+    <string name="crop_image_fit_fill">滿版</string>
 </resources>
