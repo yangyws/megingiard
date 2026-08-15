@@ -208,8 +208,11 @@ internal fun PadLiveTableGrid(
 
     if (w <= 0f || h <= 0f) return
 
-    val cellW = w / cols
-    val cellH = h / rows
+    val borderPaddingPx = if (layout.gridShowBorders) with(density) { PTC_TABLE_THICK_BORDER_CELL_PADDING.toPx() } else 0f
+    val availW = (w - borderPaddingPx * 2).coerceAtLeast(0f)
+    val availH = (h - borderPaddingPx * 2).coerceAtLeast(0f)
+    val cellW = availW / cols
+    val cellH = availH / rows
 
     val visibleButtons =
         remember(layout, cols, rows, isPeekActive) {
@@ -230,7 +233,18 @@ internal fun PadLiveTableGrid(
             list
         }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .then(
+                    if (layout.gridShowBorders) {
+                        Modifier.padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
+                    } else {
+                        Modifier
+                    },
+                ),
+    ) {
         emptyCells.forEach { (col, row) ->
             val left = (cellW * col).roundToInt()
             val top = (cellH * row).roundToInt()

@@ -1073,6 +1073,13 @@ private fun PadTableGrid(
         modifier =
             Modifier
                 .fillMaxSize()
+                .then(
+                    if (layout.gridShowBorders) {
+                        Modifier.padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
+                    } else {
+                        Modifier
+                    },
+                )
                 .onSizeChanged { gridSize = it }
                 .pointerInput(layout.id, cols, rows) {
                     awaitEachGesture {
