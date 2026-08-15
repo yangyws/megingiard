@@ -58,6 +58,7 @@ fun AppSelectableChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    isDragging: Boolean = false,
     contentDescription: String? = null,
     onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -85,8 +86,8 @@ fun AppSelectableChip(
                         }
                     ).copy(alpha = (if (selected) 0.85f else 0.5f) * effectiveAlpha),
                 ).border(
-                    1.dp,
-                    (if (selected) colors.accent else colors.controlOverlayBorder)
+                    if (isDragging) 1.5.dp else 1.dp,
+                    if (isDragging) Color.White else (if (selected) colors.accent else colors.controlOverlayBorder)
                         .copy(alpha = effectiveAlpha),
                     RoundedCornerShape(CHIP_CORNER),
                 ).then(

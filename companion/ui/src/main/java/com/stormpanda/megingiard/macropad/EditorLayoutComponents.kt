@@ -97,11 +97,12 @@ internal fun EditorProfileChipsBar(
             contentPadding = PaddingValues(vertical = 4.dp),
         ) {
             items(profiles, key = { it.id }) { profile ->
-                ReorderableItem(reorderState, key = profile.id) {
+                ReorderableItem(reorderState, key = profile.id) { isDragging ->
                     val isActive = profile.id == activeProfile?.id
                     AppSelectableChip(
                         text = profile.name,
                         selected = isActive,
+                        isDragging = isDragging,
                         onClick = { onSelectProfile(profile.id) },
                         onDoubleClick = { onEditProfile(profile) },
                         modifier = Modifier.longPressDraggableHandle(),
@@ -253,11 +254,12 @@ internal fun EditorLayoutChipsBar(
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
                 items(layouts, key = { it.id }) { layout ->
-                    ReorderableItem(reorderState, key = layout.id) {
+                    ReorderableItem(reorderState, key = layout.id) { isDragging ->
                         val isActive = layout.id == activeLayout?.id
                         AppSelectableChip(
                             text = layout.name,
                             selected = isActive,
+                            isDragging = isDragging,
                             onClick = { onSelectLayout(layout.id) },
                             onDoubleClick = { onEditLayout(layout) },
                             leadingIcon = { contentColor ->
