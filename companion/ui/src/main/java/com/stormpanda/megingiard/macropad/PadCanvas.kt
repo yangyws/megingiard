@@ -1075,7 +1075,7 @@ private fun PadTableGrid(
                 .fillMaxSize()
                 .then(
                     if (layout.gridShowBorders) {
-                        Modifier.padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
+                        Modifier.padding(PTC_TABLE_THICK_BORDER_OUTER_PADDING)
                     } else {
                         Modifier
                     },

@@ -55,6 +55,7 @@ internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 internal val PTC_TABLE_THICK_BORDER_WIDTH = 2.5.dp
 internal val PTC_TABLE_THICK_BORDER_COLOR = Color.Black
 internal val PTC_TABLE_THICK_BORDER_CELL_PADDING = 2.5.dp
+internal val PTC_TABLE_THICK_BORDER_OUTER_PADDING = PTC_TABLE_THICK_BORDER_CELL_PADDING + PTC_TABLE_THICK_BORDER_WIDTH
 internal val PTC_TABLE_THICK_BORDER_INSET_PADDING = 4.dp
 internal val PTC_TABLE_THICK_BORDER_ICON_SIZE = 20.dp
 internal val PTC_TABLE_THICK_BORDER_FACE_REDUCTION = 12.dp
@@ -208,7 +209,7 @@ internal fun PadLiveTableGrid(
 
     if (w <= 0f || h <= 0f) return
 
-    val borderPaddingPx = if (layout.gridShowBorders) with(density) { PTC_TABLE_THICK_BORDER_CELL_PADDING.toPx() } else 0f
+    val borderPaddingPx = if (layout.gridShowBorders) with(density) { PTC_TABLE_THICK_BORDER_OUTER_PADDING.toPx() } else 0f
     val availW = (w - borderPaddingPx * 2).coerceAtLeast(0f)
     val availH = (h - borderPaddingPx * 2).coerceAtLeast(0f)
     val cellW = availW / cols
@@ -239,7 +240,7 @@ internal fun PadLiveTableGrid(
                 .fillMaxSize()
                 .then(
                     if (layout.gridShowBorders) {
-                        Modifier.padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
+                        Modifier.padding(PTC_TABLE_THICK_BORDER_OUTER_PADDING)
                     } else {
                         Modifier
                     },
