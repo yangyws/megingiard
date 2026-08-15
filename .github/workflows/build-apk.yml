@@ -1,4 +1,4 @@
-name: Build Megingiard-ZH APK
+name: Build & Release Megingiard-ZH APK
 
 on:
   push:
@@ -10,9 +10,12 @@ on:
       - '.gitignore'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Megingiard-ZH APK
+    name: Build & Release Megingiard-ZH APK
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +40,14 @@ jobs:
       - name: Prepare APK artifact
         run: |
           mkdir -p output
-          cp companion/ui/build/outputs/apk/debug/ui-debug.apk output/megingiard-v0.9.0-zh.apk
+          APK_FILE=$(find companion/ui/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK file found in companion/ui/build/outputs/apk/"
+            exit 1
+          fi
+          echo "Found APK: $APK_FILE"
+          cp "$APK_FILE" output/megingiard-v0.9.0-zh.apk
+          cp "$APK_FILE" megingiard-v0.9.0-zh.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -45,3 +55,23 @@ jobs:
           name: megingiard-v0.9.0-zh-apk
           path: output/megingiard-v0.9.0-zh.apk
           retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.9.0-zh
+          name: "Megingiard v0.9.0-zh 繁體中文增強版"
+          body: |
+            ### 🎮 Megingiard v0.9.0 繁體中文增強版
+
+            - **獨立 Package ID**：`com.stormpanda.megingiard.zh`（可與官方原版並存安裝，互不干擾衝突）
+            - **巨集板表格模式**：自訂網格行列（1×1 至 8×6）、儲存格拖曳交換/移動、跨格按鈕、頂層細白格線全繪製
+            - **按鈕與背景自訂**：支援按鈕本機圖片裁切、圖示放大滿版（enlargeIcon / fullBleed）、4 列背景操作排版與即時預覽
+            - **繁體中文在地化**：100% 全介面繁體中文與 AutoSetup 無線配對支援
+            - **觸覺回饋優化**：懸浮選單過渡震動設定與設定檔 Chips 雙擊/長按編輯
+          files: megingiard-v0.9.0-zh.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
