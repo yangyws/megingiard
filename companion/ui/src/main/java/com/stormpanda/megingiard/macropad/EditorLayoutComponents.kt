@@ -41,8 +41,6 @@ import com.stormpanda.megingiard.ui.AppDropdown
 import com.stormpanda.megingiard.ui.AppSelectableChip
 import com.stormpanda.megingiard.ui.AppSettingsRow
 import com.stormpanda.megingiard.ui.LocalAppColors
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val TAG = "EditorLayoutComponents"
 
@@ -88,6 +86,10 @@ internal fun EditorProfileChipsBar(
                     text = profile.name,
                     selected = isActive,
                     onClick = { onSelectProfile(profile.id) },
+                    onLongClick = {
+                        onSelectProfile(profile.id)
+                        onEditProfile()
+                    },
                 )
             }
         }
@@ -199,16 +201,6 @@ internal fun EditorLayoutChipsBar(
     val canDelete = layouts.size > 1
 
     val lazyRowState = rememberLazyListState()
-    val reorderState =
-        rememberReorderableLazyListState(lazyRowState) { from, to ->
-            val fromIdx = latestLayouts.indexOfFirst { it.id == from.key as? String }
-            val toIdx = latestLayouts.indexOfFirst { it.id == to.key as? String }
-            if (fromIdx >= 0 && toIdx >= 0) {
-                val mutable = latestLayouts.toMutableList()
-                mutable.add(toIdx, mutable.removeAt(fromIdx))
-                MacroPadState.reorderLayouts(mutable)
-            }
-        }
 
     LaunchedEffect(activeLayout?.id, layouts) {
         val activeId = activeLayout?.id ?: return@LaunchedEffect
@@ -234,23 +226,24 @@ internal fun EditorLayoutChipsBar(
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
                 items(layouts, key = { it.id }) { layout ->
-                    ReorderableItem(reorderState, key = layout.id) {
-                        val isActive = layout.id == activeLayout?.id
-                        AppSelectableChip(
-                            text = layout.name,
-                            selected = isActive,
-                            onClick = { onSelectLayout(layout.id) },
-                            leadingIcon = { contentColor ->
-                                Icon(
-                                    imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
-                                    contentDescription = null,
-                                    tint = contentColor,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            },
-                            modifier = Modifier.then(Modifier.longPressDraggableHandle()),
-                        )
-                    }
+                    val isActive = layout.id == activeLayout?.id
+                    AppSelectableChip(
+                        text = layout.name,
+                        selected = isActive,
+                        onClick = { onSelectLayout(layout.id) },
+                        onLongClick = {
+                            onSelectLayout(layout.id)
+                            onEditLayout()
+                        },
+                        leadingIcon = { contentColor ->
+                            Icon(
+                                imageVector = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.OpenWith,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        },
+                    )
                 }
             }
 

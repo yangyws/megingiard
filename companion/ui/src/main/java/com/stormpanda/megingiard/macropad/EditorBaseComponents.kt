@@ -285,7 +285,7 @@ internal fun EditorToolbar(
             )
             EditorToolbarIconButton(
                 label = stringResource(R.string.macropad_editor_thick_borders),
-                icon = Icons.Rounded.CropSquare,
+                icon = Icons.Rounded.GridView,
                 accentColor = accentColor,
                 onClick = { onToggleGridBorders?.invoke() },
                 isActive = layout.gridShowBorders,

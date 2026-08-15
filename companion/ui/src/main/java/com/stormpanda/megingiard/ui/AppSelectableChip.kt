@@ -1,8 +1,10 @@
 package com.stormpanda.megingiard.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -48,6 +50,7 @@ private val CHIP_V_PADDING = 6.dp
  *                         can tint icons without knowing about selection state.
  * @param trailingContent  Optional trailing content slot, resolved like [leadingIcon].
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppSelectableChip(
     text: String,
@@ -56,6 +59,7 @@ fun AppSelectableChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentDescription: String? = null,
+    onLongClick: (() -> Unit)? = null,
     leadingIcon: (@Composable (contentColor: Color) -> Unit)? = null,
     trailingContent: (@Composable (contentColor: Color) -> Unit)? = null,
 ) {
@@ -83,8 +87,17 @@ fun AppSelectableChip(
                     (if (selected) colors.accent else colors.controlOverlayBorder)
                         .copy(alpha = effectiveAlpha),
                     RoundedCornerShape(CHIP_CORNER),
-                ).clickable(enabled = enabled, onClick = onClick)
-                .padding(horizontal = CHIP_H_PADDING, vertical = CHIP_V_PADDING),
+                ).then(
+                    if (onLongClick != null) {
+                        Modifier.combinedClickable(
+                            enabled = enabled,
+                            onClick = onClick,
+                            onLongClick = onLongClick,
+                        )
+                    } else {
+                        Modifier.clickable(enabled = enabled, onClick = onClick)
+                    },
+                ).padding(horizontal = CHIP_H_PADDING, vertical = CHIP_V_PADDING),
     ) {
         if (leadingIcon != null || trailingContent != null) {
             Row(
