@@ -33,15 +33,10 @@ import kotlinx.coroutines.launch
 private const val TAG = "CropSelectorActivity"
 
 class CropSelectorActivity : ComponentActivity() {
-    private var wasFrozenInitially = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppLog.i(TAG, "onCreate: crop selector activity started on display=${display?.displayId}")
-        wasFrozenInitially = savedInstanceState?.getBoolean("wasFrozenInitially") ?: ScreenCaptureManager.isFrozen.value
-        if (savedInstanceState == null && !wasFrozenInitially) {
-            ScreenCaptureManager.setFrozen(true)
-        }
         enableEdgeToEdge()
 
         // Make window translucent/immersive
@@ -94,19 +89,11 @@ class CropSelectorActivity : ComponentActivity() {
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean("wasFrozenInitially", wasFrozenInitially)
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         AppLog.i(TAG, "onDestroy: isFinishing=$isFinishing")
         if (isFinishing) {
             AppStateManager.setActiveCropCutoutId(null)
-            if (!wasFrozenInitially) {
-                ScreenCaptureManager.setFrozen(false)
-            }
         }
     }
 }
