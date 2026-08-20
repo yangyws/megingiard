@@ -70,9 +70,11 @@ class TouchProjectionController(
         var matchedCutoutId: String? = null
 
         val cutouts = ScreenCaptureManager.cutouts.value
+        AppLog.d(TAG, "onPress at ($x, $y) in box ($boxW x $boxH), total cutouts=${cutouts.size}")
         for (cutout in cutouts) {
             val isTrans = cutout.isTranslationEnabled
             val isTouch = cutout.touchProjectionEnabled
+            AppLog.d(TAG, "Checking cutout '${cutout.name}' (id=${cutout.id}, isTrans=$isTrans, isTouch=$isTouch, dest=[${cutout.destX}, ${cutout.destY}, ${cutout.destWidth}, ${cutout.destHeight}])")
             if (!isTouch && !isTrans) continue
 
             val destLeft = cutout.destX * boxW
@@ -81,6 +83,7 @@ class TouchProjectionController(
             val destHeight = cutout.destHeight * boxH
 
             if (x in destLeft..(destLeft + destWidth) && y in destTop..(destTop + destHeight)) {
+                AppLog.i(TAG, "Hit cutout '${cutout.name}' (isTrans=$isTrans, isTouch=$isTouch)")
                 if (isTrans) {
                     onTranslationCutoutTapped?.invoke(cutout.id)
                 }

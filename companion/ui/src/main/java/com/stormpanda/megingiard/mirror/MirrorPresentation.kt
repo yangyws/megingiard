@@ -493,6 +493,9 @@ class MirrorPresentation(
                             val isQuickMenuOpen by AppStateManager.isQuickMenuOpen.collectAsState()
                             val isAnyMenuOpen by AppStateManager.isAnyMenuOpen.collectAsState()
                             val isWizardActive by OnboardingWizardManager.isWizardActive.collectAsState()
+                            val activeLayout by MacroPadState.activeLayout.collectAsState()
+                            val hasTranslationCutouts = activeLayout?.mirrorCutouts?.any { it.isTranslationEnabled } == true
+                            val isCutoutInteractionActive = isTouchProjectionActive || hasTranslationCutouts
                             val isGesturesEnabled =
                                 !isAnyMenuOpen && !isFullscreenKeyboardActive && !isFullscreenMouseActive && !isViewportEditActive &&
                                     !isWizardActive
@@ -517,12 +520,14 @@ class MirrorPresentation(
                                             val isMenuOpen = AppStateManager.isQuickMenuOpen.value
                                             val isModalActive = AppStateManager.isAnyModalActive.value
 
+                                            AppLog.i(TAG, "onTranslationCutoutTapped for cutout $cutoutId (mouse=$isMouseActive, kb=$isKbActive, menu=$isMenuOpen, modal=$isModalActive)")
                                             if (!isMouseActive && !isKbActive && !isMenuOpen && !isModalActive) {
                                                 val currentBlocks = TranslationManager.translatedBlocks.value[cutoutId]
                                                 if (!currentBlocks.isNullOrEmpty()) {
+                                                    AppLog.i(TAG, "Toggling OFF translation for cutout $cutoutId")
                                                     TranslationManager.clearTranslation(cutoutId)
                                                 } else {
-                                                    // Placeholder demo translated block for Phase 1 verification
+                                                    AppLog.i(TAG, "Toggling ON demo translation for cutout $cutoutId")
                                                     TranslationManager.updateTranslation(
                                                         cutoutId,
                                                         listOf(
@@ -736,8 +741,8 @@ class MirrorPresentation(
                                                     }
                                                 }
                                             }
-                                        }.pointerInput(isTouchProjectionActive, overlayAtBottom) {
-                                            if (!isTouchProjectionActive) return@pointerInput
+                                        }.pointerInput(isCutoutInteractionActive, overlayAtBottom) {
+                                            if (!isCutoutInteractionActive) return@pointerInput
                                             projectionController.reset()
                                             var swipeStartY = Float.NaN
                                             awaitPointerEventScope {
