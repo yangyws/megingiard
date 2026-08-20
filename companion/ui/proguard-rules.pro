@@ -77,6 +77,12 @@
 }
 
 # ---------------------------------------------------------------------
+# libadb-android / TLS reflection
+# ---------------------------------------------------------------------
+-keep class io.github.muntashirakon.adb.** { *; }
+-dontwarn io.github.muntashirakon.adb.**
+
+# ---------------------------------------------------------------------
 # Suppress noisy warnings
 # ---------------------------------------------------------------------
 -dontwarn org.jetbrains.annotations.**
