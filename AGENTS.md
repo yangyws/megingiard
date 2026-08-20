@@ -46,6 +46,7 @@
 | `docs/features/privileged-mode/FEATURE.md` | Privileged Mode — on-device privileged daemon, ADB-Wireless bootstrap, per-feature flags |
 | `docs/features/theming/FEATURE.md`         | Design System — AppColors, Typography, AppDimens, ColorScheme bridge                     |
 | `docs/features/touchpad/FEATURE.md`        | Virtual Touchpad — functional requirements & technical implementation                    |
+| `docs/features/translation/FEATURE.md`     | In-Place Game Translation Pipeline — memory hooking, multi-tier offline OCR & in-place text replacement |
 | `docs/features/updates/FEATURE.md`         | Automatic Update Check & Browser Release Launcher — functional requirements & technical implementation |
 
 > [!IMPORTANT]
