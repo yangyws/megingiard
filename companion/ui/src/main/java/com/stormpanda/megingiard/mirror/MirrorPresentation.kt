@@ -1457,8 +1457,9 @@ class MultiCutoutContainer(
                         canvas.scale(scaleX, scaleY)
                     }
 
-                    if (isFrozen && frozenBitmap != null) {
-                        canvas.drawBitmap(frozenBitmap!!, 0f, 0f, null)
+                    val currentFrozen = frozenBitmap
+                    if (isFrozen && currentFrozen != null && !currentFrozen.isRecycled) {
+                        canvas.drawBitmap(currentFrozen, 0f, 0f, null)
                     } else if (masterView != null) {
                         drawChild(canvas, masterView, drawTime)
                         masterViewDrawn = true

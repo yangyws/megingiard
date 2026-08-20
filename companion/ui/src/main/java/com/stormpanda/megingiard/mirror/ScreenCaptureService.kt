@@ -118,6 +118,18 @@ class ScreenCaptureService : Service() {
         }
 
         scope.launch {
+            ScreenCaptureManager.isFrozen.collect { frozen ->
+                val surface = mirrorSurface
+                val vd = mirrorVirtualDisplay
+                if (surface != null && vd != null) {
+                    val activeSurface = if (frozen) null else surface
+                    vd.setSurface(activeSurface)
+                    AppLog.d(TAG, "VirtualDisplay surface updated for isFrozen=$frozen")
+                }
+            }
+        }
+
+        scope.launch {
             var wasCapturing = false
             ScreenCaptureManager.isCapturing.collect { capturing ->
                 if (capturing) {
