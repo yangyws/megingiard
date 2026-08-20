@@ -761,6 +761,8 @@
     <string name="mirror_editor_toolbar_shape_rect">矩形</string>
     <string name="settings_mirror_touch_projection">觸控投影</string>
     <string name="settings_mirror_touch_projection_desc">將此區塊內的觸控輸入轉發到主螢幕</string>
+    <string name="settings_cutout_translation_title">即時翻譯</string>
+    <string name="settings_cutout_translation_desc">在副螢幕點擊此區塊即可於原位覆蓋翻譯遊戲文字</string>
     <string name="settings_mirror_cutout_default">區塊</string>
     <string name="settings_mirror_cutout_default_name_fmt">區塊 %1$d</string>
     <string name="help_open_cd">開啟說明</string>

@@ -22,12 +22,16 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.SurfaceTexture
+import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.view.Display
 import android.view.Gravity
 import android.view.Surface
@@ -506,7 +510,37 @@ class MirrorPresentation(
 
                             val projectionController =
                                 remember(edgeZonePx, overlayAtBottom) {
-                                    TouchProjectionController(edgeZonePx, overlayAtBottom)
+                                    TouchProjectionController(edgeZonePx, overlayAtBottom).apply {
+                                        onTranslationCutoutTapped = { cutoutId ->
+                                            val isMouseActive = AppStateManager.isFullscreenMouseActive.value
+                                            val isKbActive = AppStateManager.isFullscreenKeyboardActive.value
+                                            val isMenuOpen = AppStateManager.isQuickMenuOpen.value
+                                            val isModalActive = AppStateManager.isAnyModalActive.value
+
+                                            if (!isMouseActive && !isKbActive && !isMenuOpen && !isModalActive) {
+                                                val currentBlocks = TranslationManager.translatedBlocks.value[cutoutId]
+                                                if (!currentBlocks.isNullOrEmpty()) {
+                                                    TranslationManager.clearTranslation(cutoutId)
+                                                } else {
+                                                    // Placeholder demo translated block for Phase 1 verification
+                                                    TranslationManager.updateTranslation(
+                                                        cutoutId,
+                                                        listOf(
+                                                            TranslatedBlock(
+                                                                normLeft = 0.05f,
+                                                                normTop = 0.65f,
+                                                                normRight = 0.95f,
+                                                                normBottom = 0.95f,
+                                                                fontHeightRatio = 0.5f,
+                                                                originalText = "勇者よ、旅立つ時が来た！",
+                                                                translatedText = "勇者啊，踏上旅程的時刻到了！",
+                                                            ),
+                                                        ),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
 
                             LaunchedEffect(isTouchProjectionActive) {
@@ -1107,6 +1141,11 @@ class MirrorPresentation(
                 }
             }
         }
+        scope.launch {
+            TranslationManager.translatedBlocks.collect {
+                multiCutoutContainer?.invalidate()
+            }
+        }
     }
 
     private fun setPresentationFocusMode(keepPrimaryFocus: Boolean) {
@@ -1263,6 +1302,26 @@ class MultiCutoutContainer(
     private val maskPaint =
         Paint().apply {
             color = Color.BLACK
+        }
+
+    private val transBgPaint =
+        Paint().apply {
+            style = Paint.Style.FILL
+            color = Color.argb(235, 12, 12, 16)
+        }
+    private val transTextPaint =
+        TextPaint().apply {
+            isAntiAlias = true
+            color = Color.WHITE
+            typeface = Typeface.DEFAULT_BOLD
+        }
+    private val transStrokePaint =
+        TextPaint().apply {
+            isAntiAlias = true
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+            color = Color.BLACK
+            typeface = Typeface.DEFAULT_BOLD
         }
 
     init {
@@ -1568,9 +1627,106 @@ class MultiCutoutContainer(
                 canvas.drawBitmap(mask, bgSrcRect, bgDestRect, paint)
                 canvas.restore()
             }
+
+            // ── In-place Translated Text Overlay Rendering ─────────────────────────
+            val transMap = TranslationManager.translatedBlocks.value
+            if (transMap.isNotEmpty()) {
+                for (cutout in cutouts) {
+                    val blocks = transMap[cutout.id]
+                    if (!blocks.isNullOrEmpty()) {
+                        val targetCutout =
+                            if (!cutout.targetTranslationCutoutId.isNullOrEmpty()) {
+                                cutouts.firstOrNull { it.id == cutout.targetTranslationCutoutId } ?: cutout
+                            } else {
+                                cutout
+                            }
+                        val tDx = (targetCutout.destX * parentW).roundToInt().toFloat()
+                        val tDy = (targetCutout.destY * parentH).roundToInt().toFloat()
+                        val tDw = (targetCutout.destWidth * parentW).roundToInt().toFloat()
+                        val tDh = (targetCutout.destHeight * parentH).roundToInt().toFloat()
+
+                        if (tDw <= 0f || tDh <= 0f) continue
+
+                        val saveTrans = canvas.save()
+                        canvas.clipRect(tDx, tDy, tDx + tDw, tDy + tDh)
+                        canvas.translate(tDx, tDy)
+
+                        for (b in blocks) {
+                            val bLeft = b.normLeft * tDw
+                            val bTop = b.normTop * tDh
+                            val bRight = b.normRight * tDw
+                            val bBottom = b.normBottom * tDh
+                            val bWidth = (bRight - bLeft).coerceAtLeast(10f)
+                            val bHeight = (bBottom - bTop).coerceAtLeast(10f)
+
+                            // 1. Draw rounded background mask over original text area
+                            canvas.drawRoundRect(bLeft, bTop, bRight, bBottom, 8f, 8f, transBgPaint)
+
+                            // 2. Draw translated Chinese text with stroke + fill
+                            drawAutoSizedText(
+                                canvas = canvas,
+                                text = b.translatedText,
+                                x = bLeft + 6f,
+                                y = bTop + 4f,
+                                maxWidth = bWidth - 12f,
+                                maxHeight = bHeight - 8f,
+                                textPaint = transTextPaint,
+                                strokePaint = transStrokePaint,
+                            )
+                        }
+                        canvas.restoreToCount(saveTrans)
+                    }
+                }
+            }
         } finally {
             canvas.restoreToCount(overallSaveCount)
         }
+    }
+
+    private fun drawAutoSizedText(
+        canvas: Canvas,
+        text: String,
+        x: Float,
+        y: Float,
+        maxWidth: Float,
+        maxHeight: Float,
+        textPaint: TextPaint,
+        strokePaint: TextPaint,
+    ) {
+        if (maxWidth <= 4f || maxHeight <= 4f || text.isBlank()) return
+        val maxWInt = maxWidth.toInt().coerceAtLeast(1)
+        var textSize = (maxHeight * 0.7f).coerceIn(12f, 48f)
+        textPaint.textSize = textSize
+        strokePaint.textSize = textSize
+
+        var layout =
+            StaticLayout.Builder.obtain(text, 0, text.length, textPaint, maxWInt)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setIncludePad(false)
+                .build()
+
+        while (layout.height > maxHeight && textSize > 10f) {
+            textSize -= 2f
+            textPaint.textSize = textSize
+            strokePaint.textSize = textSize
+            layout =
+                StaticLayout.Builder.obtain(text, 0, text.length, textPaint, maxWInt)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setIncludePad(false)
+                    .build()
+        }
+
+        val strokeLayout =
+            StaticLayout.Builder.obtain(text, 0, text.length, strokePaint, maxWInt)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setIncludePad(false)
+                .build()
+
+        val saveCount = canvas.save()
+        canvas.translate(x, y)
+        strokeLayout.draw(canvas)
+        layout.draw(canvas)
+        canvas.restoreToCount(saveCount)
     }
 }
 

@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.R
+import com.stormpanda.megingiard.mirror.CutoutMode
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
 import com.stormpanda.megingiard.mirror.ScreenCutout
 import com.stormpanda.megingiard.ui.AppAlertDialog
@@ -551,6 +552,43 @@ internal fun BackgroundSettingsOverlay(onDone: () -> Unit) {
                                                         ScreenCaptureManager.setLocked(true)
                                                     }
                                                 }
+                                            },
+                                            colors = appSwitchColors(),
+                                        )
+                                    }
+
+                                    // Live Translation Switch
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = ASO_CUTOUT_ROW_V_PADDING),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(R.string.settings_cutout_translation_title),
+                                                color = colors.onSurface,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.settings_cutout_translation_desc),
+                                                color = colors.onSurfaceSecondary,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                        Switch(
+                                            checked = cutout.isTranslationEnabled,
+                                            onCheckedChange = { isChecked ->
+                                                AppLog.d(TAG, "cutout '${cutout.name}' translation enabled → $isChecked")
+                                                val nextMode =
+                                                    if (isChecked) {
+                                                        if (cutout.touchProjectionEnabled) CutoutMode.BOTH else CutoutMode.TRANSLATION
+                                                    } else {
+                                                        if (cutout.touchProjectionEnabled) CutoutMode.TOUCH_PROJECTION else CutoutMode.MIRROR
+                                                    }
+                                                val updatedCutouts =
+                                                    currentLayout.mirrorCutouts.map { c ->
+                                                        if (c.id == cutout.id) c.copy(cutoutMode = nextMode) else c
+                                                    }
+                                                commitLayout { copy(mirrorCutouts = updatedCutouts) }
                                             },
                                             colors = appSwitchColors(),
                                         )

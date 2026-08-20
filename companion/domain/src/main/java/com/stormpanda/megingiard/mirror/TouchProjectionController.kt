@@ -43,6 +43,8 @@ class TouchProjectionController(
     /** Screen-space position of the touch indicator dot, or null when hidden. */
     val indicatorPos: StateFlow<Pair<Float, Float>?> = _indicatorPos.asStateFlow()
 
+    var onTranslationCutoutTapped: ((String) -> Unit)? = null
+
     /**
      * Handle a Press event.
      */
@@ -69,30 +71,42 @@ class TouchProjectionController(
 
         val cutouts = ScreenCaptureManager.cutouts.value
         for (cutout in cutouts) {
-            if (!cutout.touchProjectionEnabled) continue
+            val isTrans = cutout.isTranslationEnabled
+            val isTouch = cutout.touchProjectionEnabled
+            if (!isTouch && !isTrans) continue
+
             val destLeft = cutout.destX * boxW
             val destTop = cutout.destY * boxH
             val destWidth = cutout.destWidth * boxW
             val destHeight = cutout.destHeight * boxH
 
-            val projected =
-                projectCutoutCoordinates(
-                    touchX = x,
-                    touchY = y,
-                    destLeft = destLeft,
-                    destTop = destTop,
-                    destWidth = destWidth,
-                    destHeight = destHeight,
-                    srcX = cutout.srcX,
-                    srcY = cutout.srcY,
-                    srcWidth = cutout.srcWidth,
-                    srcHeight = cutout.srcHeight,
-                    clampToEdge = false,
-                )
-            if (projected != null) {
-                matchedProjected = projected
-                matchedCutoutId = cutout.id
-                break
+            if (x in destLeft..(destLeft + destWidth) && y in destTop..(destTop + destHeight)) {
+                if (isTrans) {
+                    onTranslationCutoutTapped?.invoke(cutout.id)
+                }
+                if (isTouch) {
+                    val projected =
+                        projectCutoutCoordinates(
+                            touchX = x,
+                            touchY = y,
+                            destLeft = destLeft,
+                            destTop = destTop,
+                            destWidth = destWidth,
+                            destHeight = destHeight,
+                            srcX = cutout.srcX,
+                            srcY = cutout.srcY,
+                            srcWidth = cutout.srcWidth,
+                            srcHeight = cutout.srcHeight,
+                            clampToEdge = false,
+                        )
+                    if (projected != null) {
+                        matchedProjected = projected
+                        matchedCutoutId = cutout.id
+                        break
+                    }
+                } else {
+                    return true
+                }
             }
         }
 
