@@ -18,7 +18,7 @@ object ProcessCmdlineProvider {
         if (!custom.isNullOrBlank()) return custom
         return try {
             val file = java.io.File(path)
-            if (file.exists() && file.canRead()) {
+            if (file.exists()) {
                 file.readText()
             } else {
                 null

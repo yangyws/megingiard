@@ -79,7 +79,7 @@ object AutoSwitchCoordinator {
                     AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
                 } else {
                     val currentForeground = _foregroundApp.value
-                    if (currentForeground != null) {
+                    if (currentForeground != null && !EmulatorDetectionFunnel.isRegisteredEmulator(currentForeground)) {
                         AppStateManager.setStandaloneForegroundState(currentForeground, null)
                     }
                 }
@@ -144,6 +144,7 @@ object AutoSwitchCoordinator {
         if (isRegisteredEmulator) {
             coordinatorScope.launch {
                 val session = EmulatorDetectionFunnel.onPackageForeground(normalized)
+                    ?: EmulatorDetectionFunnel.lastDetectedSession.value?.takeIf { it.packageName == normalized }
                 if (session != null) {
                     AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
                     if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
@@ -161,7 +162,10 @@ object AutoSwitchCoordinator {
                         }
                     }
                 } else {
-                    AppStateManager.setStandaloneForegroundState(normalized, null)
+                    val existingRom = AppStateManager.focusedRomPath.value
+                    if (AppStateManager.focusedAppPackageName.value != normalized || existingRom == null) {
+                        AppStateManager.setStandaloneForegroundState(normalized, null)
+                    }
                     val directMatchedProfile = MacroPadState.findBestMatchingProfile(normalized)
                     if (directMatchedProfile != null) {
                         val currentActiveId = MacroPadState.activeProfileId.value
