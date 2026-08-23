@@ -944,8 +944,8 @@ private fun ModeToggleButton(
 }
 
 /**
- * Renders an intuitive handheld screen micro-visualization depicting the active docked position
- * of the touchpad window (top, center, or bottom).
+ * Renders an intuitive 3-tier dock slot micro-visualization depicting the target position
+ * (top, center, or bottom) that clicking the position button will move to.
  */
 @Composable
 private fun TouchpadPositionIcon(
@@ -953,36 +953,53 @@ private fun TouchpadPositionIcon(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier.size(19.dp, 16.dp)) {
+    Canvas(modifier = modifier.size(20.dp, 18.dp)) {
         val strokeWidth = 1.25.dp.toPx()
-        val cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
-        val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+        val frameCornerRadius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
+        val slotCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
 
         // Outer display boundary frame
         drawRoundRect(
-            color = tint.copy(alpha = 0.45f),
+            color = tint.copy(alpha = 0.35f),
             topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
             size = Size(size.width - strokeWidth, size.height - strokeWidth),
-            cornerRadius = cornerRadius,
+            cornerRadius = frameCornerRadius,
             style = Stroke(width = strokeWidth),
         )
 
-        // Inner active touchpad region docked at top / center / bottom
-        val padMargin = 2.dp.toPx()
-        val padWidth = size.width - (padMargin * 2)
-        val padHeight = (size.height - (padMargin * 2)) * 0.52f
-        val padTop =
-            when (position) {
-                "TOP" -> padMargin
-                "CENTER" -> (size.height - padHeight) / 2f
-                else -> size.height - padMargin - padHeight // BOTTOM
-            }
+        val marginX = 2.5.dp.toPx()
+        val slotWidth = size.width - (marginX * 2)
+        val slotHeight = 3.2.dp.toPx()
 
+        val topY = 2.2.dp.toPx()
+        val centerY = (size.height - slotHeight) / 2f
+        val bottomY = size.height - 2.2.dp.toPx() - slotHeight
+
+        // Top slot
+        val isTop = position == "TOP"
         drawRoundRect(
-            color = tint,
-            topLeft = Offset(padMargin, padTop),
-            size = Size(padWidth, padHeight),
-            cornerRadius = innerCornerRadius,
+            color = if (isTop) tint else tint.copy(alpha = 0.20f),
+            topLeft = Offset(marginX, topY),
+            size = Size(slotWidth, slotHeight),
+            cornerRadius = slotCornerRadius,
+        )
+
+        // Center slot
+        val isCenter = position == "CENTER"
+        drawRoundRect(
+            color = if (isCenter) tint else tint.copy(alpha = 0.20f),
+            topLeft = Offset(marginX, centerY),
+            size = Size(slotWidth, slotHeight),
+            cornerRadius = slotCornerRadius,
+        )
+
+        // Bottom slot
+        val isBottom = position == "BOTTOM"
+        drawRoundRect(
+            color = if (isBottom) tint else tint.copy(alpha = 0.20f),
+            topLeft = Offset(marginX, bottomY),
+            size = Size(slotWidth, slotHeight),
+            cornerRadius = slotCornerRadius,
         )
     }
 }
