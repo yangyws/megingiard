@@ -577,9 +577,16 @@ fun FullscreenMouseOverlay() {
             ) {
                 if (!touchpadUseMouse) {
                     // Position Cycle button (only in 16:9 mode, not in Fill mode)
+                    // Action-oriented: Shows the next target position that clicking will move to
                     if (touchpadFillMode != "FILL") {
                         val interactionSourcePos = remember { MutableInteractionSource() }
                         val isPosPressed by interactionSourcePos.collectIsPressedAsState()
+                        val nextPos =
+                            when (touchpadPosition) {
+                                "BOTTOM" -> "CENTER"
+                                "CENTER" -> "TOP"
+                                else -> "BOTTOM"
+                            }
                         Box(
                             modifier =
                                 Modifier
@@ -592,19 +599,13 @@ fun FullscreenMouseOverlay() {
                                         interactionSource = interactionSourcePos,
                                         indication = null,
                                         onClick = {
-                                            val nextPos =
-                                                when (touchpadPosition) {
-                                                    "BOTTOM" -> "CENTER"
-                                                    "CENTER" -> "TOP"
-                                                    else -> "BOTTOM"
-                                                }
                                             TouchpadSettings.setTouchpadPosition(nextPos)
                                         },
                                     ),
                             contentAlignment = Alignment.Center,
                         ) {
                             TouchpadPositionIcon(
-                                position = touchpadPosition,
+                                position = nextPos,
                                 tint = colors.onSurface.copy(alpha = 0.85f),
                             )
                         }
