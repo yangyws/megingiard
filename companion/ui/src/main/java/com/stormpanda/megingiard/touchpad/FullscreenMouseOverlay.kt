@@ -999,8 +999,8 @@ private fun TouchpadPositionIcon(
 
 /**
  * Action-oriented Fill Mode icon displaying the target state to switch to (Solid Material Surface style).
- * When in FILL mode -> depicts a solid 16:9 inner block positioned at [targetPosition] on a display frame
- * (click to return to 16:9 at that position).
+ * When in FILL mode -> renders [TouchpadPositionIcon] indicating the exact 16:9 position that clicking
+ * will return to.
  * When in FIT_16_9 mode -> depicts fullscreen expand icon (click to expand to full screen).
  */
 @Composable
@@ -1011,47 +1011,12 @@ private fun TouchpadFillModeIcon(
     modifier: Modifier = Modifier,
 ) {
     if (isFill) {
-        // In FILL mode -> action is to switch back to 16:9 at current targetPosition
-        Canvas(modifier = modifier.size(26.dp, 22.dp)) {
-            val strokeWidth = 1.5.dp.toPx()
-            val cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
-            val innerCornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
-
-            // Outer display background
-            drawRoundRect(
-                color = tint.copy(alpha = 0.15f),
-                topLeft = Offset.Zero,
-                size = size,
-                cornerRadius = cornerRadius,
-            )
-
-            // Outer display frame border
-            drawRoundRect(
-                color = tint.copy(alpha = 0.50f),
-                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-                size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                cornerRadius = cornerRadius,
-                style = Stroke(width = strokeWidth),
-            )
-
-            // Inner 16:9 solid viewport block positioned at targetPosition
-            val padMarginX = 2.5.dp.toPx()
-            val padWidth = size.width - (padMarginX * 2)
-            val padHeight = padWidth * (9f / 16f)
-            val padTop =
-                when (targetPosition) {
-                    "TOP" -> 2.dp.toPx()
-                    "CENTER" -> (size.height - padHeight) / 2f
-                    else -> size.height - 2.dp.toPx() - padHeight
-                }
-
-            drawRoundRect(
-                color = tint,
-                topLeft = Offset(padMarginX, padTop),
-                size = Size(padWidth, padHeight),
-                cornerRadius = innerCornerRadius,
-            )
-        }
+        // In FILL mode -> action is to switch back to 16:9 at targetPosition, using the exact position icon
+        TouchpadPositionIcon(
+            targetPosition = targetPosition,
+            tint = tint,
+            modifier = modifier,
+        )
     } else {
         // In FIT_16_9 mode -> action is to expand to full bleed
         Icon(
