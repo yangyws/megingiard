@@ -633,6 +633,7 @@ fun FullscreenMouseOverlay() {
                     ) {
                         TouchpadFillModeIcon(
                             isFill = isFill,
+                            targetPosition = touchpadPosition,
                             tint = colors.onSurface.copy(alpha = 0.85f),
                         )
                     }
@@ -998,17 +999,19 @@ private fun TouchpadPositionIcon(
 
 /**
  * Action-oriented Fill Mode icon displaying the target state to switch to (Solid Material Surface style).
- * When in FILL mode -> depicts a solid 16:9 inner block on a display frame (click to return to 16:9).
+ * When in FILL mode -> depicts a solid 16:9 inner block positioned at [targetPosition] on a display frame
+ * (click to return to 16:9 at that position).
  * When in FIT_16_9 mode -> depicts fullscreen expand icon (click to expand to full screen).
  */
 @Composable
 private fun TouchpadFillModeIcon(
     isFill: Boolean,
+    targetPosition: String,
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
     if (isFill) {
-        // In FILL mode -> action is to switch back to 16:9
+        // In FILL mode -> action is to switch back to 16:9 at current targetPosition
         Canvas(modifier = modifier.size(26.dp, 22.dp)) {
             val strokeWidth = 1.5.dp.toPx()
             val cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
@@ -1031,11 +1034,16 @@ private fun TouchpadFillModeIcon(
                 style = Stroke(width = strokeWidth),
             )
 
-            // Inner 16:9 solid viewport block
+            // Inner 16:9 solid viewport block positioned at targetPosition
             val padMarginX = 2.5.dp.toPx()
             val padWidth = size.width - (padMarginX * 2)
             val padHeight = padWidth * (9f / 16f)
-            val padTop = (size.height - padHeight) / 2f
+            val padTop =
+                when (targetPosition) {
+                    "TOP" -> 2.dp.toPx()
+                    "CENTER" -> (size.height - padHeight) / 2f
+                    else -> size.height - 2.dp.toPx() - padHeight
+                }
 
             drawRoundRect(
                 color = tint,
