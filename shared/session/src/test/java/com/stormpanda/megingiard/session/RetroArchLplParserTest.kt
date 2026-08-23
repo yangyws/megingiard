@@ -87,6 +87,35 @@ class RetroArchLplParserTest {
     }
 
     @Test
+    fun parseMostRecentSession_swanstationPs1Zip_returnsPs1Session() {
+        val json =
+            """
+            {
+              "version": "1.5",
+              "items": [
+                {
+                  "path": "/storage/emulated/0/Roms/PS1/Chocobo Racing - Genkai e no Road (Japan).zip",
+                  "entry_slot": -1,
+                  "label": "",
+                  "core_path": "/data/data/com.retroarch.aarch64/cores/swanstation_libretro_android.so",
+                  "core_name": "Sony - PlayStation (SwanStation)",
+                  "crc32": "",
+                  "db_name": ""
+                }
+              ]
+            }
+            """.trimIndent()
+
+        val session = RetroArchLplParser.parseMostRecentSession("com.retroarch.aarch64", json)
+
+        assertNotNull(session)
+        assertEquals("Chocobo Racing - Genkai e no Road (Japan)", session?.gameTitle)
+        assertEquals("ps1", session?.systemId)
+        assertEquals("/storage/emulated/0/Roms/PS1/Chocobo Racing - Genkai e no Road (Japan).zip", session?.romPath)
+        assertEquals("Sony - PlayStation (SwanStation)", session?.coreOrBackend)
+    }
+
+    @Test
     fun deriveGameTitle_usesLabelOrFallbackToFilename() {
         assertEquals("Super Mario", RetroArchLplParser.deriveGameTitle("Super Mario", "/path/to/game.sfc"))
         assertEquals("game", RetroArchLplParser.deriveGameTitle("DETECT", "/path/to/game.sfc"))
@@ -94,3 +123,4 @@ class RetroArchLplParserTest {
         assertNull(RetroArchLplParser.deriveGameTitle(null, null))
     }
 }
+

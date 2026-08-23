@@ -87,16 +87,77 @@ object RetroArchLplParser {
     ): String {
         val ext = path?.substringAfterLast('.', "")?.lowercase() ?: ""
         val core = (coreName ?: corePath ?: "").lowercase()
+        val pathLower = (path ?: "").lowercase()
 
         return when {
-            ext in EXT_SNES || core.contains("snes") || core.contains("bsnes") -> "snes"
-            ext in EXT_N64 || core.contains("mupen") || core.contains("n64") -> "n64"
-            ext == "gba" || core.contains("mgba") || core.contains("vba") -> "gba"
-            ext in EXT_GBC || core.contains("gambatte") -> "gbc"
-            ext in EXT_NES || core.contains("fceu") || core.contains("nestopia") -> "nes"
-            ext in EXT_PS1 && (core.contains("pcsx") || core.contains("beetle_psx")) -> "ps1"
-            ext in EXT_GENESIS || core.contains("genesis") || core.contains("picodrive") -> "genesis"
-            ext == "nds" || core.contains("melonds") || core.contains("drastic") -> "nds"
+            // 1. Core-based detection (most accurate)
+            core.contains("swanstation") || core.contains("duckstation") ||
+                core.contains("pcsx") || core.contains("beetle_psx") ||
+                core.contains("mednafen_psx") || core.contains("playstation") ||
+                core.contains("psx") || core.contains("ps1") -> "ps1"
+
+            core.contains("snes9x") || core.contains("bsnes") ||
+                core.contains("mesen-s") || core.contains("snes") ||
+                core.contains("super nintendo") -> "snes"
+
+            core.contains("mgba") || core.contains("vba") ||
+                core.contains("gpsp") || core.contains("gameboy advance") -> "gba"
+
+            core.contains("gambatte") || core.contains("sameboy") ||
+                core.contains("gearboy") || core.contains("tgbdual") -> "gbc"
+
+            core.contains("fceu") || core.contains("nestopia") ||
+                core.contains("mesen") || core.contains("quicknes") -> "nes"
+
+            core.contains("mupen") || core.contains("parallel_n64") ||
+                core.contains("n64") -> "n64"
+
+            core.contains("melonds") || core.contains("desmume") -> "nds"
+
+            core.contains("ppsspp") -> "psp"
+
+            core.contains("pcsx2") || core.contains("play!") -> "ps2"
+
+            core.contains("genesis_plus_gx") || core.contains("picodrive") ||
+                core.contains("blastem") || core.contains("genesis") ||
+                core.contains("megadrive") -> "genesis"
+
+            core.contains("flycast") || core.contains("dreamcast") -> "dreamcast"
+
+            core.contains("yabause") || core.contains("kronos") ||
+                core.contains("beetle_saturn") || core.contains("saturn") -> "saturn"
+
+            core.contains("fbneo") || core.contains("mame") ||
+                core.contains("arcade") -> "arcade"
+
+            core.contains("mednafen_pce") || core.contains("pcfx") ||
+                core.contains("beetle_pce") -> "pce"
+
+            // 2. Folder path-based detection (handles .zip/.7z ROMs in organized folders)
+            pathLower.contains("/ps1/") || pathLower.contains("/psx/") || pathLower.contains("/playstation/") -> "ps1"
+            pathLower.contains("/ps2/") || pathLower.contains("/ps2_games/") -> "ps2"
+            pathLower.contains("/psp/") -> "psp"
+            pathLower.contains("/gba/") -> "gba"
+            pathLower.contains("/gbc/") || pathLower.contains("/gb/") -> "gbc"
+            pathLower.contains("/snes/") || pathLower.contains("/sfc/") -> "snes"
+            pathLower.contains("/nes/") || pathLower.contains("/fc/") -> "nes"
+            pathLower.contains("/n64/") -> "n64"
+            pathLower.contains("/nds/") -> "nds"
+            pathLower.contains("/3ds/") -> "3ds"
+            pathLower.contains("/gamecube/") || pathLower.contains("/gc/") || pathLower.contains("/wii/") -> "gc"
+            pathLower.contains("/dreamcast/") || pathLower.contains("/dc/") -> "dreamcast"
+            pathLower.contains("/saturn/") || pathLower.contains("/ss/") -> "saturn"
+            pathLower.contains("/genesis/") || pathLower.contains("/megadrive/") || pathLower.contains("/md/") -> "genesis"
+
+            // 3. Extension-based fallback
+            ext in setOf("sfc", "smc", "fig") -> "snes"
+            ext in setOf("n64", "z64", "v64") -> "n64"
+            ext == "gba" -> "gba"
+            ext in setOf("gb", "gbc") -> "gbc"
+            ext in setOf("nes", "fds", "unf") -> "nes"
+            ext in setOf("pbp", "chd", "cue") -> "ps1"
+            ext in setOf("md", "gen", "smd") -> "genesis"
+            ext == "nds" -> "nds"
             else -> "retroarch"
         }
     }

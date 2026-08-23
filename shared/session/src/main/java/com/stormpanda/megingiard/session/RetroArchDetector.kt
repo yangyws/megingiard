@@ -24,10 +24,13 @@ object RetroArchDetector : EmulatorDetector {
 
     private val lplPaths =
         listOf(
-            "/storage/emulated/0/RetroArch/playlists/content_history.lpl",
             "/storage/emulated/0/RetroArch/playlists/builtin/content_history.lpl",
+            "/storage/emulated/0/RetroArch/playlists/content_history.lpl",
+            "/sdcard/RetroArch/playlists/builtin/content_history.lpl",
             "/sdcard/RetroArch/playlists/content_history.lpl",
+            "/storage/emulated/0/Android/data/com.retroarch.aarch64/files/playlists/builtin/content_history.lpl",
             "/storage/emulated/0/Android/data/com.retroarch.aarch64/files/playlists/content_history.lpl",
+            "/storage/emulated/0/Android/data/com.retroarch/files/playlists/builtin/content_history.lpl",
             "/storage/emulated/0/Android/data/com.retroarch/files/playlists/content_history.lpl",
         )
 
