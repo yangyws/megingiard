@@ -29,13 +29,21 @@ private val IGNORED_PACKAGES =
 
 private val IGNORED_PACKAGE_PREFIXES =
     listOf(
-        "com.odin.",
         "com.google.android.gms",
         "com.google.android.play.games",
+        "com.odin.gameassistant",
+        "com.odin.dualscreen.assistant",
+        "com.odin.mapping",
+        "com.odin.fota",
+        "com.odin.factorytest",
+        "com.odin.setupwizard",
     )
 
 private fun isIgnoredPackage(packageName: String): Boolean {
     if (packageName in IGNORED_PACKAGES) return true
+    if (packageName.startsWith("com.odin.")) {
+        return !packageName.contains("launcher")
+    }
     return IGNORED_PACKAGE_PREFIXES.any { packageName.startsWith(it) }
 }
 
@@ -44,6 +52,7 @@ private fun isLauncherOrTaskSwitcher(packageName: String): Boolean {
     return pkg.startsWith("com.stormpanda.megingiard.gamefocus") ||
         pkg.contains("launcher") ||
         pkg.contains("home") ||
+        pkg == "org.es_de.frontend" ||
         pkg == "com.android.systemui"
 }
 
@@ -180,7 +189,7 @@ object AutoSwitchCoordinator {
                 }
             }
             return
-        } else if (!isLauncherOrSwitcher) {
+        } else if (normalized != "com.android.systemui") {
             EmulatorDetectionFunnel.clearSession()
         }
 
@@ -213,8 +222,19 @@ object AutoSwitchCoordinator {
         }
 
         // 3. Sync standalone foreground package state with AppStateManager
+        if (normalized == "com.android.systemui") {
+            AppLog.d(TAG, "onPackageChanged: Preserving focused game state while system UI/task switcher '$normalized' is active.")
+            return
+        }
+
+        if (isLauncherOrSwitcher && clientActive) {
+            AppLog.d(TAG, "onPackageChanged: Preserving client integration state while launcher '$normalized' is active.")
+            return
+        }
+
         if (isLauncherOrSwitcher) {
-            AppLog.d(TAG, "onPackageChanged: Preserving focused game state while task switcher/launcher '$normalized' is active.")
+            AppLog.d(TAG, "onPackageChanged: Launcher '$normalized' active in standalone mode. Resetting focused app state.")
+            AppStateManager.setStandaloneForegroundState(null, null)
             return
         }
 

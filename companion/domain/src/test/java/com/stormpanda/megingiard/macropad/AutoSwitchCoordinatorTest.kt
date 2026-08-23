@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -313,8 +314,8 @@ class AutoSwitchCoordinatorTest {
 
     @Test
     fun `onPackageChanged updates AppStateManager focusedAppPackageName for standalone apps`() {
-        AutoSwitchCoordinator.onPackageChanged("org.es_de.frontend")
-        assertEquals("org.es_de.frontend", AppStateManager.focusedAppPackageName.value)
+        AutoSwitchCoordinator.onPackageChanged("com.miHoYo.GenshinImpact")
+        assertEquals("com.miHoYo.GenshinImpact", AppStateManager.focusedAppPackageName.value)
 
         AutoSwitchCoordinator.onPackageChanged("com.citra.emu")
         assertEquals("com.citra.emu", AppStateManager.focusedAppPackageName.value)
@@ -335,16 +336,30 @@ class AutoSwitchCoordinatorTest {
     }
 
     @Test
-    fun `onPackageChanged preserves focused game state when task switcher is opened`() {
+    fun `onPackageChanged resets focused app state when returning to launcher in standalone mode`() {
         // Given active profile is profile2 (associated with com.citra.emu)
         AutoSwitchCoordinator.onPackageChanged("com.citra.emu")
         assertEquals("com.citra.emu", AppStateManager.focusedAppPackageName.value)
 
-        // When switching to task switcher (com.android.launcher3)
+        // When switching to launcher (com.android.launcher3)
         AutoSwitchCoordinator.onPackageChanged("com.android.launcher3")
 
-        // Then foreground app is set to launcher3, but focused game state remains com.citra.emu
+        // Then foreground app is launcher3, and focused app state is reset to null
         assertEquals("com.android.launcher3", AutoSwitchCoordinator.foregroundApp.value)
+        assertNull(AppStateManager.focusedAppPackageName.value)
+        assertNull(AppStateManager.focusedRomPath.value)
+    }
+
+    @Test
+    fun `onPackageChanged preserves focused game state when system ui task switcher is opened`() {
+        // Given active profile is profile2 (associated with com.citra.emu)
+        AutoSwitchCoordinator.onPackageChanged("com.citra.emu")
+        assertEquals("com.citra.emu", AppStateManager.focusedAppPackageName.value)
+
+        // When switching to task switcher / system UI
+        AutoSwitchCoordinator.onPackageChanged("com.android.systemui")
+
+        // Then focused game state remains com.citra.emu
         assertEquals("com.citra.emu", AppStateManager.focusedAppPackageName.value)
         assertEquals(profile2.id, MacroPadState.activeProfileId.value)
     }
@@ -445,9 +460,8 @@ class AutoSwitchCoordinatorTest {
             kotlinx.coroutines.delay(150)
             assertEquals(profile3.id, MacroPadState.activeProfileId.value)
 
-            // When Task Switcher (com.android.launcher3) is opened
-            AutoSwitchCoordinator.onPackageChanged("com.android.launcher3")
-            assertEquals("com.android.launcher3", AutoSwitchCoordinator.foregroundApp.value)
+            // When Task Switcher (com.android.systemui) is opened
+            AutoSwitchCoordinator.onPackageChanged("com.android.systemui")
             assertEquals("com.retroarch", AppStateManager.focusedAppPackageName.value)
 
             // When user returns to RetroArch from Task Switcher

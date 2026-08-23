@@ -161,7 +161,7 @@ class IntegrationHomeScreenTargetInfoTest {
     }
 
     @Test
-    fun resolveTargetAppInfo_lastDetectedSessionFallbackWhenNothingActive() {
+    fun resolveTargetAppInfo_whenNothingActiveReturnsEmptyTargetInfo() {
         val target =
             resolveTargetAppInfo(
                 hoveredPackage = null,
@@ -175,10 +175,10 @@ class IntegrationHomeScreenTargetInfoTest {
                 installedApps = emptyList(),
             )
 
-        assertEquals("com.retroarch.lastgame", target.pkg)
-        assertEquals("zelda.sfc", target.label)
-        assertEquals("/sdcard/roms/snes/zelda.sfc", target.romPath)
-        assertEquals("snes", target.systemId)
+        assertNull(target.pkg)
+        assertNull(target.label)
+        assertNull(target.romPath)
+        assertNull(target.systemId)
     }
 
     @Test
