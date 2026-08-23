@@ -68,7 +68,6 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
             ndk {
                 abiFilters.add("arm64-v8a")
             }
@@ -88,7 +87,6 @@ android {
             )
         }
     }
-
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
@@ -96,6 +94,8 @@ android {
             output.outputFileName = "megingiard-v0.9.0-zh.apk"
         }
     }
+
+
     buildFeatures {
         buildConfig = true
     }
@@ -169,6 +169,17 @@ afterEvaluate {
     }
     tasks.matching { it.name in listOf("assembleRelease", "bundleRelease", "packageRelease") }.configureEach {
         dependsOn(validateReleaseSignature)
+    }
+    tasks.matching { it.name == "packageRelease" || it.name == "packageDebug" }.configureEach {
+        doLast {
+            val buildOutputsApk = file("build/outputs/apk")
+            val apks = buildOutputsApk.walkTopDown().filter { it.isFile && it.extension == "apk" }.toList()
+            for (apk in apks) {
+                val rootDest = rootProject.file("megingiard-v0.9.0-zh.apk")
+                apk.copyTo(rootDest, overwrite = true)
+                println("PACKAGE OUTPUT COPY: ${apk.absolutePath} -> ${rootDest.absolutePath} (${rootDest.length()} bytes)")
+            }
+        }
     }
 }
 

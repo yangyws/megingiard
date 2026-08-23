@@ -627,7 +627,12 @@ fun FullscreenMouseOverlay() {
                                     interactionSource = interactionSourceFill,
                                     indication = null,
                                     onClick = {
-                                        TouchpadSettings.setTouchpadFillMode(if (isFill) "FIT_16_9" else "FILL")
+                                        if (isFill) {
+                                            TouchpadSettings.setTouchpadPosition(nextPos)
+                                            TouchpadSettings.setTouchpadFillMode("FIT_16_9")
+                                        } else {
+                                            TouchpadSettings.setTouchpadFillMode("FILL")
+                                        }
                                     },
                                 ),
                         contentAlignment = Alignment.Center,
