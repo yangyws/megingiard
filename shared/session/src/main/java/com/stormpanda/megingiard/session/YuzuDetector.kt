@@ -23,8 +23,15 @@ object YuzuDetector : EmulatorDetector {
             "org.yuzu.yuzu_emu",
             "org.yuzu.yuzu_emu.ea",
             "org.sudachi.sudachi_emu",
+            "org.sudachi.sudachi",
             "com.suyu.suyu",
+            "org.suyu.suyu",
             "dev.eden.eden_emulator",
+            "org.torzu.torzu",
+            "org.uzuy.uzuy_edge",
+            "com.skyline.skyline",
+            "com.skyline.skyline.edge",
+            "com.eggns.eggns",
         )
 
     override val systemId: String = "switch"
