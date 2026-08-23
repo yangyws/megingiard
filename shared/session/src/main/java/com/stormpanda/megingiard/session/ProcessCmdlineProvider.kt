@@ -13,5 +13,18 @@ object ProcessCmdlineProvider {
 
     suspend fun getRunningProcesses(): String? = runningProcessesProvider?.invoke()
 
-    suspend fun readTextFile(path: String): String? = textFileReader?.invoke(path)
+    suspend fun readTextFile(path: String): String? {
+        val custom = textFileReader?.invoke(path)
+        if (!custom.isNullOrBlank()) return custom
+        return try {
+            val file = java.io.File(path)
+            if (file.exists() && file.canRead()) {
+                file.readText()
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }
