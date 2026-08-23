@@ -577,15 +577,14 @@ fun FullscreenMouseOverlay() {
             ) {
                 if (!touchpadUseMouse) {
                     // Position Cycle button (only in 16:9 mode, not in Fill mode)
-                    // Action-oriented: Shows the next target position that clicking will move to
                     if (touchpadFillMode != "FILL") {
                         val interactionSourcePos = remember { MutableInteractionSource() }
                         val isPosPressed by interactionSourcePos.collectIsPressedAsState()
-                        val nextPos =
+                        val posIcon =
                             when (touchpadPosition) {
-                                "BOTTOM" -> "CENTER"
-                                "CENTER" -> "TOP"
-                                else -> "BOTTOM"
+                                "TOP" -> Icons.Rounded.VerticalAlignTop
+                                "CENTER" -> Icons.Rounded.VerticalAlignCenter
+                                else -> Icons.Rounded.VerticalAlignBottom
                             }
                         Box(
                             modifier =
@@ -599,19 +598,27 @@ fun FullscreenMouseOverlay() {
                                         interactionSource = interactionSourcePos,
                                         indication = null,
                                         onClick = {
+                                            val nextPos =
+                                                when (touchpadPosition) {
+                                                    "BOTTOM" -> "CENTER"
+                                                    "CENTER" -> "TOP"
+                                                    else -> "BOTTOM"
+                                                }
                                             TouchpadSettings.setTouchpadPosition(nextPos)
                                         },
                                     ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            TouchpadPositionIcon(
-                                position = nextPos,
-                                tint = colors.onSurface.copy(alpha = 0.85f),
+                            Icon(
+                                imageVector = posIcon,
+                                contentDescription = stringResource(R.string.cd_touchpad_position),
+                                tint = colors.onSurface.copy(alpha = 0.7f),
+                                modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                             )
                         }
                     }
 
-                    // Fill Mode Toggle button (Action-oriented: Shows target mode to switch to)
+                    // Fill Mode Toggle button
                     val interactionSourceFill = remember { MutableInteractionSource() }
                     val isFillPressed by interactionSourceFill.collectIsPressedAsState()
                     val isFill = touchpadFillMode == "FILL"
@@ -629,14 +636,16 @@ fun FullscreenMouseOverlay() {
                                     onClick = {
                                         TouchpadSettings.setTouchpadFillMode(if (isFill) "FIT_16_9" else "FILL")
                                     },
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TouchpadFillModeIcon(
-                                isFill = isFill,
-                                tint = colors.onSurface.copy(alpha = 0.85f),
-                            )
-                        }
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isFill) Icons.Rounded.Fullscreen else Icons.Rounded.AspectRatio,
+                            contentDescription = stringResource(R.string.cd_touchpad_fill_mode),
+                            tint = if (isFill) colors.accent else colors.onSurface.copy(alpha = 0.7f),
+                            modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
+                        )
+                    }
 
                     // Play/Pause button
                     val interactionSourcePlay = remember { MutableInteractionSource() }
@@ -668,11 +677,8 @@ fun FullscreenMouseOverlay() {
                 }
 
                 if (touchpadUseMouse) {
-                    // Action-oriented: If in SCROLL (2 buttons on screen), shows Mouse icon (click to switch to Middle Click).
-                    // If in CLICK (single middle button), shows SwapVert icon (click to switch to Scroll Wheel).
                     val interactionSourceMiddleMode = remember { MutableInteractionSource() }
                     val isMiddleModePressed by interactionSourceMiddleMode.collectIsPressedAsState()
-                    val middleActionIcon = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.Mouse else Icons.Rounded.SwapVert
                     Box(
                         modifier =
                             Modifier
@@ -692,9 +698,9 @@ fun FullscreenMouseOverlay() {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = middleActionIcon,
+                            imageVector = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.SwapVert else Icons.Rounded.Mouse,
                             contentDescription = stringResource(R.string.cd_touchpad_mouse_middle_mode),
-                            tint = colors.onSurface.copy(alpha = 0.85f),
+                            tint = if (touchpadMouseMiddleMode == "SCROLL") colors.accent else colors.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                         )
                     }
