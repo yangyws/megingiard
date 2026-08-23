@@ -103,7 +103,7 @@ private val TP_CONTAINER_HEIGHT = 320.dp
 private val TP_TOOLBAR_HEIGHT = 44.dp
 private val TP_BOTTOM_BAR_HEIGHT = 50.dp
 private val TP_GLOBE_BUTTON_WIDTH = 72.dp
-private val TP_ICON_SIZE_MEDIUM = 24.dp
+private val TP_ICON_SIZE_MEDIUM = 26.dp
 
 // Mouse 4 & 5 buttons layout dimensions
 private val TP_MOUSE_4_5_MARGIN_HORIZONTAL = 4.dp
@@ -943,8 +943,8 @@ private fun ModeToggleButton(
 }
 
 /**
- * Action-oriented Touchpad Position icon.
- * Displays an outer boundary frame with a larger, prominent inner thick frame at the target position
+ * Action-oriented Touchpad Position icon (Solid Material Surface style).
+ * Displays an outer solid miniature display frame with a solid, bright target position block
  * (TOP, CENTER, or BOTTOM) that clicking will switch to.
  */
 @Composable
@@ -953,53 +953,52 @@ private fun TouchpadPositionIcon(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier.size(22.dp, 18.dp)) {
-        val strokeWidth = 1.25.dp.toPx()
-        val cornerRadius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
-        val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+    Canvas(modifier = modifier.size(26.dp, 22.dp)) {
+        val strokeWidth = 1.5.dp.toPx()
+        val cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+        val innerCornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
 
-        // Outer display frame
+        // Outer display background
         drawRoundRect(
-            color = tint.copy(alpha = 0.40f),
+            color = tint.copy(alpha = 0.15f),
+            topLeft = Offset.Zero,
+            size = size,
+            cornerRadius = cornerRadius,
+        )
+
+        // Outer display frame border
+        drawRoundRect(
+            color = tint.copy(alpha = 0.50f),
             topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
             size = Size(size.width - strokeWidth, size.height - strokeWidth),
             cornerRadius = cornerRadius,
             style = Stroke(width = strokeWidth),
         )
 
-        // Inner thick frame representing the touchpad at the target position (larger & bolder)
-        val padMargin = 2.dp.toPx()
-        val padWidth = size.width - (padMargin * 2)
-        val padHeight = 7.5.dp.toPx()
+        // Inner solid target position block (prominent solid block matching Settings gear weight)
+        val padMarginX = 2.5.dp.toPx()
+        val padWidth = size.width - (padMarginX * 2)
+        val padHeight = 8.5.dp.toPx()
         val padTop =
             when (targetPosition) {
-                "TOP" -> 2.dp.toPx()
+                "TOP" -> 2.5.dp.toPx()
                 "CENTER" -> (size.height - padHeight) / 2f
-                else -> size.height - 2.dp.toPx() - padHeight
+                else -> size.height - 2.5.dp.toPx() - padHeight
             }
 
-        // Inner solid background
-        drawRoundRect(
-            color = tint.copy(alpha = 0.30f),
-            topLeft = Offset(padMargin, padTop),
-            size = Size(padWidth, padHeight),
-            cornerRadius = innerCornerRadius,
-        )
-
-        // Inner thick frame outline
+        // Inner solid block
         drawRoundRect(
             color = tint,
-            topLeft = Offset(padMargin, padTop),
+            topLeft = Offset(padMarginX, padTop),
             size = Size(padWidth, padHeight),
             cornerRadius = innerCornerRadius,
-            style = Stroke(width = 1.75.dp.toPx()),
         )
     }
 }
 
 /**
- * Action-oriented Fill Mode icon displaying the target state to switch to.
- * When in FILL mode -> depicts letterbox 16:9 frame (click to return to 16:9).
+ * Action-oriented Fill Mode icon displaying the target state to switch to (Solid Material Surface style).
+ * When in FILL mode -> depicts a solid 16:9 inner block on a display frame (click to return to 16:9).
  * When in FIT_16_9 mode -> depicts fullscreen expand icon (click to expand to full screen).
  */
 @Composable
@@ -1010,32 +1009,39 @@ private fun TouchpadFillModeIcon(
 ) {
     if (isFill) {
         // In FILL mode -> action is to switch back to 16:9
-        Canvas(modifier = modifier.size(19.dp, 16.dp)) {
-            val strokeWidth = 1.25.dp.toPx()
-            val cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
-            val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+        Canvas(modifier = modifier.size(26.dp, 22.dp)) {
+            val strokeWidth = 1.5.dp.toPx()
+            val cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+            val innerCornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
 
-            // Outer display frame
+            // Outer display background
             drawRoundRect(
-                color = tint.copy(alpha = 0.45f),
+                color = tint.copy(alpha = 0.15f),
+                topLeft = Offset.Zero,
+                size = size,
+                cornerRadius = cornerRadius,
+            )
+
+            // Outer display frame border
+            drawRoundRect(
+                color = tint.copy(alpha = 0.50f),
                 topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                 size = Size(size.width - strokeWidth, size.height - strokeWidth),
                 cornerRadius = cornerRadius,
                 style = Stroke(width = strokeWidth),
             )
 
-            // Inner 16:9 viewport outline
-            val padMargin = 2.dp.toPx()
-            val padWidth = size.width - (padMargin * 2)
+            // Inner 16:9 solid viewport block
+            val padMarginX = 2.5.dp.toPx()
+            val padWidth = size.width - (padMarginX * 2)
             val padHeight = padWidth * (9f / 16f)
             val padTop = (size.height - padHeight) / 2f
 
             drawRoundRect(
                 color = tint,
-                topLeft = Offset(padMargin, padTop),
+                topLeft = Offset(padMarginX, padTop),
                 size = Size(padWidth, padHeight),
                 cornerRadius = innerCornerRadius,
-                style = Stroke(width = 1.25.dp.toPx()),
             )
         }
     } else {
