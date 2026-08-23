@@ -618,7 +618,7 @@ fun FullscreenMouseOverlay() {
                         }
                     }
 
-                    // Fill Mode Toggle button
+                    // Fill Mode Toggle button (Action-oriented: Shows target mode to switch to)
                     val interactionSourceFill = remember { MutableInteractionSource() }
                     val isFillPressed by interactionSourceFill.collectIsPressedAsState()
                     val isFill = touchpadFillMode == "FILL"
@@ -639,11 +639,9 @@ fun FullscreenMouseOverlay() {
                                 ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = if (isFill) Icons.Rounded.Fullscreen else Icons.Rounded.AspectRatio,
-                            contentDescription = stringResource(R.string.cd_touchpad_fill_mode),
-                            tint = if (isFill) colors.accent else colors.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
+                        TouchpadFillModeIcon(
+                            isFill = isFill,
+                            tint = colors.onSurface.copy(alpha = 0.85f),
                         )
                     }
 
@@ -677,8 +675,11 @@ fun FullscreenMouseOverlay() {
                 }
 
                 if (touchpadUseMouse) {
+                    // Action-oriented: If in SCROLL, shows Mouse icon (click to switch to Middle Click).
+                    // If in CLICK, shows SwapVert icon (click to switch to Scroll Wheel).
                     val interactionSourceMiddleMode = remember { MutableInteractionSource() }
                     val isMiddleModePressed by interactionSourceMiddleMode.collectIsPressedAsState()
+                    val middleActionIcon = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.Mouse else Icons.Rounded.SwapVert
                     Box(
                         modifier =
                             Modifier
@@ -698,9 +699,9 @@ fun FullscreenMouseOverlay() {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.SwapVert else Icons.Rounded.Mouse,
+                            imageVector = middleActionIcon,
                             contentDescription = stringResource(R.string.cd_touchpad_mouse_middle_mode),
-                            tint = if (touchpadMouseMiddleMode == "SCROLL") colors.accent else colors.onSurface.copy(alpha = 0.7f),
+                            tint = colors.onSurface.copy(alpha = 0.85f),
                             modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                         )
                     }
@@ -946,67 +947,6 @@ private fun ModeToggleButton(
                 }
             }
         }
-    }
-}
-
-/**
- * Renders an intuitive 3-tier dock slot micro-visualization depicting the target position
- * (top, center, or bottom) that clicking the position button will move to.
- */
-@Composable
-private fun TouchpadPositionIcon(
-    position: String,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Canvas(modifier = modifier.size(20.dp, 18.dp)) {
-        val strokeWidth = 1.25.dp.toPx()
-        val frameCornerRadius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
-        val slotCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
-
-        // Outer display boundary frame
-        drawRoundRect(
-            color = tint.copy(alpha = 0.35f),
-            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-            size = Size(size.width - strokeWidth, size.height - strokeWidth),
-            cornerRadius = frameCornerRadius,
-            style = Stroke(width = strokeWidth),
-        )
-
-        val marginX = 2.5.dp.toPx()
-        val slotWidth = size.width - (marginX * 2)
-        val slotHeight = 3.2.dp.toPx()
-
-        val topY = 2.2.dp.toPx()
-        val centerY = (size.height - slotHeight) / 2f
-        val bottomY = size.height - 2.2.dp.toPx() - slotHeight
-
-        // Top slot
-        val isTop = position == "TOP"
-        drawRoundRect(
-            color = if (isTop) tint else tint.copy(alpha = 0.20f),
-            topLeft = Offset(marginX, topY),
-            size = Size(slotWidth, slotHeight),
-            cornerRadius = slotCornerRadius,
-        )
-
-        // Center slot
-        val isCenter = position == "CENTER"
-        drawRoundRect(
-            color = if (isCenter) tint else tint.copy(alpha = 0.20f),
-            topLeft = Offset(marginX, centerY),
-            size = Size(slotWidth, slotHeight),
-            cornerRadius = slotCornerRadius,
-        )
-
-        // Bottom slot
-        val isBottom = position == "BOTTOM"
-        drawRoundRect(
-            color = if (isBottom) tint else tint.copy(alpha = 0.20f),
-            topLeft = Offset(marginX, bottomY),
-            size = Size(slotWidth, slotHeight),
-            cornerRadius = slotCornerRadius,
-        )
     }
 }
 
