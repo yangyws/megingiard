@@ -576,16 +576,17 @@ fun FullscreenMouseOverlay() {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (!touchpadUseMouse) {
+                    val nextPos =
+                        when (touchpadPosition) {
+                            "BOTTOM" -> "CENTER"
+                            "CENTER" -> "TOP"
+                            else -> "BOTTOM"
+                        }
+
                     // Position Cycle button (only in 16:9 mode, not in Fill mode)
                     if (touchpadFillMode != "FILL") {
                         val interactionSourcePos = remember { MutableInteractionSource() }
                         val isPosPressed by interactionSourcePos.collectIsPressedAsState()
-                        val nextPos =
-                            when (touchpadPosition) {
-                                "BOTTOM" -> "CENTER"
-                                "CENTER" -> "TOP"
-                                else -> "BOTTOM"
-                            }
                         Box(
                             modifier =
                                 Modifier
@@ -633,7 +634,7 @@ fun FullscreenMouseOverlay() {
                     ) {
                         TouchpadFillModeIcon(
                             isFill = isFill,
-                            targetPosition = touchpadPosition,
+                            targetPosition = nextPos,
                             tint = colors.onSurface.copy(alpha = 0.85f),
                         )
                     }
