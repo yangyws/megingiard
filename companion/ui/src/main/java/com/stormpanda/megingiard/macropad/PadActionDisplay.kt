@@ -69,6 +69,7 @@ internal fun ActionGroup.actions(): List<ActionCategory> =
             listOf(
                 ActionCategory.MIRROR_PLAY_STOP,
                 ActionCategory.MIRROR_FREEZE,
+                ActionCategory.MIRROR_SCREENSHOT,
                 ActionCategory.MIRROR_VIEWPORT_EDIT,
                 ActionCategory.MIRROR_TOUCH_PROJECTION,
                 ActionCategory.BACKGROUND_PEEK,
@@ -97,6 +98,7 @@ internal enum class ActionCategory {
     PROFILE_SWITCHER,
     MIRROR_PLAY_STOP,
     MIRROR_FREEZE,
+    MIRROR_SCREENSHOT,
     MIRROR_VIEWPORT_EDIT,
     MIRROR_TOUCH_PROJECTION,
     FULLSCREEN_MOUSE,
@@ -118,6 +120,7 @@ internal fun ActionCategory.labelResId(): Int =
         ActionCategory.PROFILE_SWITCHER -> R.string.macropad_action_profile_switcher
         ActionCategory.MIRROR_PLAY_STOP -> R.string.macropad_action_mirror_play_stop
         ActionCategory.MIRROR_FREEZE -> R.string.macropad_action_mirror_freeze
+        ActionCategory.MIRROR_SCREENSHOT -> R.string.macropad_action_mirror_screenshot
         ActionCategory.MIRROR_VIEWPORT_EDIT -> R.string.macropad_action_mirror_viewport_edit
         ActionCategory.MIRROR_TOUCH_PROJECTION -> R.string.macropad_action_mirror_touch_projection
         ActionCategory.FULLSCREEN_MOUSE -> R.string.macropad_action_fullscreen_mouse
@@ -148,12 +151,7 @@ internal fun ActionCategory.defaultAction(): PadAction =
         }
 
         ActionCategory.MACRO -> {
-            PadAction.Macro(
-                MacroPadState.activeProfile.value
-                    ?.macros
-                    ?.firstOrNull()
-                    ?.id ?: "",
-            )
+            PadAction.Macro("")
         }
 
         ActionCategory.BACKGROUND_PEEK -> {
@@ -178,6 +176,10 @@ internal fun ActionCategory.defaultAction(): PadAction =
 
         ActionCategory.MIRROR_FREEZE -> {
             PadAction.MirrorFreeze
+        }
+
+        ActionCategory.MIRROR_SCREENSHOT -> {
+            PadAction.Screenshot
         }
 
         ActionCategory.MIRROR_VIEWPORT_EDIT -> {
@@ -221,6 +223,7 @@ internal fun ActionCategory.group(): ActionGroup =
 
         ActionCategory.MIRROR_PLAY_STOP,
         ActionCategory.MIRROR_FREEZE,
+        ActionCategory.MIRROR_SCREENSHOT,
         ActionCategory.MIRROR_VIEWPORT_EDIT,
         ActionCategory.MIRROR_TOUCH_PROJECTION,
         ActionCategory.BACKGROUND_PEEK,
@@ -246,6 +249,7 @@ internal fun PadAction.categoryResId(): Int =
         is PadAction.ProfileSwitcher -> R.string.macropad_action_profile_switcher
         is PadAction.MirrorPlayStop -> R.string.macropad_action_mirror_play_stop
         is PadAction.MirrorFreeze -> R.string.macropad_action_mirror_freeze
+        is PadAction.Screenshot -> R.string.macropad_action_mirror_screenshot
         is PadAction.MirrorViewportEdit -> R.string.macropad_action_mirror_viewport_edit
         is PadAction.MirrorTouchProjection -> R.string.macropad_action_mirror_touch_projection
         is PadAction.FullScreenMouse -> R.string.macropad_action_fullscreen_mouse
@@ -267,6 +271,7 @@ internal fun PadAction.toCategory(): ActionCategory =
         is PadAction.ProfileSwitcher -> ActionCategory.PROFILE_SWITCHER
         is PadAction.MirrorPlayStop -> ActionCategory.MIRROR_PLAY_STOP
         is PadAction.MirrorFreeze -> ActionCategory.MIRROR_FREEZE
+        is PadAction.Screenshot -> ActionCategory.MIRROR_SCREENSHOT
         is PadAction.MirrorViewportEdit -> ActionCategory.MIRROR_VIEWPORT_EDIT
         is PadAction.MirrorTouchProjection -> ActionCategory.MIRROR_TOUCH_PROJECTION
         is PadAction.FullScreenMouse -> ActionCategory.FULLSCREEN_MOUSE
@@ -300,6 +305,7 @@ internal fun ActionCategory.isEnabled(
         ActionCategory.MIRROR_FREEZE,
         ActionCategory.MIRROR_VIEWPORT_EDIT,
         ActionCategory.MIRROR_TOUCH_PROJECTION,
+        ActionCategory.MIRROR_SCREENSHOT,
         -> true
 
         ActionCategory.FULLSCREEN_MOUSE,
@@ -391,6 +397,10 @@ internal fun PadAction.displayLabel(): String {
 
         is PadAction.MirrorFreeze -> {
             context.getString(R.string.macropad_action_mirror_freeze)
+        }
+
+        is PadAction.Screenshot -> {
+            context.getString(R.string.macropad_action_mirror_screenshot)
         }
 
         is PadAction.MirrorViewportEdit -> {

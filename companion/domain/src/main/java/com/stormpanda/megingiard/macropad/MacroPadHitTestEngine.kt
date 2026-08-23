@@ -528,6 +528,7 @@ class MacroPadHitTestEngine(
                 is PadAction.MirrorFreeze,
                 is PadAction.MirrorViewportEdit,
                 is PadAction.MirrorTouchProjection,
+                is PadAction.Screenshot,
                 -> {
                     false
                 }
@@ -591,6 +592,7 @@ class MacroPadHitTestEngine(
                 is PadAction.MirrorFreeze,
                 is PadAction.MirrorViewportEdit,
                 is PadAction.MirrorTouchProjection,
+                is PadAction.Screenshot,
                 -> {
                     null
                 }

@@ -109,6 +109,11 @@ fun injectActionDown(action: PadAction) {
             ScreenCaptureManager.toggleTouchProjection()
         }
 
+        is PadAction.Screenshot -> {
+            AppLog.d(TAG, "actionDown: Screenshot")
+            ScreenCaptureManager.requestScreenshot()
+        }
+
         is PadAction.AppLauncher -> {
             AppLog.d(TAG, "actionDown: AppLauncher pkg=${action.packageName}")
             if (action.packageName.isNotBlank()) {
@@ -168,6 +173,8 @@ fun injectActionUp(action: PadAction) {
         is PadAction.MirrorViewportEdit -> { /* fires on down; up is no-op */ }
 
         is PadAction.MirrorTouchProjection -> { /* fires on down; up is no-op */ }
+
+        is PadAction.Screenshot -> { /* fires on down; up is no-op */ }
 
         is PadAction.AppLauncher -> { /* fires on down; up is no-op */ }
     }

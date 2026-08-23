@@ -58,6 +58,14 @@ object ScreenCaptureManager {
     private val _frozenBitmap = MutableStateFlow<Bitmap?>(null)
     val frozenBitmap: StateFlow<Bitmap?> = _frozenBitmap.asStateFlow()
 
+    data class ScreenshotRequest(
+        val timestamp: Long = System.currentTimeMillis(),
+        val cutoutId: String? = null,
+    )
+
+    private val _screenshotRequest = MutableStateFlow<ScreenshotRequest?>(null)
+    val screenshotRequest: StateFlow<ScreenshotRequest?> = _screenshotRequest.asStateFlow()
+
     private val _screenshotRequested = MutableStateFlow(false)
     val screenshotRequested: StateFlow<Boolean> = _screenshotRequested.asStateFlow()
 
@@ -87,7 +95,7 @@ object ScreenCaptureManager {
 
     val isTouchProjectionActive: StateFlow<Boolean> =
         _cutouts
-            .map { list -> list.any { it.touchProjectionEnabled } }
+            .map { list -> list.any { it.isTouchProjectionActive } }
             .stateIn(scope, SharingStarted.Eagerly, false)
 
     init {
@@ -116,7 +124,7 @@ object ScreenCaptureManager {
         activeCutoutsJob =
             scope.launch {
                 _cutouts.collect { list ->
-                    if (list.any { it.touchProjectionEnabled }) {
+                    if (list.any { it.isTouchProjectionActive }) {
                         _isLocked.value = true
                     }
                 }
@@ -189,13 +197,15 @@ object ScreenCaptureManager {
         _isFrozen.value = next
     }
 
-    fun requestScreenshot() {
-        AppLog.d(TAG, "requestScreenshot")
+    fun requestScreenshot(cutoutId: String? = null) {
+        AppLog.i(TAG, "requestScreenshot(cutoutId=$cutoutId)")
+        _screenshotRequest.value = ScreenshotRequest(System.currentTimeMillis(), cutoutId)
         _screenshotRequested.value = true
     }
 
     fun consumeScreenshotRequest() {
         AppLog.d(TAG, "consumeScreenshotRequest")
+        _screenshotRequest.value = null
         _screenshotRequested.value = false
     }
 
@@ -290,6 +300,7 @@ object ScreenCaptureManager {
     ) {
         if (!_isCapturing.value || !_isFollowActive.value) return
         if (AppStateManager.isFullscreenMouseActive.value) return
+        if (AppStateManager.isViewportEditActive.value || AppStateManager.activeCropCutoutId.value != null) return
         if (MacroExecutor.runningMacroIds.value.isNotEmpty()) {
             return
         }

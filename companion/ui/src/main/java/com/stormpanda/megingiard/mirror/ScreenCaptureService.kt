@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
@@ -18,6 +19,7 @@ import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.IBinder
 import android.provider.MediaStore
+import java.io.File
 import android.view.Display
 import android.view.Surface
 import android.view.WindowManager
@@ -277,44 +279,75 @@ class ScreenCaptureService : Service() {
         }
 
         scope.launch {
-            ScreenCaptureManager.screenshotRequested.collect { requested ->
-                if (requested) {
+            ScreenCaptureManager.screenshotRequest.collect { request ->
+                if (request != null) {
                     val presentation = mirrorPresentation
-                    if (presentation != null) {
-                        val bitmap = presentation.captureScreenshot()
-                        if (bitmap != null) {
-                            try {
-                                val previewBitmap = Bitmap.createBitmap(bitmap)
-                                ScreenCaptureManager.showScreenshotPreview(previewBitmap)
-                            } catch (t: Throwable) {
-                                AppLog.e(TAG, "Failed to create preview bitmap", t)
-                            }
+                    var bitmap = presentation?.captureScreenshot(request.cutoutId)
 
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    val savedUri = saveScreenshotToGallery(this@ScreenCaptureService, bitmap)
-                                    if (savedUri != null) {
-                                        launch(Dispatchers.Main) {
-                                            Toast.makeText(this@ScreenCaptureService, R.string.screenshot_saved, Toast.LENGTH_SHORT).show()
+                    // Fallback to Privd screenshot if presentation bitmap was null
+                    if (bitmap == null && PrivdClient.isConnected) {
+                        try {
+                            val tempFile = File(cacheDir, "privd_sc_${System.currentTimeMillis()}.png")
+                            if (PrivdClient.takeScreenshot(tempFile.absolutePath)) {
+                                val fullBmp = BitmapFactory.decodeFile(tempFile.absolutePath)
+                                tempFile.delete()
+                                if (fullBmp != null) {
+                                    if (request.cutoutId != null) {
+                                        val cutout = ScreenCaptureManager.cutouts.value.find { it.id == request.cutoutId }
+                                        if (cutout != null) {
+                                            val cx = (cutout.srcX * fullBmp.width).toInt().coerceIn(0, fullBmp.width - 1)
+                                            val cy = (cutout.srcY * fullBmp.height).toInt().coerceIn(0, fullBmp.height - 1)
+                                            val cw = (cutout.srcWidth * fullBmp.width).toInt().coerceIn(1, fullBmp.width - cx)
+                                            val ch = (cutout.srcHeight * fullBmp.height).toInt().coerceIn(1, fullBmp.height - cy)
+                                            bitmap = Bitmap.createBitmap(fullBmp, cx, cy, cw, ch)
+                                            fullBmp.recycle()
+                                        } else {
+                                            bitmap = fullBmp
                                         }
                                     } else {
-                                        launch(Dispatchers.Main) {
-                                            Toast.makeText(this@ScreenCaptureService, R.string.screenshot_failed, Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                } catch (t: Throwable) {
-                                    AppLog.e(TAG, "Failed to save screenshot", t)
-                                    launch(Dispatchers.Main) {
-                                        Toast.makeText(this@ScreenCaptureService, R.string.screenshot_failed, Toast.LENGTH_SHORT).show()
-                                    }
-                                } finally {
-                                    launch(Dispatchers.Main) {
-                                        bitmap.recycle()
+                                        bitmap = fullBmp
                                     }
                                 }
                             }
-                        } else {
-                            AppLog.e(TAG, "Screenshot capture returned null bitmap")
+                        } catch (t: Throwable) {
+                            AppLog.e(TAG, "Fallback privd screenshot failed", t)
+                        }
+                    }
+
+                    if (bitmap != null) {
+                        try {
+                            val previewBitmap = Bitmap.createBitmap(bitmap)
+                            ScreenCaptureManager.showScreenshotPreview(previewBitmap)
+                        } catch (t: Throwable) {
+                            AppLog.e(TAG, "Failed to create preview bitmap", t)
+                        }
+
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val savedUri = saveScreenshotToGallery(this@ScreenCaptureService, bitmap)
+                                if (savedUri != null) {
+                                    launch(Dispatchers.Main) {
+                                        Toast.makeText(this@ScreenCaptureService, R.string.screenshot_saved, Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    launch(Dispatchers.Main) {
+                                        Toast.makeText(this@ScreenCaptureService, R.string.screenshot_failed, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } catch (t: Throwable) {
+                                AppLog.e(TAG, "Failed to save screenshot", t)
+                                launch(Dispatchers.Main) {
+                                    Toast.makeText(this@ScreenCaptureService, R.string.screenshot_failed, Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                launch(Dispatchers.Main) {
+                                    bitmap.recycle()
+                                }
+                            }
+                        }
+                    } else {
+                        AppLog.e(TAG, "Screenshot capture returned null bitmap")
+                        launch(Dispatchers.Main) {
                             Toast.makeText(this@ScreenCaptureService, R.string.screenshot_failed, Toast.LENGTH_SHORT).show()
                         }
                     }

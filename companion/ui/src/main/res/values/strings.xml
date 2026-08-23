@@ -301,6 +301,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_action_profile_switcher">Profile Switcher</string>
     <string name="macropad_action_mirror_play_stop">Mirror Start/Stop</string>
     <string name="macropad_action_mirror_freeze">Mirror Freeze</string>
+    <string name="macropad_action_mirror_screenshot">Screenshot</string>
     <string name="macropad_action_mirror_viewport_edit">Mirror Viewport</string>
     <string name="macropad_action_mirror_touch_projection">Touch Projection</string>
     <string name="macropad_action_fullscreen_mouse">Fullscreen Mouse</string>
@@ -875,6 +876,9 @@ Open Settings to create a layout.</string>
     <string name="mirror_editor_toolbar_cancel">Cancel</string>
     <string name="mirror_editor_toolbar_shape_circle">Circle</string>
     <string name="mirror_editor_toolbar_shape_rect">Rectangle</string>
+    <string name="mirror_editor_toolbar_touch">Touch Proj.</string>
+    <string name="mirror_editor_toolbar_translate">Translate</string>
+    <string name="mirror_editor_toolbar_screenshot">Screenshot</string>
     <string name="settings_mirror_touch_projection">Touch Projection</string>
     <string name="settings_mirror_touch_projection_desc">Forward touch inputs inside this cutout to the primary screen</string>
     <string name="settings_cutout_translation_title">Live Translation</string>
@@ -1020,6 +1024,8 @@ Open Settings to create a layout.</string>
     <string name="help_mirror_editor_shape_desc">Toggles the selected cutout between rectangle and circle shapes. Useful for game mini-maps or round gauges that look better clipped to a circle.</string>
     <string name="help_mirror_editor_crop_desc">Opens the crop selector for the selected cutout, letting you drag a frame over the top screen to choose which region is mirrored into this cutout.</string>
     <string name="help_mirror_editor_delete_desc">Permanently removes the selected cutout from the layout. If the deleted cutout had touch-follow enabled, that mode is also deactivated.</string>
+    <string name="help_mirror_editor_section_modes">Interactive Modes (Mutually Exclusive)</string>
+    <string name="help_mirror_editor_screenshot_desc">Tap this cutout on the secondary display to immediately capture a screenshot of the mirrored area and save it to the gallery.</string>
     <string name="help_mirror_editor_section_finish">Finish</string>
     <string name="help_mirror_editor_done_desc">Saves all changes made in this session and closes the editor. The updated cutout layout becomes immediately active.</string>
     <string name="help_mirror_editor_cancel_desc">Discards all changes made since the editor was opened and reverts the layout to its previous state. No modifications are saved.</string>

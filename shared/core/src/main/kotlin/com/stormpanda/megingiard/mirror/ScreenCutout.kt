@@ -21,6 +21,7 @@ enum class CutoutMode {
     MIRROR,
     TOUCH_PROJECTION,
     TRANSLATION,
+    SCREENSHOT,
     BOTH,
 }
 
@@ -43,7 +44,7 @@ enum class CutoutMode {
  * @param opacity     Transparency level [0.0, 1.0] of this cutout.
  * @param shape       The visual shape of this cutout (rectangle or circle).
  * @param aspectRatioMode The mode specifying how aspect ratio is locked between top crop and bottom bounds.
- * @param cutoutMode  The active operation mode (MIRROR, TOUCH_PROJECTION, TRANSLATION, BOTH).
+ * @param cutoutMode  The active operation mode (MIRROR, TOUCH_PROJECTION, TRANSLATION, SCREENSHOT, BOTH).
  * @param targetTranslationCutoutId Optional ID of another cutout to route translated subtitles into.
  */
 @Serializable
@@ -68,8 +69,11 @@ data class ScreenCutout(
     val aspectRatioMode: AspectRatioMode = if (keepAspectRatio) AspectRatioMode.TOP else AspectRatioMode.BOTTOM,
     val cutoutMode: CutoutMode = if (touchProjectionEnabled) CutoutMode.TOUCH_PROJECTION else CutoutMode.MIRROR,
     val targetTranslationCutoutId: String? = null,
+    val sourceLanguage: String = "ja",
 ) {
     val isTranslationEnabled: Boolean get() = cutoutMode == CutoutMode.TRANSLATION || cutoutMode == CutoutMode.BOTH
+    val isScreenshotEnabled: Boolean get() = cutoutMode == CutoutMode.SCREENSHOT
+    val isTouchProjectionActive: Boolean get() = cutoutMode == CutoutMode.TOUCH_PROJECTION || cutoutMode == CutoutMode.BOTH || touchProjectionEnabled
     companion object {
         fun createDefault(
             srcPixelWidth: Float = 1920f,

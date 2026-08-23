@@ -3,12 +3,21 @@ package com.stormpanda.megingiard.mirror
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.input.TouchAction
 import com.stormpanda.megingiard.input.TouchInjector
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private const val TAG = "TouchProjectionCtrl"
 private const val MAX_TOUCH_SLOTS = 10
+private const val CUTOUT_LONG_PRESS_MS = 500L
+private const val MOVE_SLOP_PX = 20f
 
 /**
  * Gesture state machine for mirror touch projection.
@@ -35,6 +44,17 @@ class TouchProjectionController(
         var lastNy: Float,
     )
 
+    private data class LongPressCandidate(
+        val pointerId: Long,
+        val cutoutId: String,
+        val startX: Float,
+        val startY: Float,
+        val job: Job,
+    )
+
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var longPressCandidate: LongPressCandidate? = null
+
     private val activeTouches = HashMap<Long, TouchState>()
     private val activeSlots = BooleanArray(MAX_TOUCH_SLOTS) { false }
 
@@ -44,6 +64,8 @@ class TouchProjectionController(
     val indicatorPos: StateFlow<Pair<Float, Float>?> = _indicatorPos.asStateFlow()
 
     var onTranslationCutoutTapped: ((String) -> Unit)? = null
+    var onScreenshotCutoutTapped: ((String) -> Unit)? = null
+    var onCutoutLongPressed: ((String) -> Unit)? = null
 
     /**
      * Handle a Press event.
@@ -73,9 +95,9 @@ class TouchProjectionController(
         AppLog.d(TAG, "onPress at ($x, $y) in box ($boxW x $boxH), total cutouts=${cutouts.size}")
         for (cutout in cutouts) {
             val isTrans = cutout.isTranslationEnabled
-            val isTouch = cutout.touchProjectionEnabled
-            AppLog.d(TAG, "Checking cutout '${cutout.name}' (id=${cutout.id}, isTrans=$isTrans, isTouch=$isTouch, dest=[${cutout.destX}, ${cutout.destY}, ${cutout.destWidth}, ${cutout.destHeight}])")
-            if (!isTouch && !isTrans) continue
+            val isShot = cutout.isScreenshotEnabled
+            val isTouch = cutout.isTouchProjectionActive
+            AppLog.d(TAG, "Checking cutout '${cutout.name}' (id=${cutout.id}, isTrans=$isTrans, isShot=$isShot, isTouch=$isTouch, dest=[${cutout.destX}, ${cutout.destY}, ${cutout.destWidth}, ${cutout.destHeight}])")
 
             val destLeft = cutout.destX * boxW
             val destTop = cutout.destY * boxH
@@ -83,9 +105,33 @@ class TouchProjectionController(
             val destHeight = cutout.destHeight * boxH
 
             if (x in destLeft..(destLeft + destWidth) && y in destTop..(destTop + destHeight)) {
-                AppLog.i(TAG, "Hit cutout '${cutout.name}' (isTrans=$isTrans, isTouch=$isTouch)")
+                AppLog.i(TAG, "Hit cutout '${cutout.name}' (isTrans=$isTrans, isShot=$isShot, isTouch=$isTouch)")
+
+                // Schedule long press candidate for any hit cutout
+                longPressCandidate?.job?.cancel()
+                val job =
+                    scope.launch {
+                        delay(CUTOUT_LONG_PRESS_MS)
+                        val candidate = longPressCandidate ?: return@launch
+                        longPressCandidate = null
+                        AppLog.i(TAG, "Cutout long press triggered on '${cutout.name}' (id=${cutout.id})")
+                        val touch = activeTouches.remove(pointerId)
+                        if (touch != null) {
+                            activeSlots[touch.slot] = false
+                            if (activeTouches.isEmpty()) {
+                                _indicatorPos.value = null
+                            }
+                            TouchInjector.injectTouch(touch.slot, TouchAction.UP, touch.lastNx, touch.lastNy)
+                        }
+                        onCutoutLongPressed?.invoke(candidate.cutoutId)
+                    }
+                longPressCandidate = LongPressCandidate(pointerId, cutout.id, x, y, job)
+
                 if (isTrans) {
                     onTranslationCutoutTapped?.invoke(cutout.id)
+                }
+                if (isShot) {
+                    onScreenshotCutoutTapped?.invoke(cutout.id)
                 }
                 if (isTouch) {
                     val projected =
@@ -154,6 +200,14 @@ class TouchProjectionController(
         boxH: Float,
         isConsumed: Boolean,
     ): Boolean {
+        val candidate = longPressCandidate
+        if (candidate != null && candidate.pointerId == pointerId) {
+            if (abs(x - candidate.startX) > MOVE_SLOP_PX || abs(y - candidate.startY) > MOVE_SLOP_PX) {
+                candidate.job.cancel()
+                longPressCandidate = null
+            }
+        }
+
         val touch = activeTouches[pointerId] ?: return false
 
         if (isConsumed) {
@@ -242,6 +296,11 @@ class TouchProjectionController(
         boxW: Float,
         boxH: Float,
     ): Boolean {
+        if (longPressCandidate?.pointerId == pointerId) {
+            longPressCandidate?.job?.cancel()
+            longPressCandidate = null
+        }
+
         val touch = activeTouches.remove(pointerId) ?: return false
         activeSlots[touch.slot] = false
         if (activeTouches.isEmpty()) {
@@ -281,6 +340,8 @@ class TouchProjectionController(
     /** Reset all tracking state. */
     fun reset() {
         AppLog.d(TAG, "reset activeTouches=${activeTouches.size}")
+        longPressCandidate?.job?.cancel()
+        longPressCandidate = null
         for ((_, touch) in activeTouches) {
             TouchInjector.injectTouch(touch.slot, TouchAction.UP, touch.lastNx, touch.lastNy)
         }

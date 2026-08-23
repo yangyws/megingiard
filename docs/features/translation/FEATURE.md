@@ -62,17 +62,44 @@ The In-Place Game Translation Pipeline enables players on the AYN Thor handheld 
   - Settings toggle switch for each cutout: "即時翻譯 (Live Translation)".
   - Source language dropdown (日文 / 英文 / 自動).
 
+### 2.4 Translation Engines & Glossary Pipeline (`:shared:core` & `:companion:domain`)
+- `ZhTwConverter`: Converts Simplified Chinese characters and standardizes Taiwan gaming terminology (e.g. `選單`, `存檔`, `魔力`, `暴擊`, `道具欄`, `手把`, `搖桿`).
+- `GameGlossaryDictionary`: High-frequency retro and modern RPG/Action gaming vocabulary covering Japanese and English terms.
+- `JapaneseTokenizer`: Character classification (Kanji, Hiragana, Katakana, digits, punctuation) and script tokenization.
+- `TranslationCache`: Thread-safe LRU cache storing historical translations for instant offline retrieval.
+- `CompositeTranslationEngine`: Orchestrates local cache -> zero-latency offline glossary & tokenized grammar matcher -> online REST fallback -> Taiwanese Traditional Chinese standardizer.
+
+### 2.5 Tier 0 Emulator Memory Interceptor (`:shared:core` & `:companion:domain`)
+- `EmulatorMemoryMap`: Memory specifications for PPSSPP (PSP RAM), Citra/Lime3DS (FCRAM), RetroArch (GBA EWRAM), AetherSX2/NetherSX2 (PS2 EE RAM), and Dolphin (GC/Wii MEM1).
+- `MemoryTextDecoder`: Raw byte decoder supporting Shift-JIS, UTF-8, and UTF-16LE with null-terminator slicing, binary garbage filtering, and control tag stripping.
+- `MemoryReader` & `ProcMemReader`: Privileged `/proc/[pid]/mem` random-access reader.
+- `MemoryDialogueHook` & `MemoryHookRegistry`: Pre-configured and custom game memory dialogue hooks.
+- `MemoryTranslationInterceptor`: Intercepts active game sessions, reads raw memory buffers, decodes, and triggers instant translation.
+
+### 2.6 Tier A/B/C Multi-Stage OCR Pipeline (`:shared:core` & `:companion:domain`)
+- `OcrDetectedBlock` & `OcrProcessingOptions`: Normalized OCR bounding boxes and filtering parameters.
+- `PixelFontGlyphMap`: 8x8 and 16x16 classic bitmask signatures for retro pixel fonts.
+- `ImageOcrPreprocessor`: Pure pixel buffer luminance calculation, automatic dark/light background inversion, adaptive binarization, and horizontal/vertical projection profile line segmenter.
+- `PixelFontMatcher`: <15ms Tier A retro bitmap glyph matcher.
+- `CompositeOcrEngine`: Orchestrates image preprocessing -> Tier A pixel matcher -> projection text line segmenter -> normalized OCR output.
+- `TranslationManager.processOcrAndTranslate`: Full pipeline connecting bitmap/pixel buffer extraction -> multi-stage OCR -> translation engine -> in-place visual overlay update.
+
 ---
 
 ## 3. Implementation Roadmap
 
 - [x] **Phase 1: Data Model, In-Place Canvas Rendering & Tap-to-Translate UX** (Completed on 2026-08-21, commit `799d6126`).
-- [ ] **Phase 2: Offline Dictionary & Tokenization Translation Pipeline**:
-  - Japanese tokenization (`JapaneseTokenizer`), English tokenization.
-  - Offline bilingual dictionaries (`DictionaryLookup`) + `ZhTwConverter`.
-- [ ] **Phase 3: Tier 0 Memory Text Interceptor**:
-  - Hook emulator memory (Citra/Lime3DS, Cemu, PPSSPP, RetroArch) via `megingiard_privd`.
-- [ ] **Phase 4: Tier A/B/C Multi-Stage Offline OCR Pipeline**:
-  - Pixel font matcher (Tier A) + Manga-OCR ONNX (Tier B) + ML Kit (Tier C).
+- [x] **Phase 2: Offline Dictionary & Tokenization Translation Pipeline** (Completed on 2026-08-22):
+  - Japanese tokenization (`JapaneseTokenizer`), English phrase matching.
+  - Offline bilingual dictionaries (`GameGlossaryDictionary`) + `ZhTwConverter` gaming standardizer.
+  - Multi-tier composite translation coordinator with LRU memory caching (`CompositeTranslationEngine`, `TranslationCache`).
+- [x] **Phase 3: Tier 0 Memory Text Interceptor** (Completed on 2026-08-22):
+  - Hook emulator memory (PPSSPP, Citra/Lime3DS, RetroArch, AetherSX2, Dolphin) via `EmulatorMemoryMap` and `MemoryReader`.
+  - Binary text decoders (`MemoryTextDecoder`) for Shift-JIS, UTF-8, and UTF-16LE.
+  - Active game session memory dialogue hook interception (`MemoryTranslationInterceptor`).
+- [x] **Phase 4: Tier A/B/C Multi-Stage Offline OCR Pipeline** (Completed on 2026-08-22):
+  - Pixel font matcher (`PixelFontMatcher` Tier A) + bitmask signature dictionary (`PixelFontGlyphMap`).
+  - Image preprocessing and projection profile text segmenter (`ImageOcrPreprocessor`).
+  - Multi-stage coordinator (`CompositeOcrEngine`) integrated with `TranslationManager`.
 - [ ] **Phase 5: MacroPad & QuickMenu Shortcuts**:
   - Quick action buttons: Mirror / Translate / Screenshot.

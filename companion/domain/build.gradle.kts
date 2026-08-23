@@ -132,6 +132,10 @@ dependencies {
     implementation(libs.sun.security.android)
     api(libs.hiddenapibypass)
 
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.text.recognition.japanese)
+    implementation(libs.mlkit.text.recognition.chinese)
+
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)

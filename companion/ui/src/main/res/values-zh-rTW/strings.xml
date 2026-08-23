@@ -268,7 +268,8 @@
     <string name="macropad_action_profile_switcher">設定檔切換器</string>
     <string name="macropad_action_mirror_play_stop">投影 開始/停止</string>
     <string name="macropad_action_mirror_freeze">投影 凍結</string>
-    <string name="macropad_action_mirror_viewport_edit">投影 視窗</string>
+    <string name="macropad_action_mirror_screenshot">螢幕截圖</string>
+    <string name="macropad_action_mirror_viewport_edit">投影 裁切視角</string>
     <string name="macropad_action_mirror_touch_projection">觸控投影</string>
     <string name="macropad_action_fullscreen_mouse">全螢幕滑鼠</string>
     <string name="macropad_action_fullscreen_keyboard">全螢幕鍵盤</string>
@@ -759,6 +760,9 @@
     <string name="mirror_editor_toolbar_cancel">取消</string>
     <string name="mirror_editor_toolbar_shape_circle">圓形</string>
     <string name="mirror_editor_toolbar_shape_rect">矩形</string>
+    <string name="mirror_editor_toolbar_touch">觸控投影</string>
+    <string name="mirror_editor_toolbar_translate">即時翻譯</string>
+    <string name="mirror_editor_toolbar_screenshot">即時截圖</string>
     <string name="settings_mirror_touch_projection">觸控投影</string>
     <string name="settings_mirror_touch_projection_desc">將此區塊內的觸控輸入轉發到主螢幕</string>
     <string name="settings_cutout_translation_title">即時翻譯</string>
@@ -892,6 +896,8 @@
     <string name="help_mirror_editor_shape_desc">在矩形與圓形之間切換所選區塊的形狀。適用於遊戲小地圖或圓形儀表，圓形裁切外觀更佳。</string>
     <string name="help_mirror_editor_crop_desc">開啟所選區塊的裁切選擇器，讓您在主螢幕拖曳框架以選擇投影到此區塊的區域。</string>
     <string name="help_mirror_editor_delete_desc">從配置中永久移除所選區塊。如果被刪除的區塊啟用了觸控跟隨，該模式也會被停用。</string>
+    <string name="help_mirror_editor_section_modes">互動模式（三擇一）</string>
+    <string name="help_mirror_editor_screenshot_desc">在副螢幕點擊此區塊可直接截取當前投影畫面並保存到相簿。</string>
     <string name="help_mirror_editor_section_finish">完成</string>
     <string name="help_mirror_editor_done_desc">儲存本次的所有變更並關閉編輯器。更新後的區塊配置會立即生效。</string>
     <string name="help_mirror_editor_cancel_desc">捨棄開啟編輯器後的所有變更，並將配置還原為先前的狀態。不會儲存任何修改。</string>

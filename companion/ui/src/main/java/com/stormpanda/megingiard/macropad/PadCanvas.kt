@@ -540,6 +540,7 @@ private fun DraggableButton(
             is PadAction.ProfileSwitcher,
             is PadAction.MirrorPlayStop,
             is PadAction.MirrorFreeze,
+            is PadAction.Screenshot,
             is PadAction.MirrorViewportEdit,
             is PadAction.MirrorTouchProjection,
             -> {

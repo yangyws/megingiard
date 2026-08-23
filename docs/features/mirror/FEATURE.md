@@ -149,6 +149,18 @@ The Screen Mirror feature provides a permanent, real-time, hardware-accelerated 
 - The toggle button MUST look like the other buttons, switch between a rectangle and circle icon, and use the same active accent color in both states.
 - The Aspect Ratio lock button MUST also be updated to use the active accent color in both states.
 
+### FR-M17: Cutout Interaction Modes (Touch, Translate, Screenshot)
+
+- Each cutout can have one of three mutually exclusive interaction modes:
+  - **Touch Projection (`TOUCH`)**: Forwards touch taps and drags within the cutout bounds directly to the mapped top-screen source area using native input injection.
+  - **Live Translation (`TRANSLATION`)**: Distinct colored border and badge icon; tapping triggers on-demand OCR and in-place Japanese text replacement for the cutout area.
+  - **Instant Screenshot (`SCREENSHOT`)**: Tapping the cutout immediately captures, crops, saves, and displays a gallery preview of the cutout region.
+- In the Cutout Layout Editor toolbar, these modes are presented on a dedicated interaction mode row with mutually exclusive selection pills.
+
+### FR-M18: Cutout Long Press to Enter Edit Mode
+
+- Long-pressing any mirrored cutout on the secondary display (hold for 450 ms) triggers haptic feedback and immediately enters Screen Mirroring edit mode with that specific cutout pre-selected.
+
 ---
 
 ## Technical Implementation

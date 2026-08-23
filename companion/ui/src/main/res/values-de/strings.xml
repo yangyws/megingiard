@@ -273,7 +273,8 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="macropad_action_profile_switcher">Profil wechseln</string>
     <string name="macropad_action_mirror_play_stop">Spiegel Start/Stop</string>
     <string name="macropad_action_mirror_freeze">Spiegel einfrieren</string>
-    <string name="macropad_action_mirror_viewport_edit">Spiegel Viewport</string>
+    <string name="macropad_action_mirror_screenshot">Screenshot</string>
+    <string name="macropad_action_mirror_viewport_edit">Spiegel-Ausschnitt anpassen</string>
     <string name="macropad_action_mirror_touch_projection">Touch-Projektion</string>
     <string name="macropad_action_fullscreen_mouse">Vollbild-Maus</string>
     <string name="macropad_action_fullscreen_keyboard">Vollbild-Tastatur</string>
@@ -876,6 +877,9 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="mirror_editor_toolbar_cancel">Abbrechen</string>
     <string name="mirror_editor_toolbar_shape_circle">Kreis</string>
     <string name="mirror_editor_toolbar_shape_rect">Rechteck</string>
+    <string name="mirror_editor_toolbar_touch">Touch-Proj.</string>
+    <string name="mirror_editor_toolbar_translate">Übersetzung</string>
+    <string name="mirror_editor_toolbar_screenshot">Screenshot</string>
     <string name="settings_mirror_touch_projection">Touch-Projektion</string>
     <string name="settings_mirror_touch_projection_desc">Berührungen innerhalb dieses Ausschnitts an den Hauptbildschirm weiterleiten</string>
     <string name="settings_cutout_translation_title">Echtzeit-Übersetzung</string>
@@ -1021,6 +1025,8 @@ Einstellungen öffnen, um ein Layout zu erstellen.</string>
     <string name="help_mirror_editor_shape_desc">Wechselt die Form des ausgewählten Ausschnitts zwischen Rechteck und Kreis. Nützlich für Spielminiaturkarten oder runde Anzeigen, die im Kreis besser aussehen.</string>
     <string name="help_mirror_editor_crop_desc">Öffnet die Crop-Auswahl für den gewählten Ausschnitt und ermöglicht es, einen Rahmen über den oberen Bildschirm zu ziehen, um den gespiegelten Bereich festzulegen.</string>
     <string name="help_mirror_editor_delete_desc">Entfernt den ausgewählten Ausschnitt dauerhaft aus dem Layout. Wenn der gelöschte Ausschnitt Touch-Follow aktiv hatte, wird dieser Modus ebenfalls deaktiviert.</string>
+    <string name="help_mirror_editor_section_modes">Interaktive Modi (Einzelauswahl)</string>
+    <string name="help_mirror_editor_screenshot_desc">Tippen Sie auf diesen Ausschnitt, um sofort einen Screenshot des gespiegelten Bereichs in die Galerie zu speichern.</string>
     <string name="help_mirror_editor_section_finish">Abschließen</string>
     <string name="help_mirror_editor_done_desc">Speichert alle in dieser Sitzung vorgenommenen Änderungen und schließt den Editor. Das aktualisierte Ausschnitt-Layout wird sofort aktiv.</string>
     <string name="help_mirror_editor_cancel_desc">Verwirft alle seit dem Öffnen des Editors vorgenommenen Änderungen und stellt das Layout in den vorherigen Zustand zurück. Es werden keine Änderungen gespeichert.</string>

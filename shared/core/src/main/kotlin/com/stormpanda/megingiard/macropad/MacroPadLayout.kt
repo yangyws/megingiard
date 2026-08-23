@@ -228,6 +228,11 @@ sealed class PadAction {
     @SerialName("mirror_touch_projection")
     data object MirrorTouchProjection : PadAction()
 
+    /** Takes a screenshot of the mirrored display and saves to Pictures/Megingiard. */
+    @Serializable
+    @SerialName("screenshot")
+    data object Screenshot : PadAction()
+
     // ── Profile / Navigation ──────────────────────────────────────────────
 
     /** Switches to the next enabled layout within the active profile. */
@@ -288,6 +293,7 @@ fun PadAction.defaultIconName(): String? =
         is PadAction.MirrorFreeze -> "pause_circle"
         is PadAction.MirrorViewportEdit -> "crop_free"
         is PadAction.MirrorTouchProjection -> "touch_app"
+        is PadAction.Screenshot -> "photo_camera"
         is PadAction.FullScreenMouse -> "mouse"
         is PadAction.FullScreenKeyboard -> "keyboard"
         is PadAction.AppLauncher -> "apps"

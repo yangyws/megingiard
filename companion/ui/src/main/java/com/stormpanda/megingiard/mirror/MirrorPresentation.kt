@@ -119,6 +119,7 @@ import com.stormpanda.megingiard.macropad.triggerHapticFeedback
 import com.stormpanda.megingiard.onboarding.OnboardingWizardManager
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.services.MegingiardAccessibilityService
+import com.stormpanda.megingiard.session.EmulatorDetectionFunnel
 import com.stormpanda.megingiard.settings.AppLanguage
 import com.stormpanda.megingiard.settings.GlobalSettingsScreen
 import com.stormpanda.megingiard.settings.SettingsManager
@@ -126,6 +127,7 @@ import com.stormpanda.megingiard.settings.TouchpadSettings
 import com.stormpanda.megingiard.shouldKeepPrimaryGameFocus
 import com.stormpanda.megingiard.touchpad.FullscreenMouseOverlay
 import com.stormpanda.megingiard.touchpad.TouchpadSettingsOverlay
+import com.stormpanda.megingiard.translation.MemoryTranslationInterceptor
 import com.stormpanda.megingiard.ui.AppDimens
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.LocalAppDimens
@@ -181,6 +183,73 @@ class MirrorPresentation(
     private var masterSurface: Surface? = null
     private var multiCutoutContainer: MultiCutoutContainer? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val memoryInterceptor = MemoryTranslationInterceptor()
+
+    private fun triggerLiveTranslationForCutout(cutoutId: String) {
+        val cutout = ScreenCaptureManager.cutouts.value.firstOrNull { it.id == cutoutId } ?: return
+        val sourceLang = cutout.sourceLanguage
+
+        scope.launch {
+            TranslationManager.setTranslating(true)
+            try {
+                // 1. Try Tier 0 memory interception if there is an active emulator game session
+                val activeSession = EmulatorDetectionFunnel.activeSession.value ?: EmulatorDetectionFunnel.lastDetectedSession.value
+                if (activeSession != null) {
+                    AppLog.i(TAG, "Attempting Tier 0 memory translation for session=$activeSession")
+                    val memorySuccess = memoryInterceptor.interceptAndTranslate(cutoutId, activeSession, sourceLang)
+                    if (memorySuccess) {
+                        AppLog.i(TAG, "Tier 0 memory translation succeeded for cutout=$cutoutId")
+                        return@launch
+                    }
+                }
+
+                // 2. Capture the live frame from TextureView and run through OCR pipeline
+                val tv = masterTextureView
+                if (tv != null && tv.width > 0 && tv.height > 0) {
+                    val frameBitmap = tv.getBitmap()
+                    if (frameBitmap != null) {
+                        try {
+                            val left = (cutout.srcX * frameBitmap.width).toInt().coerceIn(0, frameBitmap.width - 1)
+                            val top = (cutout.srcY * frameBitmap.height).toInt().coerceIn(0, frameBitmap.height - 1)
+                            val right = ((cutout.srcX + cutout.srcWidth) * frameBitmap.width).toInt().coerceIn(left + 1, frameBitmap.width)
+                            val bottom = ((cutout.srcY + cutout.srcHeight) * frameBitmap.height).toInt().coerceIn(top + 1, frameBitmap.height)
+                            val w = right - left
+                            val h = bottom - top
+
+                            if (w > 0 && h > 0) {
+                                val pixels = IntArray(w * h)
+                                frameBitmap.getPixels(pixels, 0, w, left, top, w, h)
+                                val translatedBlocks = TranslationManager.processOcrAndTranslate(cutoutId, pixels, w, h, sourceLang)
+                                if (translatedBlocks.isNotEmpty()) {
+                                    AppLog.i(TAG, "Live OCR translated ${translatedBlocks.size} block(s) for cutout=$cutoutId")
+                                    return@launch
+                                }
+                            }
+                        } finally {
+                            frameBitmap.recycle()
+                        }
+                    }
+                }
+
+                // 2. If OCR did not detect text in this frame, display an informative overlay
+                AppLog.i(TAG, "No OCR text detected in cutout $cutoutId")
+                val fallbackBlock = TranslatedBlock(
+                    normLeft = 0.05f,
+                    normTop = 0.65f,
+                    normRight = 0.95f,
+                    normBottom = 0.95f,
+                    fontHeightRatio = 0.5f,
+                    originalText = "",
+                    translatedText = "（未偵測到文字 - 請對準遊戲對話框）",
+                )
+                TranslationManager.updateTranslation(cutoutId, listOf(fallbackBlock))
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Exception during live translation for cutout $cutoutId", e)
+            } finally {
+                TranslationManager.setTranslating(false)
+            }
+        }
+    }
 
     // OnBackPressedDispatcher provided to the Compose tree. Needs to be a class
     // property so onBackCallback can delegate to it (see below).
@@ -527,22 +596,34 @@ class MirrorPresentation(
                                                     AppLog.i(TAG, "Toggling OFF translation for cutout $cutoutId")
                                                     TranslationManager.clearTranslation(cutoutId)
                                                 } else {
-                                                    AppLog.i(TAG, "Toggling ON demo translation for cutout $cutoutId")
-                                                    TranslationManager.updateTranslation(
-                                                        cutoutId,
-                                                        listOf(
-                                                            TranslatedBlock(
-                                                                normLeft = 0.05f,
-                                                                normTop = 0.65f,
-                                                                normRight = 0.95f,
-                                                                normBottom = 0.95f,
-                                                                fontHeightRatio = 0.5f,
-                                                                originalText = "勇者よ、旅立つ時が来た！",
-                                                                translatedText = "勇者啊，踏上旅程的時刻到了！",
-                                                            ),
-                                                        ),
-                                                    )
+                                                    AppLog.i(TAG, "Toggling ON real-time translation for cutout $cutoutId")
+                                                    triggerLiveTranslationForCutout(cutoutId)
                                                 }
+                                            }
+                                        }
+                                        onScreenshotCutoutTapped = { cutoutId ->
+                                            val isMouseActive = AppStateManager.isFullscreenMouseActive.value
+                                            val isKbActive = AppStateManager.isFullscreenKeyboardActive.value
+                                            val isMenuOpen = AppStateManager.isQuickMenuOpen.value
+                                            val isModalActive = AppStateManager.isAnyModalActive.value
+
+                                            AppLog.i(TAG, "onScreenshotCutoutTapped for cutout $cutoutId")
+                                            if (!isMouseActive && !isKbActive && !isMenuOpen && !isModalActive) {
+                                                ScreenCaptureManager.requestScreenshot(cutoutId)
+                                                triggerHapticFeedback(context, HapticStrength.LIGHT)
+                                            }
+                                        }
+                                        onCutoutLongPressed = { cutoutId ->
+                                            val isMouseActive = AppStateManager.isFullscreenMouseActive.value
+                                            val isKbActive = AppStateManager.isFullscreenKeyboardActive.value
+                                            val isMenuOpen = AppStateManager.isQuickMenuOpen.value
+                                            val isModalActive = AppStateManager.isAnyModalActive.value
+
+                                            AppLog.i(TAG, "onCutoutLongPressed for cutout $cutoutId")
+                                            if (!isMouseActive && !isKbActive && !isMenuOpen && !isModalActive) {
+                                                AppStateManager.setSelectedCutoutId(cutoutId)
+                                                AppStateManager.setViewportEditActive(true)
+                                                triggerHapticFeedback(context, HapticStrength.MEDIUM)
                                             }
                                         }
                                     }
@@ -1165,26 +1246,49 @@ class MirrorPresentation(
 
     fun getSurface(): Surface? = currentRoutedSurface ?: masterSurface
 
-    fun captureScreenshot(): Bitmap? {
+    fun captureScreenshot(cutoutId: String? = null): Bitmap? {
         val frozen = ScreenCaptureManager.isFrozen.value
-        if (frozen) {
-            val bitmap = ScreenCaptureManager.frozenBitmap.value
-            if (bitmap != null) {
-                return try {
-                    Bitmap.createBitmap(bitmap)
-                } catch (e: Exception) {
-                    AppLog.e(TAG, "Failed to copy frozen bitmap for screenshot", e)
+        val baseBitmap =
+            if (frozen) {
+                val bitmap = ScreenCaptureManager.frozenBitmap.value
+                if (bitmap != null) {
+                    try {
+                        Bitmap.createBitmap(bitmap)
+                    } catch (e: Exception) {
+                        AppLog.e(TAG, "Failed to copy frozen bitmap for screenshot", e)
+                        null
+                    }
+                } else {
+                    null
+                }
+            } else {
+                val tv = masterTextureView
+                if (tv != null && tv.width > 0 && tv.height > 0) {
+                    try {
+                        tv.getBitmap()
+                    } catch (e: Exception) {
+                        AppLog.e(TAG, "Failed to capture TextureView bitmap for screenshot", e)
+                        null
+                    }
+                } else {
                     null
                 }
             }
-        }
-        val tv = masterTextureView ?: return null
-        if (tv.width <= 0 || tv.height <= 0) return null
+        if (baseBitmap == null) return null
+        if (cutoutId == null) return baseBitmap
+
+        val cutout = ScreenCaptureManager.cutouts.value.find { it.id == cutoutId } ?: return baseBitmap
+        val cropX = (cutout.srcX * baseBitmap.width).toInt().coerceIn(0, baseBitmap.width - 1)
+        val cropY = (cutout.srcY * baseBitmap.height).toInt().coerceIn(0, baseBitmap.height - 1)
+        val cropW = (cutout.srcWidth * baseBitmap.width).toInt().coerceIn(1, baseBitmap.width - cropX)
+        val cropH = (cutout.srcHeight * baseBitmap.height).toInt().coerceIn(1, baseBitmap.height - cropY)
         return try {
-            tv.getBitmap()
+            val cropped = Bitmap.createBitmap(baseBitmap, cropX, cropY, cropW, cropH)
+            baseBitmap.recycle()
+            cropped
         } catch (e: Exception) {
-            AppLog.e(TAG, "Failed to capture TextureView bitmap for screenshot", e)
-            null
+            AppLog.e(TAG, "Failed to crop cutout screenshot bitmap", e)
+            baseBitmap
         }
     }
 }

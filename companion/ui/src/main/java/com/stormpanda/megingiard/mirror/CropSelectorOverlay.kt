@@ -1,5 +1,6 @@
 package com.stormpanda.megingiard.mirror
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -36,7 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -128,35 +131,25 @@ fun CropSelectorOverlay(
         newY: Float,
         newW: Float,
         newH: Float,
-        maxDestW: Float = 0f,
-        maxDestH: Float = 0f,
+        baseDestW: Float = 0f,
+        baseDestH: Float = 0f,
     ): ScreenCutout {
         var updated = cutout.copy(srcX = newX, srcY = newY, srcWidth = newW, srcHeight = newH)
         if (updated.aspectRatioMode == AspectRatioMode.TOP) {
+            val startW = if (baseDestW > 0f) baseDestW else updated.destWidth
+            val startH = if (baseDestH > 0f) baseDestH else updated.destHeight
             val cropRatio = (newW * srcWidth) / (newH * srcHeight)
-            val normRatio = cropRatio * (secScreenH / secScreenW)
             val (newDestW, newDestH) =
                 adjustDestSizeToAspectRatio(
                     destX = updated.destX,
                     destY = updated.destY,
-                    destWidth = updated.destWidth,
-                    destHeight = updated.destHeight,
+                    destWidth = startW,
+                    destHeight = startH,
                     cropRatio = cropRatio,
                     screenW = secScreenW,
                     screenH = secScreenH,
                 )
-
-            var finalW = newDestW
-            var finalH = newDestH
-
-            if (maxDestW > 0f && maxDestH > 0f) {
-                val limitW = minOf(maxDestW, 1f - updated.destX)
-                val limitH = minOf(maxDestH, 1f - updated.destY)
-                finalW = minOf(limitW, limitH * normRatio)
-                finalH = minOf(limitH, limitW / normRatio)
-            }
-
-            updated = updated.copy(destWidth = finalW, destHeight = finalH)
+            updated = updated.copy(destWidth = newDestW, destHeight = newDestH)
         }
         return updated
     }
@@ -176,47 +169,19 @@ fun CropSelectorOverlay(
         val cropW = cutout.srcWidth * screenW
         val cropH = cutout.srcHeight * screenH
 
-        // 1. Semi-transparent scrim rects surrounding the crop region
-        // Top scrim
-        Box(
-            modifier =
-                Modifier
-                    .offset { IntOffset(0, 0) }
-                    .size(
-                        width = this@BoxWithConstraints.maxWidth,
-                        height = with(density) { cropTop.toDp() },
-                    ).background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)),
-        )
-        // Left scrim
-        Box(
-            modifier =
-                Modifier
-                    .offset { IntOffset(0, cropTop.roundToInt()) }
-                    .size(
-                        width = with(density) { cropLeft.toDp() },
-                        height = with(density) { cropH.toDp() },
-                    ).background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)),
-        )
-        // Right scrim
-        Box(
-            modifier =
-                Modifier
-                    .offset { IntOffset((cropLeft + cropW).roundToInt(), cropTop.roundToInt()) }
-                    .size(
-                        width = this@BoxWithConstraints.maxWidth - with(density) { (cropLeft + cropW).toDp() },
-                        height = with(density) { cropH.toDp() },
-                    ).background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)),
-        )
-        // Bottom scrim
-        Box(
-            modifier =
-                Modifier
-                    .offset { IntOffset(0, (cropTop + cropH).roundToInt()) }
-                    .size(
-                        width = this@BoxWithConstraints.maxWidth,
-                        height = this@BoxWithConstraints.maxHeight - with(density) { (cropTop + cropH).toDp() },
-                    ).background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)),
-        )
+        // 1. Semi-transparent seamless scrim surrounding the crop region
+        val scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            clipRect(
+                left = cropLeft,
+                top = cropTop,
+                right = cropLeft + cropW,
+                bottom = cropTop + cropH,
+                clipOp = ClipOp.Difference,
+            ) {
+                drawRect(scrimColor)
+            }
+        }
 
         val handleSizePx = with(density) { CS_HANDLE_SIZE.toPx() }
         val touchWPx = kotlin.math.max(handleSizePx, cropW * CS_TOUCH_AREA_RATIO)

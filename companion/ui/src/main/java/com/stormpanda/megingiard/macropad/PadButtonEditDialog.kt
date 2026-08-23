@@ -90,6 +90,7 @@ private const val PBD_ICON_LAYOUT_NEXT = "arrow_forward"
 private const val PBD_ICON_LAYOUT_PREVIOUS = "arrow_back"
 private const val PBD_ICON_MIRROR_PLAY_STOP = "cast"
 private const val PBD_ICON_MIRROR_FREEZE = "pause_circle"
+private const val PBD_ICON_SCREENSHOT = "photo_camera"
 private const val PBD_ICON_MIRROR_VIEWPORT_EDIT = "crop_free"
 private const val PBD_ICON_MIRROR_TOUCH_PROJECTION = "touch_app"
 private const val PBD_ICON_FULLSCREEN_MOUSE = "mouse"
@@ -116,6 +117,7 @@ private fun PadAction.defaultLabelRes(): Int? =
         is PadAction.ProfileSwitcher -> R.string.macropad_action_profile_switcher
         is PadAction.MirrorPlayStop -> R.string.macropad_action_mirror_play_stop
         is PadAction.MirrorFreeze -> R.string.macropad_action_mirror_freeze
+        is PadAction.Screenshot -> R.string.macropad_action_mirror_screenshot
         is PadAction.MirrorViewportEdit -> R.string.macropad_action_mirror_viewport_edit
         is PadAction.MirrorTouchProjection -> R.string.macropad_action_mirror_touch_projection
         is PadAction.FullScreenMouse -> R.string.macropad_action_fullscreen_mouse
@@ -133,6 +135,7 @@ private fun PadAction.editorDefaultIconName(): String? =
         is PadAction.ProfileSwitcher -> PBD_ICON_PROFILE_SWITCHER
         is PadAction.MirrorPlayStop -> PBD_ICON_MIRROR_PLAY_STOP
         is PadAction.MirrorFreeze -> PBD_ICON_MIRROR_FREEZE
+        is PadAction.Screenshot -> PBD_ICON_SCREENSHOT
         is PadAction.MirrorViewportEdit -> PBD_ICON_MIRROR_VIEWPORT_EDIT
         is PadAction.MirrorTouchProjection -> PBD_ICON_MIRROR_TOUCH_PROJECTION
         is PadAction.FullScreenMouse -> PBD_ICON_FULLSCREEN_MOUSE

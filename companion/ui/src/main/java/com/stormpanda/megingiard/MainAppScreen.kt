@@ -1,6 +1,9 @@
 package com.stormpanda.megingiard
 
+import android.app.Activity
+import android.app.ActivityOptions
 import android.content.Context
+import android.content.Intent
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
@@ -8,6 +11,7 @@ import android.os.Vibrator
 import android.provider.Settings
 import android.view.Display
 import android.view.accessibility.AccessibilityManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -200,8 +204,25 @@ fun MainAppScreen() {
         WrongScreenOverlay(
             colors = colors,
             onRetry = {
-                val displayId = context.display?.displayId ?: Display.DEFAULT_DISPLAY
-                AppLog.i(TAG, "wrong-screen retry tapped: displayId=$displayId")
+                val act = context as? Activity
+                val currentDisplay = act?.display?.displayId ?: context.display?.displayId ?: Display.DEFAULT_DISPLAY
+                AppLog.i(TAG, "wrong-screen retry tapped: displayId=$currentDisplay")
+                val isValid = currentDisplay != Display.DEFAULT_DISPLAY
+                AppStateManager.setOnValidScreen(isValid)
+
+                if (!isValid) {
+                    val secondaryDisplay = DisplayDetector.findSecondaryDisplay(context)
+                    if (secondaryDisplay != null) {
+                        AppLog.i(TAG, "Relocating MainActivity to secondary display id=${secondaryDisplay.displayId}")
+                        val options = ActivityOptions.makeBasic().setLaunchDisplayId(secondaryDisplay.displayId)
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        }
+                        context.startActivity(intent, options.toBundle())
+                    } else {
+                        Toast.makeText(context, R.string.wrong_screen_message, Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
         )
     } else {
