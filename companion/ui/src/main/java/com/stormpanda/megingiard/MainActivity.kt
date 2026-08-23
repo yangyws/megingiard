@@ -6,6 +6,7 @@ import android.app.LocaleManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
 import android.os.Build
@@ -76,6 +77,7 @@ import com.stormpanda.megingiard.mirror.MirrorRuntimeAction
 import com.stormpanda.megingiard.mirror.MirrorRuntimePolicyState
 import com.stormpanda.megingiard.mirror.MirrorStrategy
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
+import com.stormpanda.megingiard.macropad.AutoSwitchCoordinator
 import com.stormpanda.megingiard.mirror.ScreenCaptureService
 import com.stormpanda.megingiard.mirror.decideMirrorRuntimeAction
 import com.stormpanda.megingiard.mirror.isPrivdMirrorConnecting
@@ -199,6 +201,9 @@ class MainActivity : ComponentActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         display?.displayId?.let { displayId ->
+            val isValid = displayId != Display.DEFAULT_DISPLAY
+            AppLog.i(TAG, "MainActivity onConfigurationChanged: displayId=$displayId isValid=$isValid")
+            AppStateManager.setOnValidScreen(isValid)
         }
     }
 
@@ -637,11 +642,11 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
-                ScreenCaptureManager.screenshotRequested.collect { requested ->
-                    if (!requested) return@collect
+                ScreenCaptureManager.screenshotRequest.collect { request ->
+                    if (request == null) return@collect
                     if (!ScreenCaptureManager.isCapturing.value) {
                         if (PrivdClient.isConnected) {
-                            AppLog.i(TAG, "screenshotRequested → handling via privileged mode (mirroring not running)")
+                            AppLog.i(TAG, "screenshotRequest → handling via privileged mode (mirroring not running)")
                             launch(Dispatchers.IO) {
                                 try {
                                     val filename = "Megingiard_Screenshot_${System.currentTimeMillis()}.png"
@@ -654,8 +659,20 @@ class MainActivity : ComponentActivity() {
                                     val ok = PrivdClient.takeScreenshot(filepath)
                                     if (ok) {
                                         MediaScannerConnection.scanFile(this@MainActivity, arrayOf(filepath), null, null)
-                                        val bitmap = BitmapFactory.decodeFile(filepath)
+                                        var bitmap = BitmapFactory.decodeFile(filepath)
                                         if (bitmap != null) {
+                                            if (request.cutoutId != null) {
+                                                val cutout = ScreenCaptureManager.cutouts.value.find { it.id == request.cutoutId }
+                                                if (cutout != null) {
+                                                    val cx = (cutout.srcX * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
+                                                    val cy = (cutout.srcY * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
+                                                    val cw = (cutout.srcWidth * bitmap.width).toInt().coerceIn(1, bitmap.width - cx)
+                                                    val ch = (cutout.srcHeight * bitmap.height).toInt().coerceIn(1, bitmap.height - cy)
+                                                    val cropped = Bitmap.createBitmap(bitmap, cx, cy, cw, ch)
+                                                    bitmap.recycle()
+                                                    bitmap = cropped
+                                                }
+                                            }
                                             ScreenCaptureManager.showScreenshotPreview(bitmap)
                                             withContext(Dispatchers.Main) {
                                                 Toast.makeText(this@MainActivity, R.string.screenshot_saved, Toast.LENGTH_SHORT).show()
@@ -774,6 +791,27 @@ class MainActivity : ComponentActivity() {
                 action = ACTION_STOP
             }
         startService(stopIntent)
+    }
+    override fun onResume() {
+        super.onResume()
+        val curDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY
+        val isValid = curDisplayId != Display.DEFAULT_DISPLAY
+        AppLog.i(TAG, "MainActivity onResume: displayId=$curDisplayId isValid=$isValid")
+        AppStateManager.setOnValidScreen(isValid)
+        AppStateManager.setActivityResumed(true)
+        val service = MegingiardAccessibilityService.getInstance()
+        val topPkg = service?.queryTopDisplayPackage()
+        if (topPkg != null) {
+            AutoSwitchCoordinator.onPackageChanged(topPkg)
+        } else {
+            AutoSwitchCoordinator.reevaluateAutoState()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        AppLog.i(TAG, "MainActivity onStop")
+        AppStateManager.setActivityResumed(false)
     }
 
     /** Called when the app is already running and receives a new ACTION_VIEW intent. */

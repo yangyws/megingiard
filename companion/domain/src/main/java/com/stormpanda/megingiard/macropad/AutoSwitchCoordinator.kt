@@ -13,8 +13,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 private const val TAG = "AutoSwitchCoordinator"
-private const val APP_PACKAGE_SELF = "com.stormpanda.megingiard"
 private val coordinatorScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+fun isSelfPackage(packageName: String): Boolean {
+    val pkg = packageName.lowercase().trim()
+    return (pkg == "com.stormpanda.megingiard" || pkg.startsWith("com.stormpanda.megingiard.")) &&
+        !pkg.startsWith("com.stormpanda.megingiard.gamefocus")
+}
 
 private val IGNORED_PACKAGES =
     setOf(
@@ -119,7 +124,7 @@ object AutoSwitchCoordinator {
         val normalized = packageName.trim()
         if (normalized.isBlank()) return
 
-        if (normalized == APP_PACKAGE_SELF || normalized == "$APP_PACKAGE_SELF.debug") {
+        if (isSelfPackage(normalized)) {
             AppLog.d(TAG, "onPackageChanged: Ignoring self-package ($normalized)")
             return
         }

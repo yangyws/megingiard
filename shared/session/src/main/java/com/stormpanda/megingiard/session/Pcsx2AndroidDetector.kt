@@ -14,6 +14,7 @@ object Pcsx2AndroidDetector : EmulatorDetector {
         setOf(
             "com.armsx2",
             "com.armsx2.debug",
+            "come.nanodata.armsx2",
             "xyz.aethersx2.android",
             "net.nethersx2.android",
         )

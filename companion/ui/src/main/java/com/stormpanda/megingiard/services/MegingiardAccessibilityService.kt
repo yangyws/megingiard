@@ -25,6 +25,7 @@ import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.macropad.AutoSwitchCoordinator
+import com.stormpanda.megingiard.macropad.isSelfPackage
 import com.stormpanda.megingiard.privd.AutoSetupLanguageConfig
 import com.stormpanda.megingiard.privd.PrivdBootstrapper
 import com.stormpanda.megingiard.privd.PrivdClient
@@ -88,21 +89,45 @@ class MegingiardAccessibilityService : AccessibilityService() {
         instance = this
         AppLog.i(TAG, "onServiceConnected: Megingiard Accessibility Service is active")
         AppStateManager.setAccessibilityActive(true)
+        val topPkg = queryTopDisplayPackage()
+        if (topPkg != null) {
+            AppLog.i(TAG, "onServiceConnected: Detected initial top screen package: $topPkg")
+            AutoSwitchCoordinator.onPackageChanged(topPkg)
+        }
+    }
+
+    fun queryTopDisplayPackage(): String? {
+        try {
+            for (window in windows) {
+                if (window.displayId == Display.DEFAULT_DISPLAY &&
+                    window.type == AccessibilityWindowInfo.TYPE_APPLICATION &&
+                    window.root != null
+                ) {
+                    val pkg = window.root?.packageName?.toString()
+                    if (!pkg.isNullOrBlank() && !isSelfPackage(pkg)) {
+                        return pkg
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            AppLog.w(TAG, "queryTopDisplayPackage threw: $e")
+        }
+        return null
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val displayId = event.displayId
-            if (displayId == Display.DEFAULT_DISPLAY || displayId == Display.INVALID_DISPLAY) {
-                val packageName = event.packageName?.toString()
-                if (!packageName.isNullOrBlank()) {
+            val packageName = event.packageName?.toString()
+            if (!packageName.isNullOrBlank() && !isSelfPackage(packageName)) {
+                if (displayId == Display.DEFAULT_DISPLAY || displayId == Display.INVALID_DISPLAY) {
                     AppLog.d(TAG, "onAccessibilityEvent: Window state changed on primary display ($displayId), package=$packageName")
                     AutoSwitchCoordinator.onPackageChanged(packageName)
                 }
-            } else {
+            } else if (packageName != null && !isSelfPackage(packageName)) {
                 AppLog.d(
                     TAG,
-                    "onAccessibilityEvent: Ignoring window state change on secondary display (displayId=$displayId, package=${event.packageName})",
+                    "onAccessibilityEvent: Ignoring window state change on secondary display (displayId=$displayId, package=$packageName)",
                 )
             }
         }

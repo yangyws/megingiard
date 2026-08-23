@@ -102,6 +102,12 @@ class AutoSwitchCoordinatorTest {
         assertEquals(null, AutoSwitchCoordinator.foregroundApp.value)
 
         AutoSwitchCoordinator.onPackageChanged("com.stormpanda.megingiard.debug")
+        assertEquals(null, AutoSwitchCoordinator.foregroundApp.value)
+
+        AutoSwitchCoordinator.onPackageChanged("com.stormpanda.megingiard.zh")
+        assertEquals(null, AutoSwitchCoordinator.foregroundApp.value)
+
+        AutoSwitchCoordinator.onPackageChanged("com.stormpanda.megingiard.zh.debug")
         // Then it is ignored and foreground app state does not record it
         assertEquals(null, AutoSwitchCoordinator.foregroundApp.value)
         assertEquals(profile1.id, MacroPadState.activeProfileId.value)

@@ -24,6 +24,7 @@ object YuzuDetector : EmulatorDetector {
             "org.yuzu.yuzu_emu.ea",
             "org.sudachi.sudachi_emu",
             "com.suyu.suyu",
+            "dev.eden.eden_emulator",
         )
 
     override val systemId: String = "switch"
@@ -34,6 +35,7 @@ object YuzuDetector : EmulatorDetector {
                 packageName.contains("citron") -> "citron_log.txt"
                 packageName.contains("sudachi") -> "sudachi_log.txt"
                 packageName.contains("suyu") -> "suyu_log.txt"
+                packageName.contains("eden") -> "eden_log.txt"
                 else -> "yuzu_log.txt"
             }
         return listOf(
