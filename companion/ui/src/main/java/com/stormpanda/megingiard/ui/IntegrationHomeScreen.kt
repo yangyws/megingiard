@@ -1074,7 +1074,7 @@ internal fun resolveTargetAppInfo(
         )
     } else if (focused != null) {
         if (last != null && focused == last.packageName) {
-            val label = last.romPath?.let { File(it).name } ?: last.gameTitle
+            val label = last.gameTitle
             TargetAppInfo(
                 pkg = focused,
                 label = label,

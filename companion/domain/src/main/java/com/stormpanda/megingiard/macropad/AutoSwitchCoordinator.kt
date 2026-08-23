@@ -143,8 +143,39 @@ object AutoSwitchCoordinator {
         // 1. Process emulator package changes for ROM detection
         if (isRegisteredEmulator) {
             coordinatorScope.launch {
-                EmulatorDetectionFunnel.onPackageForeground(normalized)
+                val session = EmulatorDetectionFunnel.onPackageForeground(normalized)
+                if (session != null) {
+                    AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
+                    if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
+                        val matchedProfile =
+                            MacroPadState.findBestMatchingProfile(session.packageName, session.romPath, session.systemId)
+                        if (matchedProfile != null) {
+                            val currentActiveId = MacroPadState.activeProfileId.value
+                            if (matchedProfile.id != currentActiveId) {
+                                AppLog.i(
+                                    TAG,
+                                    "onPackageForeground: auto-switching to profile '${matchedProfile.name}' (id=${matchedProfile.id}) for emulator session (${session.gameTitle})",
+                                )
+                                MacroPadState.setActiveProfileId(matchedProfile.id)
+                            }
+                        }
+                    }
+                } else {
+                    AppStateManager.setStandaloneForegroundState(normalized, null)
+                    val directMatchedProfile = MacroPadState.findBestMatchingProfile(normalized)
+                    if (directMatchedProfile != null) {
+                        val currentActiveId = MacroPadState.activeProfileId.value
+                        if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO && directMatchedProfile.id != currentActiveId) {
+                            AppLog.i(
+                                TAG,
+                                "onPackageChanged: auto-switching to profile '${directMatchedProfile.name}' (id=${directMatchedProfile.id}) for app '$normalized'",
+                            )
+                            MacroPadState.setActiveProfileId(directMatchedProfile.id)
+                        }
+                    }
+                }
             }
+            return
         } else if (!isLauncherOrSwitcher) {
             EmulatorDetectionFunnel.clearSession()
         }
@@ -181,49 +212,11 @@ object AutoSwitchCoordinator {
         if (isLauncherOrSwitcher) {
             AppLog.d(TAG, "onPackageChanged: Preserving focused game state while task switcher/launcher '$normalized' is active.")
             return
-        } else if (!isRegisteredEmulator) {
-            AppStateManager.setStandaloneForegroundState(normalized, null)
-        } else {
-            val session = EmulatorDetectionFunnel.activeSession.value ?: EmulatorDetectionFunnel.lastDetectedSession.value
-            if (session != null && session.packageName == normalized) {
-                AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
-            } else {
-                val currentFocusedPkg = AppStateManager.focusedAppPackageName.value
-                val currentFocusedRom = AppStateManager.focusedRomPath.value
-                val currentActiveProfile = MacroPadState.activeProfile.value
-                if (currentFocusedPkg == normalized &&
-                    currentActiveProfile?.matches(normalized, currentFocusedRom, isActiveProfile = true) == true
-                ) {
-                    AppLog.d(TAG, "onPackageChanged: preserving active ROM path '$currentFocusedRom' for emulator '$normalized'")
-                } else {
-                    AppStateManager.setStandaloneForegroundState(normalized, null)
-                }
-            }
         }
 
-        // 4. Auto profile switching
-        val session = EmulatorDetectionFunnel.activeSession.value ?: EmulatorDetectionFunnel.lastDetectedSession.value
-        if (isRegisteredEmulator && session != null && session.packageName == normalized) {
-            AppLog.d(TAG, "onPackageChanged: active ROM session exists for emulator '$normalized' (${session.romPath})")
-            if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
-                val matchedProfile =
-                    MacroPadState.findBestMatchingProfile(session.packageName, session.romPath, session.systemId)
-                if (matchedProfile != null) {
-                    val currentActiveId = MacroPadState.activeProfileId.value
-                    if (matchedProfile.id != currentActiveId) {
-                        AppLog.i(
-                            TAG,
-                            "onPackageChanged: auto-switching to profile '${matchedProfile.name}' (id=${matchedProfile.id}) for emulator session (${session.gameTitle})",
-                        )
-                        MacroPadState.setActiveProfileId(matchedProfile.id)
-                    }
-                }
-            } else {
-                AppLog.d(TAG, "onPackageChanged: auto-mode disabled, skipping profile switch for ${session.gameTitle}")
-            }
-            return
-        }
+        AppStateManager.setStandaloneForegroundState(normalized, null)
 
+        // 4. Auto profile switching for standalone non-emulator apps
         val directMatchedProfile = MacroPadState.findBestMatchingProfile(normalized)
         if (directMatchedProfile != null) {
             val currentActiveId = MacroPadState.activeProfileId.value
@@ -237,9 +230,7 @@ object AutoSwitchCoordinator {
                 AppLog.d(TAG, "onPackageChanged: profile '${directMatchedProfile.name}' is already active or auto-mode disabled")
             }
         } else {
-            if (!isRegisteredEmulator) {
-                AppLog.d(TAG, "onPackageChanged: no profile mapped to package '$normalized'")
-            }
+            AppLog.d(TAG, "onPackageChanged: No profile mapped to app '$normalized', keeping active profile")
         }
     }
 
