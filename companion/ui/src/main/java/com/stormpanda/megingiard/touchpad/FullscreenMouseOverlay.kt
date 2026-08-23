@@ -580,11 +580,11 @@ fun FullscreenMouseOverlay() {
                     if (touchpadFillMode != "FILL") {
                         val interactionSourcePos = remember { MutableInteractionSource() }
                         val isPosPressed by interactionSourcePos.collectIsPressedAsState()
-                        val posIcon =
+                        val nextPos =
                             when (touchpadPosition) {
-                                "TOP" -> Icons.Rounded.VerticalAlignTop
-                                "CENTER" -> Icons.Rounded.VerticalAlignCenter
-                                else -> Icons.Rounded.VerticalAlignBottom
+                                "BOTTOM" -> "CENTER"
+                                "CENTER" -> "TOP"
+                                else -> "BOTTOM"
                             }
                         Box(
                             modifier =
@@ -598,22 +598,14 @@ fun FullscreenMouseOverlay() {
                                         interactionSource = interactionSourcePos,
                                         indication = null,
                                         onClick = {
-                                            val nextPos =
-                                                when (touchpadPosition) {
-                                                    "BOTTOM" -> "CENTER"
-                                                    "CENTER" -> "TOP"
-                                                    else -> "BOTTOM"
-                                                }
                                             TouchpadSettings.setTouchpadPosition(nextPos)
                                         },
                                     ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = posIcon,
-                                contentDescription = stringResource(R.string.cd_touchpad_position),
-                                tint = colors.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
+                            TouchpadPositionIcon(
+                                targetPosition = nextPos,
+                                tint = colors.onSurface.copy(alpha = 0.85f),
                             )
                         }
                     }
@@ -947,6 +939,61 @@ private fun ModeToggleButton(
                 }
             }
         }
+    }
+}
+
+/**
+ * Action-oriented Touchpad Position icon.
+ * Displays an outer boundary frame with a thick inner frame at the target position (TOP, CENTER, or BOTTOM)
+ * that clicking will switch to.
+ */
+@Composable
+private fun TouchpadPositionIcon(
+    targetPosition: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier.size(19.dp, 16.dp)) {
+        val strokeWidth = 1.25.dp.toPx()
+        val cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+
+        // Outer display frame
+        drawRoundRect(
+            color = tint.copy(alpha = 0.45f),
+            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+            cornerRadius = cornerRadius,
+            style = Stroke(width = strokeWidth),
+        )
+
+        // Inner thick frame representing the touchpad at the target position
+        val padMargin = 2.dp.toPx()
+        val padWidth = size.width - (padMargin * 2)
+        val padHeight = 5.dp.toPx()
+        val padTop =
+            when (targetPosition) {
+                "TOP" -> 2.dp.toPx()
+                "CENTER" -> (size.height - padHeight) / 2f
+                else -> size.height - 2.dp.toPx() - padHeight
+            }
+
+        // Inner subtle tint
+        drawRoundRect(
+            color = tint.copy(alpha = 0.25f),
+            topLeft = Offset(padMargin, padTop),
+            size = Size(padWidth, padHeight),
+            cornerRadius = innerCornerRadius,
+        )
+
+        // Inner thick frame outline
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(padMargin, padTop),
+            size = Size(padWidth, padHeight),
+            cornerRadius = innerCornerRadius,
+            style = Stroke(width = 1.5.dp.toPx()),
+        )
     }
 }
 
