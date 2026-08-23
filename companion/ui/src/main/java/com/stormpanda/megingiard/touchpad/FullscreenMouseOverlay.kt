@@ -6,6 +6,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,9 +59,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -576,12 +580,6 @@ fun FullscreenMouseOverlay() {
                     if (touchpadFillMode != "FILL") {
                         val interactionSourcePos = remember { MutableInteractionSource() }
                         val isPosPressed by interactionSourcePos.collectIsPressedAsState()
-                        val posIcon =
-                            when (touchpadPosition) {
-                                "TOP" -> Icons.Rounded.VerticalAlignTop
-                                "CENTER" -> Icons.Rounded.VerticalAlignCenter
-                                else -> Icons.Rounded.VerticalAlignBottom
-                            }
                         Box(
                             modifier =
                                 Modifier
@@ -605,16 +603,14 @@ fun FullscreenMouseOverlay() {
                                     ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = posIcon,
-                                contentDescription = stringResource(R.string.cd_touchpad_position),
-                                tint = colors.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
+                            TouchpadPositionIcon(
+                                position = touchpadPosition,
+                                tint = colors.onSurface.copy(alpha = 0.85f),
                             )
                         }
                     }
 
-                    // Fill Mode Toggle button
+                    // Fill Mode Toggle button (Action-oriented: Shows target mode to switch to)
                     val interactionSourceFill = remember { MutableInteractionSource() }
                     val isFillPressed by interactionSourceFill.collectIsPressedAsState()
                     val isFill = touchpadFillMode == "FILL"
@@ -632,16 +628,14 @@ fun FullscreenMouseOverlay() {
                                     onClick = {
                                         TouchpadSettings.setTouchpadFillMode(if (isFill) "FIT_16_9" else "FILL")
                                     },
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (isFill) Icons.Rounded.Fullscreen else Icons.Rounded.AspectRatio,
-                            contentDescription = stringResource(R.string.cd_touchpad_fill_mode),
-                            tint = if (isFill) colors.accent else colors.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
-                        )
-                    }
+                                    ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            TouchpadFillModeIcon(
+                                isFill = isFill,
+                                tint = colors.onSurface.copy(alpha = 0.85f),
+                            )
+                        }
 
                     // Play/Pause button
                     val interactionSourcePlay = remember { MutableInteractionSource() }
@@ -666,15 +660,18 @@ fun FullscreenMouseOverlay() {
                         Icon(
                             imageVector = if (touchpadMirroringEnabled) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = stringResource(R.string.cd_touchpad_toggle_mirroring),
-                            tint = colors.onSurface.copy(alpha = 0.7f),
+                            tint = colors.onSurface.copy(alpha = 0.85f),
                             modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                         )
                     }
                 }
 
                 if (touchpadUseMouse) {
+                    // Action-oriented: If in SCROLL (2 buttons on screen), shows Mouse icon (click to switch to Middle Click).
+                    // If in CLICK (single middle button), shows SwapVert icon (click to switch to Scroll Wheel).
                     val interactionSourceMiddleMode = remember { MutableInteractionSource() }
                     val isMiddleModePressed by interactionSourceMiddleMode.collectIsPressedAsState()
+                    val middleActionIcon = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.Mouse else Icons.Rounded.SwapVert
                     Box(
                         modifier =
                             Modifier
@@ -694,9 +691,9 @@ fun FullscreenMouseOverlay() {
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.SwapVert else Icons.Rounded.Mouse,
+                            imageVector = middleActionIcon,
                             contentDescription = stringResource(R.string.cd_touchpad_mouse_middle_mode),
-                            tint = if (touchpadMouseMiddleMode == "SCROLL") colors.accent else colors.onSurface.copy(alpha = 0.7f),
+                            tint = colors.onSurface.copy(alpha = 0.85f),
                             modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                         )
                     }
@@ -944,3 +941,100 @@ private fun ModeToggleButton(
         }
     }
 }
+
+/**
+ * Renders an intuitive handheld screen micro-visualization depicting the active docked position
+ * of the touchpad window (top, center, or bottom).
+ */
+@Composable
+private fun TouchpadPositionIcon(
+    position: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier.size(19.dp, 16.dp)) {
+        val strokeWidth = 1.25.dp.toPx()
+        val cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+
+        // Outer display boundary frame
+        drawRoundRect(
+            color = tint.copy(alpha = 0.45f),
+            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+            cornerRadius = cornerRadius,
+            style = Stroke(width = strokeWidth),
+        )
+
+        // Inner active touchpad region docked at top / center / bottom
+        val padMargin = 2.dp.toPx()
+        val padWidth = size.width - (padMargin * 2)
+        val padHeight = (size.height - (padMargin * 2)) * 0.52f
+        val padTop =
+            when (position) {
+                "TOP" -> padMargin
+                "CENTER" -> (size.height - padHeight) / 2f
+                else -> size.height - padMargin - padHeight // BOTTOM
+            }
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(padMargin, padTop),
+            size = Size(padWidth, padHeight),
+            cornerRadius = innerCornerRadius,
+        )
+    }
+}
+
+/**
+ * Action-oriented Fill Mode icon displaying the target state to switch to.
+ * When in FILL mode -> depicts letterbox 16:9 frame (click to return to 16:9).
+ * When in FIT_16_9 mode -> depicts fullscreen expand icon (click to expand to full screen).
+ */
+@Composable
+private fun TouchpadFillModeIcon(
+    isFill: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    if (isFill) {
+        // In FILL mode -> action is to switch back to 16:9
+        Canvas(modifier = modifier.size(19.dp, 16.dp)) {
+            val strokeWidth = 1.25.dp.toPx()
+            val cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+            val innerCornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+
+            // Outer display frame
+            drawRoundRect(
+                color = tint.copy(alpha = 0.45f),
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                cornerRadius = cornerRadius,
+                style = Stroke(width = strokeWidth),
+            )
+
+            // Inner 16:9 viewport outline
+            val padMargin = 2.dp.toPx()
+            val padWidth = size.width - (padMargin * 2)
+            val padHeight = padWidth * (9f / 16f)
+            val padTop = (size.height - padHeight) / 2f
+
+            drawRoundRect(
+                color = tint,
+                topLeft = Offset(padMargin, padTop),
+                size = Size(padWidth, padHeight),
+                cornerRadius = innerCornerRadius,
+                style = Stroke(width = 1.25.dp.toPx()),
+            )
+        }
+    } else {
+        // In FIT_16_9 mode -> action is to expand to full bleed
+        Icon(
+            imageVector = Icons.Rounded.Fullscreen,
+            contentDescription = stringResource(R.string.cd_touchpad_fill_mode),
+            tint = tint,
+            modifier = modifier.size(TP_ICON_SIZE_MEDIUM),
+        )
+    }
+}
+
