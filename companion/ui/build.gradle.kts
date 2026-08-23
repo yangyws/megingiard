@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -170,14 +171,16 @@ afterEvaluate {
     tasks.matching { it.name in listOf("assembleRelease", "bundleRelease", "packageRelease") }.configureEach {
         dependsOn(validateReleaseSignature)
     }
+    val rootDestFile = rootProject.layout.projectDirectory.file("megingiard-v0.9.0-zh.apk").asFile
+    val buildOutputDir = layout.buildDirectory.dir("outputs/apk").get().asFile
     tasks.matching { it.name == "packageRelease" || it.name == "packageDebug" }.configureEach {
+        val isRelease = name == "packageRelease"
         doLast {
-            val buildOutputsApk = file("build/outputs/apk")
-            val apks = buildOutputsApk.walkTopDown().filter { it.isFile && it.extension == "apk" }.toList()
+            val targetDir = File(buildOutputDir, if (isRelease) "release" else "debug")
+            val apks = if (targetDir.exists()) targetDir.walkTopDown().filter { f -> f.isFile && f.extension == "apk" }.toList() else emptyList()
             for (apk in apks) {
-                val rootDest = rootProject.file("megingiard-v0.9.0-zh.apk")
-                apk.copyTo(rootDest, overwrite = true)
-                println("PACKAGE OUTPUT COPY: ${apk.absolutePath} -> ${rootDest.absolutePath} (${rootDest.length()} bytes)")
+                apk.copyTo(rootDestFile, overwrite = true)
+                println("PACKAGE OUTPUT COPY: ${apk.absolutePath} -> ${rootDestFile.absolutePath} (${rootDestFile.length()} bytes)")
             }
         }
     }
