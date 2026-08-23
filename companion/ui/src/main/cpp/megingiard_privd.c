@@ -65,7 +65,7 @@
 #include <dirent.h>
 #include "cmd_parsers.h"
 
-#define PRIVD_VERSION 5
+#define PRIVD_VERSION 6
 
 static int g_port_start = 51234;
 #define SCAN_MAX 32
@@ -908,10 +908,20 @@ static void handle_read_file(int client_fd, const char *path) {
         return;
     }
 
-    const size_t MAX_READ_BYTES = 32 * 1024;
+    const size_t MAX_READ_BYTES = 256 * 1024;
     fseek(fp, 0, SEEK_END);
     long file_size = ftell(fp);
-    if (file_size > (long)MAX_READ_BYTES) {
+
+    // If file is a log file (.log or .txt), seek to the tail to capture latest entries.
+    // For structured configs, playlists, and JSON files (.lpl, .json, .ini, .cfg, etc.),
+    // always read from the beginning (SEEK_SET, 0) so headers and first items are preserved.
+    int is_tail_log = 0;
+    const char *ext = strrchr(path, '.');
+    if (ext && (strcasecmp(ext, ".log") == 0 || strcasecmp(ext, ".txt") == 0)) {
+        is_tail_log = 1;
+    }
+
+    if (is_tail_log && file_size > (long)MAX_READ_BYTES) {
         fseek(fp, file_size - (long)MAX_READ_BYTES, SEEK_SET);
     } else {
         fseek(fp, 0, SEEK_SET);
@@ -921,7 +931,11 @@ static void handle_read_file(int client_fd, const char *path) {
     char buf[1024];
     size_t total_read = 0;
     while (total_read < MAX_READ_BYTES) {
-        size_t n = fread(buf, 1, sizeof(buf), fp);
+        size_t to_read = sizeof(buf);
+        if (total_read + to_read > MAX_READ_BYTES) {
+            to_read = MAX_READ_BYTES - total_read;
+        }
+        size_t n = fread(buf, 1, to_read, fp);
         if (n == 0) break;
         (void)write(client_fd, buf, n);
         total_read += n;

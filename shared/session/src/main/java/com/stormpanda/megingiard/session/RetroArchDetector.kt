@@ -22,22 +22,27 @@ object RetroArchDetector : EmulatorDetector {
 
     override val systemId: String = "retroarch"
 
-    private val lplPaths =
+    private fun getCandidatePaths(packageName: String): List<String> =
         listOf(
             "/storage/emulated/0/RetroArch/playlists/builtin/content_history.lpl",
             "/storage/emulated/0/RetroArch/playlists/content_history.lpl",
             "/sdcard/RetroArch/playlists/builtin/content_history.lpl",
             "/sdcard/RetroArch/playlists/content_history.lpl",
-            "/storage/emulated/0/Android/data/com.retroarch.aarch64/files/playlists/builtin/content_history.lpl",
-            "/storage/emulated/0/Android/data/com.retroarch.aarch64/files/playlists/content_history.lpl",
-            "/storage/emulated/0/Android/data/com.retroarch/files/playlists/builtin/content_history.lpl",
-            "/storage/emulated/0/Android/data/com.retroarch/files/playlists/content_history.lpl",
+            "/storage/emulated/0/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
+            "/storage/emulated/0/Android/data/$packageName/files/playlists/content_history.lpl",
+            "/sdcard/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
+            "/sdcard/Android/data/$packageName/files/playlists/content_history.lpl",
+            "/storage/6914-318F/RetroArch/playlists/builtin/content_history.lpl",
+            "/storage/6914-318F/RetroArch/playlists/content_history.lpl",
+            "/storage/6914-318F/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
+            "/storage/6914-318F/Android/data/$packageName/files/playlists/content_history.lpl",
         )
 
     override suspend fun detectActiveSession(packageName: String): ActiveGameSession? {
         if (!supportedPackages.contains(packageName)) return null
 
-        for (path in lplPaths) {
+        val candidatePaths = getCandidatePaths(packageName)
+        for (path in candidatePaths) {
             val jsonContent = ProcessCmdlineProvider.readTextFile(path)
             if (!jsonContent.isNullOrBlank()) {
                 val session = RetroArchLplParser.parseMostRecentSession(packageName, jsonContent)
