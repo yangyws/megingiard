@@ -206,6 +206,24 @@ Open Settings to create a layout.</string>
     <string name="settings_macropad_new">Neu</string>
     <string name="macropad_reorder_profiles">Profile sortieren</string>
     <string name="macropad_reorder_layouts">Layouts sortieren</string>
+    <string name="layout_settings_mode_title">Layout-Modus</string>
+    <string name="layout_settings_mode_free">Freie Platzierung</string>
+    <string name="layout_settings_mode_grid">Tabellenraster</string>
+    <string name="layout_settings_mode_free_desc">Tasten können frei auf der Leinwand platziert und skaliert werden.</string>
+    <string name="layout_settings_mode_grid_desc">Tasten rasten in ein strukturiertes N×M-Tabellenraster mit anpassbaren Zellspannen ein.</string>
+    <string name="layout_settings_grid_cols">Spalten</string>
+    <string name="layout_settings_grid_cols_desc">Horizontale Spalten im Raster (1–8)</string>
+    <string name="layout_settings_grid_rows">Zeilen</string>
+    <string name="layout_settings_grid_rows_desc">Vertikale Zeilen im Raster (1–6)</string>
+    <string name="layout_settings_grid_borders">Rasterrahmen anzeigen</string>
+    <string name="layout_settings_grid_borders_desc">Kontrastreiche Rahmen um Tabellenzellen anzeigen</string>
+    <string name="layout_settings_grid_button_bg">Tastenhintergründe anzeigen</string>
+    <string name="layout_settings_grid_button_bg_desc">Soliden Hintergrund hinter Tastenkacheln anzeigen</string>
+    <string name="macropad_editor_cell_span_section">Zellenspanne (Spalten × Zeilen)</string>
+    <string name="macropad_editor_col_span">Spaltenspanne</string>
+    <string name="macropad_editor_col_span_desc">Anzahl der horizontalen Rasterspalten dieser Taste</string>
+    <string name="macropad_editor_row_span">Zeilenspanne</string>
+    <string name="macropad_editor_row_span_desc">Anzahl der vertikalen Rasterzeilen dieser Taste</string>
 
     <!-- MacroPad ambient display settings -->
     <string name="settings_mirror_follow_touch">Hintergrund-Spiegelung folgt Berührung</string>

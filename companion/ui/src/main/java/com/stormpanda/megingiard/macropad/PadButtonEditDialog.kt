@@ -26,7 +26,9 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.TableRows
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -197,6 +199,8 @@ internal fun EditButtonSubPageContent(
     var iconName by remember(button, selectedIcon) { mutableStateOf(selectedIcon ?: initIconName) }
     var buttonShape by remember(button) { mutableStateOf(button?.buttonShape ?: ButtonShape.CIRCLE) }
     var buttonSize by remember(button) { mutableStateOf(button?.buttonSize ?: ButtonSize.SIZE_1X1) }
+    var colSpan by remember(button) { mutableIntStateOf(button?.colSpan ?: 1) }
+    var rowSpan by remember(button) { mutableIntStateOf(button?.rowSpan ?: 1) }
     var action by remember(button) { mutableStateOf(initAction) }
     var iconFilled by remember(button) { mutableStateOf(button?.iconFilled ?: true) }
     var hapticStrength by remember(button) { mutableStateOf(button?.hapticStrength ?: HapticStrength.OFF) }
@@ -258,6 +262,10 @@ internal fun EditButtonSubPageContent(
             stableButtonId,
             button?.posX,
             button?.posY,
+            button?.gridCol,
+            button?.gridRow,
+            colSpan,
+            rowSpan,
             label,
             iconName,
             iconFilled,
@@ -279,6 +287,10 @@ internal fun EditButtonSubPageContent(
                 iconFilled = iconFilled,
                 posX = button?.posX ?: 0.5f,
                 posY = button?.posY ?: 0.5f,
+                gridCol = button?.gridCol,
+                gridRow = button?.gridRow,
+                colSpan = colSpan,
+                rowSpan = rowSpan,
                 buttonShape = buttonShape,
                 buttonSize = buttonSize,
                 action = action,
@@ -398,8 +410,41 @@ internal fun EditButtonSubPageContent(
         },
         onChange = ::onActionChanged,
     )
+    if (activeLayout?.isGridMode == true) {
+        val maxColSpan = (activeLayout.effectiveGridCols - (button?.gridCol ?: 0)).coerceAtLeast(1)
+        val maxRowSpan = (activeLayout.effectiveGridRows - (button?.gridRow ?: 0)).coerceAtLeast(1)
 
-    if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove) {
+        GamepadSectionHeader(
+            text = stringResource(R.string.macropad_editor_cell_span_section),
+            color = accentColor,
+        )
+
+        GamepadStepperCard(
+            title = stringResource(R.string.macropad_editor_col_span),
+            description = stringResource(R.string.macropad_editor_col_span_desc),
+            valueText = "$colSpan",
+            icon = Icons.Rounded.ViewColumn,
+            onDecrement = {
+                colSpan = (colSpan - 1).coerceIn(1, maxColSpan)
+            },
+            onIncrement = {
+                colSpan = (colSpan + 1).coerceIn(1, maxColSpan)
+            },
+        )
+
+        GamepadStepperCard(
+            title = stringResource(R.string.macropad_editor_row_span),
+            description = stringResource(R.string.macropad_editor_row_span_desc),
+            valueText = "$rowSpan",
+            icon = Icons.Rounded.TableRows,
+            onDecrement = {
+                rowSpan = (rowSpan - 1).coerceIn(1, maxRowSpan)
+            },
+            onIncrement = {
+                rowSpan = (rowSpan + 1).coerceIn(1, maxRowSpan)
+            },
+        )
+    } else if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove) {
         GamepadSectionHeader(
             text = stringResource(R.string.macropad_editor_section_shape_size),
             color = accentColor,
@@ -438,6 +483,7 @@ internal fun EditButtonSubPageContent(
                 buttonSize = sizeEntries[nextIdx]
             },
         )
+    }
 
         GamepadSectionHeader(
             text = stringResource(R.string.macropad_editor_section_haptic),
@@ -687,7 +733,6 @@ internal fun EditButtonSubPageContent(
             )
         }
     }
-}
 
 @Composable
 internal fun ButtonColorSubPageContent(

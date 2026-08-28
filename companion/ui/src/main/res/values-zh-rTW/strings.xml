@@ -206,6 +206,24 @@ Open Settings to create a layout.</string>
     <string name="settings_macropad_new">新建</string>
     <string name="macropad_reorder_profiles">重新排序設定檔</string>
     <string name="macropad_reorder_layouts">重新排序配置</string>
+    <string name="layout_settings_mode_title">版面配置模式</string>
+    <string name="layout_settings_mode_free">自由配置</string>
+    <string name="layout_settings_mode_grid">表格模式</string>
+    <string name="layout_settings_mode_free_desc">按鈕可自由拖曳放置於畫布上的任意位置與大小。</string>
+    <string name="layout_settings_mode_grid_desc">按鈕對齊至結構化的 N×M 網格儲存格，支援跨欄與跨列擴展。</string>
+    <string name="layout_settings_grid_cols">欄數</string>
+    <string name="layout_settings_grid_cols_desc">表格網格的水平欄數（1～8）</string>
+    <string name="layout_settings_grid_rows">列數</string>
+    <string name="layout_settings_grid_rows_desc">表格網格的垂直列數（1～6）</string>
+    <string name="layout_settings_grid_borders">顯示網格邊框</string>
+    <string name="layout_settings_grid_borders_desc">在表格儲存格周圍顯示高對比黑色外框</string>
+    <string name="layout_settings_grid_button_bg">顯示按鈕底色</string>
+    <string name="layout_settings_grid_button_bg_desc">在按鈕區塊背後顯示實心底色</string>
+    <string name="macropad_editor_cell_span_section">跨欄與跨列大小 (欄 × 列)</string>
+    <string name="macropad_editor_col_span">橫向跨欄</string>
+    <string name="macropad_editor_col_span_desc">此按鈕佔據的水平網格欄數</string>
+    <string name="macropad_editor_row_span">縱向跨列</string>
+    <string name="macropad_editor_row_span_desc">此按鈕佔據的垂直網格列數</string>
 
     <!-- MacroPad ambient display settings -->
     <string name="settings_mirror_follow_touch">背景投影跟隨觸控</string>
