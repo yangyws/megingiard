@@ -540,7 +540,11 @@ internal fun PadTableGrid(
                     val col = button.gridCol ?: 0
                     val row = button.gridRow ?: 0
                     val cellShape =
-                        if (row in 0 until rows && col in 0 until cols) cellShapes[row][col] else RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+                        if (row in cellShapes.indices && col in cellShapes[row].indices) {
+                            cellShapes[row][col]
+                        } else {
+                            RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+                        }
                     val isPressedButton = sourceButton?.id == button.id
                     val isPickedUp = isPressedButton && TableCellPressRules.showsMoveArmedFrame(pressPhase)
                     val isSource = isPickedUp && dragMoved
@@ -581,7 +585,11 @@ internal fun PadTableGrid(
                     }
                 emptyCells.forEach { (col, row) ->
                     val cellShape =
-                        if (row in 0 until rows && col in 0 until cols) cellShapes[row][col] else RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+                        if (row in cellShapes.indices && col in cellShapes[row].indices) {
+                            cellShapes[row][col]
+                        } else {
+                            RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+                        }
 
                     Box(
                         modifier =
@@ -630,7 +638,12 @@ internal fun PadTableGrid(
                     val tRow = dragCell.second - touchOffsetRow
 
                     val isValidTarget = GridLayoutMath.canMoveButton(layout, pressCellPos, dragCell)
-                    val targetShape = cellShapes[tRow.coerceIn(0, rows - 1)][tCol.coerceIn(0, cols - 1)]
+                    val targetShape =
+                        if (tRow in cellShapes.indices && tCol in cellShapes[tRow].indices) {
+                            cellShapes[tRow][tCol]
+                        } else {
+                            RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+                        }
 
                     Box(
                         modifier =
@@ -681,7 +694,8 @@ internal fun PadTableGrid(
                 TableCellPressRules.tracksDragTarget(pressPhase, dragMoved) &&
                     pCell != null &&
                     dOver != null &&
-                    sourceButton != null
+                    sourceButton != null &&
+                    dOver != pCell
 
             var idx = 0
             val placeables = mutableListOf<Triple<Placeable, Int, Int>>()
