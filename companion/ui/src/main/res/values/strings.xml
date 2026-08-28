@@ -1180,5 +1180,7 @@ Open Settings to create a layout.</string>
     <string name="quick_actions_title">Quick Actions</string>
     <string name="quick_action_edit_buttons">Arrange Button Positions</string>
     <string name="quick_action_edit_buttons_desc">Move, resize, and position MacroPad buttons visually</string>
+    <string name="macropad_editor_precision_movement_title">Precision Movement</string>
+    <string name="macropad_editor_precision_movement_desc">Enable 1-pixel micro-adjustments with D-Pad for pixel-perfect alignment</string>
 </resources>
 
