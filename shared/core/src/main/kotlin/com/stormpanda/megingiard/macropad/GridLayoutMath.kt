@@ -239,11 +239,10 @@ object GridLayoutMath {
         if (newColSpan > cols || newRowSpan > rows) return false
 
         val btnId = button?.id ?: ""
-        val targetButton = layout.buttons.firstOrNull { it.id == btnId } ?: button
-        val col = targetButton?.gridCol ?: firstFreeCell(layout)?.first ?: 0
-        val row = targetButton?.gridRow ?: firstFreeCell(layout)?.second ?: 0
+        val col = button?.gridCol ?: layout.buttons.firstOrNull { it.id == btnId }?.gridCol ?: firstFreeCell(layout)?.first ?: 0
+        val row = button?.gridRow ?: layout.buttons.firstOrNull { it.id == btnId }?.gridRow ?: firstFreeCell(layout)?.second ?: 0
 
-        if (col + newColSpan > cols || row + newRowSpan > rows) return false
+        if (col < 0 || row < 0 || col + newColSpan > cols || row + newRowSpan > rows) return false
 
         for (other in layout.buttons) {
             if (other.id == btnId) continue
@@ -261,6 +260,82 @@ object GridLayoutMath {
         return true
     }
 
+    /**
+     * Attempts to find a valid anchor column for [targetColSpan].
+     * Checks rightwards first (same [currentCol]); if blocked, checks leftwards (shifts [currentCol] left).
+     * Returns the valid anchor col, or null if no valid non-overlapping placement exists without displacing other buttons.
+     */
+    fun findExpandedSpanCol(
+        layout: PadLayout,
+        button: PadButton,
+        targetColSpan: Int,
+        rowSpan: Int = button.effectiveRowSpan,
+        currentCol: Int = button.gridCol ?: 0,
+        currentRow: Int = button.gridRow ?: 0,
+    ): Int? {
+        if (!layout.isGridMode) return currentCol
+        val cols = layout.effectiveGridCols
+        if (targetColSpan < 1 || targetColSpan > cols) return null
+
+        // 1. Try expanding rightwards (anchor stays at currentCol)
+        if (currentCol + targetColSpan <= cols) {
+            val candidate = button.copy(gridCol = currentCol, gridRow = currentRow)
+            if (canSpanButton(layout, candidate, targetColSpan, rowSpan)) {
+                return currentCol
+            }
+        }
+
+        // 2. Try expanding leftwards (anchor shifted left)
+        for (candidateCol in (currentCol - 1) downTo 0) {
+            if (candidateCol + targetColSpan <= cols) {
+                val candidate = button.copy(gridCol = candidateCol, gridRow = currentRow)
+                if (canSpanButton(layout, candidate, targetColSpan, rowSpan)) {
+                    return candidateCol
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Attempts to find a valid anchor row for [targetRowSpan].
+     * Checks downwards first (same [currentRow]); if blocked, checks upwards (shifts [currentRow] up).
+     * Returns the valid anchor row, or null if no valid non-overlapping placement exists without displacing other buttons.
+     */
+    fun findExpandedSpanRow(
+        layout: PadLayout,
+        button: PadButton,
+        targetRowSpan: Int,
+        colSpan: Int = button.effectiveColSpan,
+        currentCol: Int = button.gridCol ?: 0,
+        currentRow: Int = button.gridRow ?: 0,
+    ): Int? {
+        if (!layout.isGridMode) return currentRow
+        val rows = layout.effectiveGridRows
+        if (targetRowSpan < 1 || targetRowSpan > rows) return null
+
+        // 1. Try expanding downwards (anchor stays at currentRow)
+        if (currentRow + targetRowSpan <= rows) {
+            val candidate = button.copy(gridCol = currentCol, gridRow = currentRow)
+            if (canSpanButton(layout, candidate, colSpan, targetRowSpan)) {
+                return currentRow
+            }
+        }
+
+        // 2. Try expanding upwards (anchor shifted up)
+        for (candidateRow in (currentRow - 1) downTo 0) {
+            if (candidateRow + targetRowSpan <= rows) {
+                val candidate = button.copy(gridCol = currentCol, gridRow = candidateRow)
+                if (canSpanButton(layout, candidate, colSpan, targetRowSpan)) {
+                    return candidateRow
+                }
+            }
+        }
+
+        return null
+    }
+
 data class ResizeButtonResult(
     val layout: PadLayout,
     val movedButtons: List<PadButton>,
@@ -268,39 +343,7 @@ data class ResizeButtonResult(
 )
 
     /**
-     * Calculates the expanded anchor column when expanding [targetColSpan] on a grid of [cols].
-     * Expansion checks right space first; if right boundary is reached, expands leftwards.
-     */
-    fun calculateExpandedGridCol(cols: Int, currentCol: Int, targetColSpan: Int): Int {
-        if (targetColSpan <= 1) return currentCol
-        return if (currentCol + targetColSpan <= cols) {
-            currentCol
-        } else {
-            (cols - targetColSpan).coerceAtLeast(0)
-        }
-    }
-
-    /**
-     * Calculates the expanded anchor row when expanding [targetRowSpan] on a grid of [rows].
-     * Expansion checks bottom space first; if bottom boundary is reached, expands upwards.
-     */
-    fun calculateExpandedGridRow(rows: Int, currentRow: Int, targetRowSpan: Int): Int {
-        if (targetRowSpan <= 1) return currentRow
-        return if (currentRow + targetRowSpan <= rows) {
-            currentRow
-        } else {
-            (rows - targetRowSpan).coerceAtLeast(0)
-        }
-    }
-
-    /**
      * Resizes (spans) [resizedButton] in [layout].
-     * In grid mode:
-     * - Places [resizedButton] at its grid cell with its new span.
-     * - Finds all buttons that collide with this expanded area.
-     * - Tries to shift each colliding button to the nearest available free cells in the grid.
-     * - Any colliding button that cannot fit into the remaining free cells is replaced (removed).
-     * Returns a [ResizeButtonResult] containing the updated layout and lists of moved & replaced buttons.
      */
     fun resizeOrSpanButton(
         layout: PadLayout,

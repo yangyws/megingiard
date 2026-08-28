@@ -2,6 +2,7 @@ package com.stormpanda.megingiard.macropad
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class GridLayoutMathTest {
@@ -185,27 +186,61 @@ class GridLayoutMathTest {
     }
 
     @Test
-    fun testCalculateExpandedGridColRightThenLeft() {
-        // In a 4-col grid:
-        // Button at col=2, target span=2 -> fits right (col 2, 3) -> anchor remains 2
-        assertEquals(2, GridLayoutMath.calculateExpandedGridCol(4, 2, 2))
-        // Button at col=2, target span=3 -> right boundary overflow (2+3=5>4) -> shifts left to col 1 (span 1, 2, 3)
-        assertEquals(1, GridLayoutMath.calculateExpandedGridCol(4, 2, 3))
-        // Button at col=3, target span=2 -> shifts left to col 2 (span 2, 3)
-        assertEquals(2, GridLayoutMath.calculateExpandedGridCol(4, 3, 2))
-        // Button at col=3, target span=4 -> shifts left to col 0 (span 0, 1, 2, 3)
-        assertEquals(0, GridLayoutMath.calculateExpandedGridCol(4, 3, 4))
+    fun testFindExpandedSpanColRightThenLeftWithoutDisplacingButtons() {
+        // Grid: 4 cols x 2 rows
+        // Cell (2, 0) has btn1. Cell (3, 0) has btn2.
+        // Expanding btn1 to colSpan=2:
+        // Right is blocked by btn2 at (3, 0).
+        // Left has empty cell (1, 0), so it shifts left to col 1!
+        val btn1 = createButton("btn1", 2, 0)
+        val btn2 = createButton("btn2", 3, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        val expandedCol = GridLayoutMath.findExpandedSpanCol(layout, btn1, targetColSpan = 2)
+        assertEquals(1, expandedCol)
+
+        // If cell (1, 0) is ALSO occupied by btn3, then it cannot expand right OR left (no space for span 2 without collision)
+        val btn3 = createButton("btn3", 1, 0)
+        val fullLayout = layout.copy(buttons = listOf(btn1, btn2, btn3))
+        val blockedCol = GridLayoutMath.findExpandedSpanCol(fullLayout, btn1, targetColSpan = 2)
+        assertNull(blockedCol)
     }
 
     @Test
-    fun testCalculateExpandedGridRowDownThenUp() {
-        // In a 3-row grid:
-        // Button at row=1, target span=2 -> fits down (row 1, 2) -> anchor remains 1
-        assertEquals(1, GridLayoutMath.calculateExpandedGridRow(3, 1, 2))
-        // Button at row=1, target span=3 -> bottom boundary overflow (1+3=4>3) -> shifts up to row 0 (span 0, 1, 2)
-        assertEquals(0, GridLayoutMath.calculateExpandedGridRow(3, 1, 3))
-        // Button at row=2, target span=2 -> shifts up to row 1 (span 1, 2)
-        assertEquals(1, GridLayoutMath.calculateExpandedGridRow(3, 2, 2))
+    fun testFindExpandedSpanRowDownThenUpWithoutDisplacingButtons() {
+        // Grid: 2 cols x 3 rows
+        // Cell (0, 1) has btn1. Cell (0, 2) has btn2.
+        // Expanding btn1 to rowSpan=2:
+        // Downwards is blocked by btn2 at (0, 2).
+        // Upwards has empty cell (0, 0), so it shifts up to row 0!
+        val btn1 = createButton("btn1", 0, 1)
+        val btn2 = createButton("btn2", 0, 2)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 2,
+                gridRows = 3,
+            )
+
+        val expandedRow = GridLayoutMath.findExpandedSpanRow(layout, btn1, targetRowSpan = 2)
+        assertEquals(0, expandedRow)
+
+        // If cell (0, 0) is ALSO occupied, then it cannot expand down OR up
+        val btn3 = createButton("btn3", 0, 0)
+        val fullLayout = layout.copy(buttons = listOf(btn1, btn2, btn3))
+        val blockedRow = GridLayoutMath.findExpandedSpanRow(fullLayout, btn1, targetRowSpan = 2)
+        assertNull(blockedRow)
     }
 }
 

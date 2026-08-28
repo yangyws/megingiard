@@ -415,10 +415,31 @@ internal fun EditButtonSubPageContent(
     if (activeLayout?.isGridMode == true) {
         val totalCols = activeLayout.effectiveGridCols
         val totalRows = activeLayout.effectiveGridRows
+
+        val canExpandCol =
+            GridLayoutMath.findExpandedSpanCol(
+                layout = activeLayout,
+                button = currentButton,
+                targetColSpan = colSpan + 1,
+                rowSpan = rowSpan,
+                currentCol = gridCol,
+                currentRow = gridRow,
+            ) != null
+
+        val canExpandRow =
+            GridLayoutMath.findExpandedSpanRow(
+                layout = activeLayout,
+                button = currentButton,
+                targetRowSpan = rowSpan + 1,
+                colSpan = colSpan,
+                currentCol = gridCol,
+                currentRow = gridRow,
+            ) != null
+
         val canDecrementCol = colSpan > 1
-        val canIncrementCol = colSpan < totalCols
+        val canIncrementCol = canExpandCol
         val canDecrementRow = rowSpan > 1
-        val canIncrementRow = rowSpan < totalRows
+        val canIncrementRow = canExpandRow
 
         GamepadSectionHeader(
             text = stringResource(R.string.macropad_editor_cell_span_section),
@@ -438,10 +459,18 @@ internal fun EditButtonSubPageContent(
                 }
             },
             onIncrement = {
-                if (colSpan < totalCols) {
-                    val nextColSpan = colSpan + 1
-                    gridCol = GridLayoutMath.calculateExpandedGridCol(totalCols, gridCol, nextColSpan)
-                    colSpan = nextColSpan
+                val newAnchorCol =
+                    GridLayoutMath.findExpandedSpanCol(
+                        layout = activeLayout,
+                        button = currentButton,
+                        targetColSpan = colSpan + 1,
+                        rowSpan = rowSpan,
+                        currentCol = gridCol,
+                        currentRow = gridRow,
+                    )
+                if (newAnchorCol != null) {
+                    gridCol = newAnchorCol
+                    colSpan += 1
                 }
             },
         )
@@ -459,10 +488,18 @@ internal fun EditButtonSubPageContent(
                 }
             },
             onIncrement = {
-                if (rowSpan < totalRows) {
-                    val nextRowSpan = rowSpan + 1
-                    gridRow = GridLayoutMath.calculateExpandedGridRow(totalRows, gridRow, nextRowSpan)
-                    rowSpan = nextRowSpan
+                val newAnchorRow =
+                    GridLayoutMath.findExpandedSpanRow(
+                        layout = activeLayout,
+                        button = currentButton,
+                        targetRowSpan = rowSpan + 1,
+                        colSpan = colSpan,
+                        currentCol = gridCol,
+                        currentRow = gridRow,
+                    )
+                if (newAnchorRow != null) {
+                    gridRow = newAnchorRow
+                    rowSpan += 1
                 }
             },
         )

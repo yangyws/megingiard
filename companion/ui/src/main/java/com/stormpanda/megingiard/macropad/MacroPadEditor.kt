@@ -1408,32 +1408,14 @@ fun MacroPadEditor(
                                                     buttonDraft = null
                                                     val lay = activeLayout
                                                     if (lay != null) {
-                                                        val result = GridLayoutMath.resizeOrSpanButton(lay, savedBtn)
-                                                        MacroPadState.updateLayout(result.layout)
-
-                                                        if (result.replacedButtons.isNotEmpty() && result.movedButtons.isNotEmpty()) {
-                                                            DialogToastManager.show(
-                                                                context.getString(
-                                                                    R.string.macropad_buttons_shifted_and_replaced_toast,
-                                                                    result.movedButtons.size,
-                                                                    result.replacedButtons.size,
-                                                                ),
-                                                            )
-                                                        } else if (result.replacedButtons.isNotEmpty()) {
-                                                            DialogToastManager.show(
-                                                                context.getString(
-                                                                    R.string.macropad_buttons_replaced_toast,
-                                                                    result.replacedButtons.size,
-                                                                ),
-                                                            )
-                                                        } else if (result.movedButtons.isNotEmpty()) {
-                                                            DialogToastManager.show(
-                                                                context.getString(
-                                                                    R.string.macropad_buttons_shifted_toast,
-                                                                    result.movedButtons.size,
-                                                                ),
-                                                            )
-                                                        }
+                                                        val isExisting = lay.buttons.any { it.id == savedBtn.id }
+                                                        val updatedButtons =
+                                                            if (isExisting) {
+                                                                lay.buttons.map { if (it.id == savedBtn.id) savedBtn else it }
+                                                            } else {
+                                                                lay.buttons + savedBtn
+                                                            }
+                                                        MacroPadState.updateLayout(lay.copy(buttons = updatedButtons))
                                                     }
                                                     MacroPadNavState.pop()
                                                 },
