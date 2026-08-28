@@ -332,31 +332,33 @@ internal fun EditLayoutSubPageContent(
         onDiscard = promptState.onDiscard,
     )
 
-    GamepadSectionHeader(
-        text = stringResource(R.string.macropad_editor_section_visibility_behavior),
-        color = accentColor,
-    )
+    if (!layout.isGridMode) {
+        GamepadSectionHeader(
+            text = stringResource(R.string.macropad_editor_section_visibility_behavior),
+            color = accentColor,
+        )
 
-    GamepadToggleCard(
-        title = stringResource(R.string.layout_settings_invisible_buttons),
-        description = stringResource(R.string.layout_settings_invisible_buttons_desc),
-        checked = savedLayout.invisibleButtons,
-        icon = Icons.Rounded.VisibilityOff,
-        onCheckedChange = onInvisibleButtonsChange,
-    )
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_invisible_buttons),
+            description = stringResource(R.string.layout_settings_invisible_buttons_desc),
+            checked = savedLayout.invisibleButtons,
+            icon = Icons.Rounded.VisibilityOff,
+            onCheckedChange = onInvisibleButtonsChange,
+        )
 
-    // ── Touchpad Section ─────────────────────────────────────────────
-    GamepadSectionHeader(
-        text = stringResource(R.string.settings_touchpad_title),
-        color = accentColor,
-    )
+        // ── Touchpad Section ─────────────────────────────────────────────
+        GamepadSectionHeader(
+            text = stringResource(R.string.settings_touchpad_title),
+            color = accentColor,
+        )
 
-    GamepadActionCard(
-        title = stringResource(R.string.settings_touchpad_title),
-        description = stringResource(R.string.macropad_editor_touchpad_desc),
-        icon = Icons.Rounded.Mouse,
-        onClick = onOpenTouchpadSettings,
-    )
+        GamepadActionCard(
+            title = stringResource(R.string.settings_touchpad_title),
+            description = stringResource(R.string.macropad_editor_touchpad_desc),
+            icon = Icons.Rounded.Mouse,
+            onClick = onOpenTouchpadSettings,
+        )
+    }
 
     // ── Actions Section ───────────────────────────────────────────────
     GamepadSectionHeader(
