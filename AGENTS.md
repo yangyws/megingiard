@@ -49,6 +49,22 @@
 | `docs/features/touchpad/FEATURE.md`        | Virtual Touchpad — functional requirements & technical implementation                    |
 | `docs/features/updates/FEATURE.md`         | Automatic Update Check & Browser Release Launcher — functional requirements & technical implementation |
 
+### 2.1 Agent Skills Map
+
+Specialized agent workflows are codified under `.agents/skills/`. When performing relevant tasks, the agent **must** read and follow the corresponding `SKILL.md`:
+
+| Skill | Path | Purpose |
+| ------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `megingiard-bugfix`                  | `.agents/skills/megingiard-bugfix/SKILL.md`           | Analyze and fix bugs, fetch device logcats, trace root cause, and implement clean fixes.        |
+| `megingiard-feature`                 | `.agents/skills/megingiard-feature/SKILL.md`          | Plan and implement new features or UI screens with approval plans and doc sync.              |
+| `megingiard-code-review`             | `.agents/skills/megingiard-code-review/SKILL.md`     | Execute thorough code review passes, AGENTS.md checks, and Compose performance audits.       |
+| `megingiard-deploy-debug`            | `.agents/skills/megingiard-deploy-debug/SKILL.md`     | Compile and deploy the debug APK to the connected AYN Thor handheld via ADB.                 |
+| `pull-screenshots`                   | `.agents/skills/pull-screenshots/SKILL.md`            | Capture top (display 0) and bottom (display 4) screenshots from connected AYN Thor handheld.  |
+| `megingiard-release`                 | `.agents/skills/megingiard-release/SKILL.md`          | Orchestrate release branch creation, signed builds, SHA-256 generation, and version bump.   |
+| `megingiard-release-changelog`       | `.agents/skills/megingiard-release-changelog/SKILL.md`| Generate GitHub Markdown changelogs from git tag comparisons.                                |
+| `megingiard-delete-daemon`           | `.agents/skills/megingiard-delete-daemon/SKILL.md`    | Terminate and remove the privileged mode daemon from `/data/local/tmp`.                       |
+| `megingiard-uninstall-clean`         | `.agents/skills/megingiard-uninstall-clean/SKILL.md`  | Cleanly wipe app data, backups, and daemon binaries for clean-state testing.                  |
+
 > [!IMPORTANT]
 > **Documentation language: English only.**
 >
