@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.SmartButton
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.Icon
@@ -134,8 +135,8 @@ private const val TAG = "MacroPadEditor"
 private val MPE_DECK_SPACING = 10.dp
 private val MPE_EMPTY_PADDING_V = 12.dp
 private const val MPE_BUTTON_HEADER_COUNT = 5
-private const val MPE_CANVAS_WIDTH_PX = 1920f
-private const val MPE_CANVAS_HEIGHT_PX = 1080f
+private const val MPE_BOTTOM_SCREEN_WIDTH_PX = 1240f
+private const val MPE_BOTTOM_SCREEN_HEIGHT_PX = 1080f
 private const val MPE_MOVE_STEP_NORMALIZED = 0.015f
 private const val MPE_EDGE_MARGIN = 0.05f
 private const val MPE_MOVE_INITIAL_DELAY_MS = 250L
@@ -2714,6 +2715,7 @@ private fun EditButtonPositionsSubPageContent(
     var movingButtonId by remember { mutableStateOf<String?>(null) }
     var activeRepeatJob by remember { mutableStateOf<Job?>(null) }
     var activeDirectionKey by remember { mutableIntStateOf(0) }
+    var precisionMovement by remember { mutableStateOf(false) }
 
     fun stopMovingImmediate() {
         activeRepeatJob?.cancel()
@@ -2773,9 +2775,10 @@ private fun EditButtonPositionsSubPageContent(
                 MacroPadState.updateLayout(movedLayout)
             }
         } else {
-            val step = MPE_MOVE_STEP_NORMALIZED
-            val newX = (targetBtn.posX + dx * step).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
-            val newY = (targetBtn.posY + dy * step).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
+            val stepX = if (precisionMovement) (1f / MPE_BOTTOM_SCREEN_WIDTH_PX) else MPE_MOVE_STEP_NORMALIZED
+            val stepY = if (precisionMovement) (1f / MPE_BOTTOM_SCREEN_HEIGHT_PX) else MPE_MOVE_STEP_NORMALIZED
+            val newX = (targetBtn.posX + dx * stepX).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
+            val newY = (targetBtn.posY + dy * stepY).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
             if (newX != targetBtn.posX || newY != targetBtn.posY) {
                 val updated =
                     currentLayout.buttons.map {
@@ -2821,6 +2824,16 @@ private fun EditButtonPositionsSubPageContent(
         text = stringResource(R.string.macropad_editor_move_buttons_info),
         iconTint = accentColor,
     )
+
+    if (layout?.isGridMode != true) {
+        GamepadToggleCard(
+            title = stringResource(R.string.macropad_editor_precision_movement_title),
+            description = stringResource(R.string.macropad_editor_precision_movement_desc),
+            icon = Icons.Rounded.Tune,
+            checked = precisionMovement,
+            onCheckedChange = { precisionMovement = it },
+        )
+    }
 
     if (buttons.isEmpty()) {
         Text(

@@ -1180,4 +1180,6 @@ Open Settings to create a layout.</string>
     <string name="quick_actions_title">快捷動作</string>
     <string name="quick_action_edit_buttons">排列按鈕位置</string>
     <string name="quick_action_edit_buttons_desc">以視覺化方式移動、縮放與定位 MacroPad 按鈕</string>
+    <string name="macropad_editor_precision_movement_title">精確移動</string>
+    <string name="macropad_editor_precision_movement_desc">開啟後使用方向鍵以 1 像素為單位進行像素級精準對齊</string>
 </resources>

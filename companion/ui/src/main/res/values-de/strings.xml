@@ -1180,4 +1180,6 @@ Open Settings to create a layout.</string>
     <string name="quick_actions_title">Schnellaktionen</string>
     <string name="quick_action_edit_buttons">Tastenpositionen anordnen</string>
     <string name="quick_action_edit_buttons_desc">MacroPad-Tasten visuell verschieben und anpassen</string>
+    <string name="macropad_editor_precision_movement_title">Präzisionsbewegung</string>
+    <string name="macropad_editor_precision_movement_desc">Aktiviert 1-Pixel-Feinabstimmung mit dem Steuerkreuz für pixelgenaue Ausrichtung</string>
 </resources>
