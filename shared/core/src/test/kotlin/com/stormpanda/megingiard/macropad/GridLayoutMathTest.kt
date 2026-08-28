@@ -183,5 +183,30 @@ class GridLayoutMathTest {
         assertEquals(1, result.layout.buttons.size)
         assertEquals("btn1", result.layout.buttons.first().id)
     }
+
+    @Test
+    fun testCalculateExpandedGridColRightThenLeft() {
+        // In a 4-col grid:
+        // Button at col=2, target span=2 -> fits right (col 2, 3) -> anchor remains 2
+        assertEquals(2, GridLayoutMath.calculateExpandedGridCol(4, 2, 2))
+        // Button at col=2, target span=3 -> right boundary overflow (2+3=5>4) -> shifts left to col 1 (span 1, 2, 3)
+        assertEquals(1, GridLayoutMath.calculateExpandedGridCol(4, 2, 3))
+        // Button at col=3, target span=2 -> shifts left to col 2 (span 2, 3)
+        assertEquals(2, GridLayoutMath.calculateExpandedGridCol(4, 3, 2))
+        // Button at col=3, target span=4 -> shifts left to col 0 (span 0, 1, 2, 3)
+        assertEquals(0, GridLayoutMath.calculateExpandedGridCol(4, 3, 4))
+    }
+
+    @Test
+    fun testCalculateExpandedGridRowDownThenUp() {
+        // In a 3-row grid:
+        // Button at row=1, target span=2 -> fits down (row 1, 2) -> anchor remains 1
+        assertEquals(1, GridLayoutMath.calculateExpandedGridRow(3, 1, 2))
+        // Button at row=1, target span=3 -> bottom boundary overflow (1+3=4>3) -> shifts up to row 0 (span 0, 1, 2)
+        assertEquals(0, GridLayoutMath.calculateExpandedGridRow(3, 1, 3))
+        // Button at row=2, target span=2 -> shifts up to row 1 (span 1, 2)
+        assertEquals(1, GridLayoutMath.calculateExpandedGridRow(3, 2, 2))
+    }
 }
+
 

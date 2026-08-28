@@ -599,6 +599,8 @@ private fun CapsuleArrowButton(
     size: Dp = GC_STEPPER_BTN_SIZE,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LocalAppColors.current
+    val actualTint = if (enabled) tint else colors.onSurfaceSecondary.copy(alpha = 0.25f)
     Box(
         modifier =
             modifier
@@ -610,7 +612,7 @@ private fun CapsuleArrowButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = tint,
+            tint = actualTint,
         )
     }
 }
@@ -626,6 +628,8 @@ fun GamepadAdjustableCapsule(
     isAdjusting: Boolean,
     isFocused: Boolean,
     enabled: Boolean = true,
+    canPrevious: Boolean = true,
+    canNext: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalAppColors.current
@@ -650,7 +654,7 @@ fun GamepadAdjustableCapsule(
             contentDescription = stringResource(R.string.gamepad_previous),
             tint = arrowTint,
             onClick = onPrevious,
-            enabled = enabled,
+            enabled = enabled && canPrevious,
         )
 
         Text(
@@ -672,7 +676,7 @@ fun GamepadAdjustableCapsule(
             contentDescription = stringResource(R.string.gamepad_next),
             tint = arrowTint,
             onClick = onNext,
-            enabled = enabled,
+            enabled = enabled && canNext,
         )
     }
 }
@@ -789,6 +793,8 @@ fun GamepadAdjustableCard(
     icon: ImageVector? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    canPrevious: Boolean = true,
+    canNext: Boolean = true,
     itemKey: Any? = title,
     onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
@@ -812,8 +818,8 @@ fun GamepadAdjustableCard(
             handleAdjustmentKeyEvent(
                 keyEvent = keyEvent,
                 isAdjusting = isAdjusting,
-                onAdjustLeft = onPrevious,
-                onAdjustRight = onNext,
+                onAdjustLeft = { if (canPrevious) onPrevious() },
+                onAdjustRight = { if (canNext) onNext() },
                 onDismissAdjustment = { isAdjusting = false },
             )
         },
@@ -837,6 +843,8 @@ fun GamepadAdjustableCard(
                     isAdjusting = isAdjusting,
                     isFocused = isFocused,
                     enabled = enabled,
+                    canPrevious = canPrevious,
+                    canNext = canNext,
                 )
             },
         )
@@ -870,6 +878,8 @@ fun GamepadStepperCard(
     icon: ImageVector? = null,
     onValueClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    canDecrement: Boolean = true,
+    canIncrement: Boolean = true,
     itemKey: Any? = title,
     onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
@@ -883,6 +893,8 @@ fun GamepadStepperCard(
         icon = icon,
         onClick = onValueClick,
         enabled = enabled,
+        canPrevious = canDecrement,
+        canNext = canIncrement,
         itemKey = itemKey,
         onFocusChanged = onFocusChanged,
     )

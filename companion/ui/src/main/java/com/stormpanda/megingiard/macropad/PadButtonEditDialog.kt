@@ -199,6 +199,8 @@ internal fun EditButtonSubPageContent(
     var iconName by remember(button, selectedIcon) { mutableStateOf(selectedIcon ?: initIconName) }
     var buttonShape by remember(button) { mutableStateOf(button?.buttonShape ?: ButtonShape.CIRCLE) }
     var buttonSize by remember(button) { mutableStateOf(button?.buttonSize ?: ButtonSize.SIZE_1X1) }
+    var gridCol by remember(button) { mutableIntStateOf(button?.gridCol ?: 0) }
+    var gridRow by remember(button) { mutableIntStateOf(button?.gridRow ?: 0) }
     var colSpan by remember(button) { mutableIntStateOf(button?.colSpan ?: 1) }
     var rowSpan by remember(button) { mutableIntStateOf(button?.rowSpan ?: 1) }
     var action by remember(button) { mutableStateOf(initAction) }
@@ -262,8 +264,8 @@ internal fun EditButtonSubPageContent(
             stableButtonId,
             button?.posX,
             button?.posY,
-            button?.gridCol,
-            button?.gridRow,
+            gridCol,
+            gridRow,
             colSpan,
             rowSpan,
             label,
@@ -287,8 +289,8 @@ internal fun EditButtonSubPageContent(
                 iconFilled = iconFilled,
                 posX = button?.posX ?: 0.5f,
                 posY = button?.posY ?: 0.5f,
-                gridCol = button?.gridCol,
-                gridRow = button?.gridRow,
+                gridCol = if (activeLayout?.isGridMode == true) gridCol else button?.gridCol,
+                gridRow = if (activeLayout?.isGridMode == true) gridRow else button?.gridRow,
                 colSpan = colSpan,
                 rowSpan = rowSpan,
                 buttonShape = buttonShape,
@@ -411,8 +413,12 @@ internal fun EditButtonSubPageContent(
         onChange = ::onActionChanged,
     )
     if (activeLayout?.isGridMode == true) {
-        val maxColSpan = (activeLayout.effectiveGridCols - (button?.gridCol ?: 0)).coerceAtLeast(1)
-        val maxRowSpan = (activeLayout.effectiveGridRows - (button?.gridRow ?: 0)).coerceAtLeast(1)
+        val totalCols = activeLayout.effectiveGridCols
+        val totalRows = activeLayout.effectiveGridRows
+        val canDecrementCol = colSpan > 1
+        val canIncrementCol = colSpan < totalCols
+        val canDecrementRow = rowSpan > 1
+        val canIncrementRow = rowSpan < totalRows
 
         GamepadSectionHeader(
             text = stringResource(R.string.macropad_editor_cell_span_section),
@@ -424,11 +430,19 @@ internal fun EditButtonSubPageContent(
             description = stringResource(R.string.macropad_editor_col_span_desc),
             valueText = "$colSpan",
             icon = Icons.Rounded.ViewColumn,
+            canDecrement = canDecrementCol,
+            canIncrement = canIncrementCol,
             onDecrement = {
-                colSpan = (colSpan - 1).coerceIn(1, maxColSpan)
+                if (colSpan > 1) {
+                    colSpan -= 1
+                }
             },
             onIncrement = {
-                colSpan = (colSpan + 1).coerceIn(1, maxColSpan)
+                if (colSpan < totalCols) {
+                    val nextColSpan = colSpan + 1
+                    gridCol = GridLayoutMath.calculateExpandedGridCol(totalCols, gridCol, nextColSpan)
+                    colSpan = nextColSpan
+                }
             },
         )
 
@@ -437,11 +451,19 @@ internal fun EditButtonSubPageContent(
             description = stringResource(R.string.macropad_editor_row_span_desc),
             valueText = "$rowSpan",
             icon = Icons.Rounded.TableRows,
+            canDecrement = canDecrementRow,
+            canIncrement = canIncrementRow,
             onDecrement = {
-                rowSpan = (rowSpan - 1).coerceIn(1, maxRowSpan)
+                if (rowSpan > 1) {
+                    rowSpan -= 1
+                }
             },
             onIncrement = {
-                rowSpan = (rowSpan + 1).coerceIn(1, maxRowSpan)
+                if (rowSpan < totalRows) {
+                    val nextRowSpan = rowSpan + 1
+                    gridRow = GridLayoutMath.calculateExpandedGridRow(totalRows, gridRow, nextRowSpan)
+                    rowSpan = nextRowSpan
+                }
             },
         )
     } else if (action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove) {
