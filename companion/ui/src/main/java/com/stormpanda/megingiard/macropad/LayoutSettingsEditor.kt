@@ -166,6 +166,83 @@ internal fun EditLayoutSubPageContent(
     )
 
     GamepadSectionHeader(
+        text = stringResource(R.string.layout_settings_mode_title),
+        color = accentColor,
+    )
+
+    val modeEntries = PadLayoutMode.entries
+    val modeLabels =
+        listOf(
+            stringResource(R.string.layout_settings_mode_free),
+            stringResource(R.string.layout_settings_mode_grid),
+        )
+    val modeIdx = modeEntries.indexOf(layout.layoutMode).coerceAtLeast(0)
+
+    GamepadChoiceCard(
+        title = stringResource(R.string.layout_settings_mode_title),
+        description =
+            if (layout.isGridMode) {
+                stringResource(R.string.layout_settings_mode_grid_desc)
+            } else {
+                stringResource(R.string.layout_settings_mode_free_desc)
+            },
+        selectedText = modeLabels[modeIdx],
+        icon = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.DashboardCustomize,
+        onPrevious = {
+            val nextIdx = (modeIdx - 1 + modeEntries.size) % modeEntries.size
+            onLayoutModeChange(modeEntries[nextIdx])
+        },
+        onNext = {
+            val nextIdx = (modeIdx + 1) % modeEntries.size
+            onLayoutModeChange(modeEntries[nextIdx])
+        },
+    )
+
+    if (layout.isGridMode) {
+        GamepadStepperCard(
+            title = stringResource(R.string.layout_settings_grid_cols),
+            description = stringResource(R.string.layout_settings_grid_cols_desc),
+            valueText = "${layout.gridCols}",
+            icon = Icons.Rounded.ViewColumn,
+            onDecrement = {
+                onGridColsChange((layout.gridCols - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
+            },
+            onIncrement = {
+                onGridColsChange((layout.gridCols + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
+            },
+        )
+
+        GamepadStepperCard(
+            title = stringResource(R.string.layout_settings_grid_rows),
+            description = stringResource(R.string.layout_settings_grid_rows_desc),
+            valueText = "${layout.gridRows}",
+            icon = Icons.Rounded.TableRows,
+            onDecrement = {
+                onGridRowsChange((layout.gridRows - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
+            },
+            onIncrement = {
+                onGridRowsChange((layout.gridRows + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
+            },
+        )
+
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_grid_borders),
+            description = stringResource(R.string.layout_settings_grid_borders_desc),
+            checked = layout.gridShowBorders,
+            icon = Icons.Rounded.BorderAll,
+            onCheckedChange = onGridShowBordersChange,
+        )
+
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_grid_button_bg),
+            description = stringResource(R.string.layout_settings_grid_button_bg_desc),
+            checked = layout.gridShowButtonBg,
+            icon = Icons.Rounded.Layers,
+            onCheckedChange = onGridShowButtonBgChange,
+        )
+    }
+
+    GamepadSectionHeader(
         text = stringResource(R.string.layout_settings_colors_section_title),
         color = accentColor,
     )
@@ -254,83 +331,6 @@ internal fun EditLayoutSubPageContent(
         onSave = promptState.onSave,
         onDiscard = promptState.onDiscard,
     )
-
-    GamepadSectionHeader(
-        text = stringResource(R.string.layout_settings_mode_title),
-        color = accentColor,
-    )
-
-    val modeEntries = PadLayoutMode.entries
-    val modeLabels =
-        listOf(
-            stringResource(R.string.layout_settings_mode_free),
-            stringResource(R.string.layout_settings_mode_grid),
-        )
-    val modeIdx = modeEntries.indexOf(layout.layoutMode).coerceAtLeast(0)
-
-    GamepadChoiceCard(
-        title = stringResource(R.string.layout_settings_mode_title),
-        description =
-            if (layout.isGridMode) {
-                stringResource(R.string.layout_settings_mode_grid_desc)
-            } else {
-                stringResource(R.string.layout_settings_mode_free_desc)
-            },
-        selectedText = modeLabels[modeIdx],
-        icon = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.DashboardCustomize,
-        onPrevious = {
-            val nextIdx = (modeIdx - 1 + modeEntries.size) % modeEntries.size
-            onLayoutModeChange(modeEntries[nextIdx])
-        },
-        onNext = {
-            val nextIdx = (modeIdx + 1) % modeEntries.size
-            onLayoutModeChange(modeEntries[nextIdx])
-        },
-    )
-
-    if (layout.isGridMode) {
-        GamepadStepperCard(
-            title = stringResource(R.string.layout_settings_grid_cols),
-            description = stringResource(R.string.layout_settings_grid_cols_desc),
-            valueText = "${layout.gridCols}",
-            icon = Icons.Rounded.ViewColumn,
-            onDecrement = {
-                onGridColsChange((layout.gridCols - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
-            },
-            onIncrement = {
-                onGridColsChange((layout.gridCols + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
-            },
-        )
-
-        GamepadStepperCard(
-            title = stringResource(R.string.layout_settings_grid_rows),
-            description = stringResource(R.string.layout_settings_grid_rows_desc),
-            valueText = "${layout.gridRows}",
-            icon = Icons.Rounded.TableRows,
-            onDecrement = {
-                onGridRowsChange((layout.gridRows - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
-            },
-            onIncrement = {
-                onGridRowsChange((layout.gridRows + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
-            },
-        )
-
-        GamepadToggleCard(
-            title = stringResource(R.string.layout_settings_grid_borders),
-            description = stringResource(R.string.layout_settings_grid_borders_desc),
-            checked = layout.gridShowBorders,
-            icon = Icons.Rounded.BorderAll,
-            onCheckedChange = onGridShowBordersChange,
-        )
-
-        GamepadToggleCard(
-            title = stringResource(R.string.layout_settings_grid_button_bg),
-            description = stringResource(R.string.layout_settings_grid_button_bg_desc),
-            checked = layout.gridShowButtonBg,
-            icon = Icons.Rounded.Layers,
-            onCheckedChange = onGridShowButtonBgChange,
-        )
-    }
 
     GamepadSectionHeader(
         text = stringResource(R.string.macropad_editor_section_visibility_behavior),
