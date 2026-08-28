@@ -399,149 +399,204 @@ internal fun PadCanvas(
         // Render handles or highlight pointers for the active button
         val activeBtn = (layout?.buttons ?: emptyList()).firstOrNull { it.id == selectedButtonId }
         if (activeBtn != null) {
-            val isTrackpoint = activeBtn.action is PadAction.TrackpointMove
-            val tpMultiplier = if (isTrackpoint) (activeBtn.action as PadAction.TrackpointMove).size.multiplier else 1f
-            val chipWidthPx =
-                with(density) {
-                    if (isTrackpoint) {
-                        (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
-                    } else {
-                        (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.cols).toPx()
-                    }
-                }
-            val chipHeightPx =
-                with(density) {
-                    if (isTrackpoint) {
-                        (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
-                    } else {
-                        (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.rows).toPx()
-                    }
-                }
+            val isGrid = layout?.isGridMode == true
+            val cols = layout?.effectiveGridCols ?: 1
+            val rows = layout?.effectiveGridRows ?: 1
 
             val w = canvasSize.width.toFloat().coerceAtLeast(1f)
             val h = canvasSize.height.toFloat().coerceAtLeast(1f)
 
-            val centerX = activeBtn.posX * w
-            val centerY = activeBtn.posY * h
+            if (isGrid) {
+                val cellW = if (cols > 0) w / cols else w
+                val cellH = if (rows > 0) h / rows else h
+                val btnCol = activeBtn.gridCol ?: 0
+                val btnRow = activeBtn.gridRow ?: 0
+                val btnColSpan = activeBtn.effectiveColSpan
+                val btnRowSpan = activeBtn.effectiveRowSpan
 
-            val halfW = chipWidthPx / 2f
-            val halfH = chipHeightPx / 2f
+                val leftPx = btnCol * cellW
+                val topPx = btnRow * cellH
+                val widthPx = cellW * btnColSpan
+                val heightPx = cellH * btnRowSpan
 
-            val handleSizePx = with(density) { PC_HANDLE_SIZE.toPx() }
-            val paddingPx = with(density) { PC_HANDLE_PADDING.toPx() }
+                val requestedRadiusPx = with(density) { PTC_TABLE_CELL_CORNER_RADIUS.toPx() }
+                val radii =
+                    GridLayoutMath.cellFaceRadiiPx(
+                        layout = layout ?: PadLayout(id = "", name = ""),
+                        col = btnCol,
+                        row = btnRow,
+                        outlineEmptyCells = true,
+                        faceWidthPx = cellW,
+                        faceHeightPx = cellH,
+                        requestedRadiusPx = requestedRadiusPx,
+                    )
+                val cellShape =
+                    with(density) {
+                        RoundedCornerShape(
+                            topStart = radii.topLeftPx.toDp(),
+                            topEnd = radii.topRightPx.toDp(),
+                            bottomEnd = radii.bottomRightPx.toDp(),
+                            bottomStart = radii.bottomLeftPx.toDp(),
+                        )
+                    }
 
-            val topHandleLeft = centerX - handleSizePx / 2f
-            val topHandleTop = centerY - halfH - paddingPx - handleSizePx
+                val leftDp = with(density) { leftPx.toDp() }
+                val topDp = with(density) { topPx.toDp() }
+                val widthDp = with(density) { widthPx.toDp() }
+                val heightDp = with(density) { heightPx.toDp() }
 
-            val bottomHandleLeft = centerX - handleSizePx / 2f
-            val bottomHandleTop = centerY + halfH + paddingPx
-
-            val leftHandleLeft = centerX - halfW - paddingPx - handleSizePx
-            val leftHandleTop = centerY - handleSizePx / 2f
-
-            val rightHandleLeft = centerX + halfW + paddingPx
-            val rightHandleTop = centerY - handleSizePx / 2f
-
-            if (!isLocked && !isCropping) {
-                // Top handle
-                DragHandle(
-                    buttonId = activeBtn.id,
-                    leftPx = topHandleLeft,
-                    topPx = topHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    buttonPosX = activeBtn.posX,
-                    buttonPosY = activeBtn.posY,
-                    w = w,
-                    h = h,
-                    gridMode = gridMode,
-                    gridStepPx = gridStepPx,
-                    layoutId = layout?.id,
-                    accentColor = accentColor,
-                )
-
-                // Bottom handle
-                DragHandle(
-                    buttonId = activeBtn.id,
-                    leftPx = bottomHandleLeft,
-                    topPx = bottomHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    buttonPosX = activeBtn.posX,
-                    buttonPosY = activeBtn.posY,
-                    w = w,
-                    h = h,
-                    gridMode = gridMode,
-                    gridStepPx = gridStepPx,
-                    layoutId = layout?.id,
-                    accentColor = accentColor,
-                )
-
-                // Left handle
-                DragHandle(
-                    buttonId = activeBtn.id,
-                    leftPx = leftHandleLeft,
-                    topPx = leftHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    buttonPosX = activeBtn.posX,
-                    buttonPosY = activeBtn.posY,
-                    w = w,
-                    h = h,
-                    gridMode = gridMode,
-                    gridStepPx = gridStepPx,
-                    layoutId = layout?.id,
-                    accentColor = accentColor,
-                )
-
-                // Right handle
-                DragHandle(
-                    buttonId = activeBtn.id,
-                    leftPx = rightHandleLeft,
-                    topPx = rightHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    buttonPosX = activeBtn.posX,
-                    buttonPosY = activeBtn.posY,
-                    w = w,
-                    h = h,
-                    gridMode = gridMode,
-                    gridStepPx = gridStepPx,
-                    layoutId = layout?.id,
-                    accentColor = accentColor,
+                Box(
+                    modifier =
+                        Modifier
+                            .absoluteOffset(x = leftDp, y = topDp)
+                            .size(width = widthDp, height = heightDp)
+                            .border(
+                                width = PTC_TABLE_DROP_BORDER_WIDTH,
+                                color = PTC_TABLE_SELECTED_BORDER,
+                                shape = cellShape,
+                            ),
                 )
             } else {
-                // Top pointer (points DOWN towards the button)
-                HighlightPointer(
-                    leftPx = topHandleLeft,
-                    topPx = topHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    rotation = PC_POINTER_ROTATION_TOP,
-                    accentColor = accentColor,
-                )
+                val isTrackpoint = activeBtn.action is PadAction.TrackpointMove
+                val tpMultiplier = if (isTrackpoint) (activeBtn.action as PadAction.TrackpointMove).size.multiplier else 1f
+                val chipWidthPx =
+                    with(density) {
+                        if (isTrackpoint) {
+                            (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
+                        } else {
+                            (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.cols).toPx()
+                        }
+                    }
+                val chipHeightPx =
+                    with(density) {
+                        if (isTrackpoint) {
+                            (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
+                        } else {
+                            (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.rows).toPx()
+                        }
+                    }
+                val centerX = activeBtn.posX * w
+                val centerY = activeBtn.posY * h
 
-                // Bottom pointer (points UP towards the button)
-                HighlightPointer(
-                    leftPx = bottomHandleLeft,
-                    topPx = bottomHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    rotation = PC_POINTER_ROTATION_BOTTOM,
-                    accentColor = accentColor,
-                )
+                val halfW = chipWidthPx / 2f
+                val halfH = chipHeightPx / 2f
 
-                // Left pointer (points RIGHT towards the button)
-                HighlightPointer(
-                    leftPx = leftHandleLeft,
-                    topPx = leftHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    rotation = PC_POINTER_ROTATION_LEFT,
-                    accentColor = accentColor,
-                )
+                val handleSizePx = with(density) { PC_HANDLE_SIZE.toPx() }
+                val paddingPx = with(density) { PC_HANDLE_PADDING.toPx() }
 
-                // Right pointer (points LEFT towards the button)
-                HighlightPointer(
-                    leftPx = rightHandleLeft,
-                    topPx = rightHandleTop,
-                    handleSize = PC_HANDLE_SIZE,
-                    rotation = PC_POINTER_ROTATION_RIGHT,
-                    accentColor = accentColor,
-                )
+                val topHandleLeft = centerX - handleSizePx / 2f
+                val topHandleTop = centerY - halfH - paddingPx - handleSizePx
+
+                val bottomHandleLeft = centerX - handleSizePx / 2f
+                val bottomHandleTop = centerY + halfH + paddingPx
+
+                val leftHandleLeft = centerX - halfW - paddingPx - handleSizePx
+                val leftHandleTop = centerY - handleSizePx / 2f
+
+                val rightHandleLeft = centerX + halfW + paddingPx
+                val rightHandleTop = centerY - handleSizePx / 2f
+
+                if (!isLocked && !isCropping) {
+                    // Top handle
+                    DragHandle(
+                        buttonId = activeBtn.id,
+                        leftPx = topHandleLeft,
+                        topPx = topHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        buttonPosX = activeBtn.posX,
+                        buttonPosY = activeBtn.posY,
+                        w = w,
+                        h = h,
+                        gridMode = gridMode,
+                        gridStepPx = gridStepPx,
+                        layoutId = layout?.id,
+                        accentColor = accentColor,
+                    )
+
+                    // Bottom handle
+                    DragHandle(
+                        buttonId = activeBtn.id,
+                        leftPx = bottomHandleLeft,
+                        topPx = bottomHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        buttonPosX = activeBtn.posX,
+                        buttonPosY = activeBtn.posY,
+                        w = w,
+                        h = h,
+                        gridMode = gridMode,
+                        gridStepPx = gridStepPx,
+                        layoutId = layout?.id,
+                        accentColor = accentColor,
+                    )
+
+                    // Left handle
+                    DragHandle(
+                        buttonId = activeBtn.id,
+                        leftPx = leftHandleLeft,
+                        topPx = leftHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        buttonPosX = activeBtn.posX,
+                        buttonPosY = activeBtn.posY,
+                        w = w,
+                        h = h,
+                        gridMode = gridMode,
+                        gridStepPx = gridStepPx,
+                        layoutId = layout?.id,
+                        accentColor = accentColor,
+                    )
+
+                    // Right handle
+                    DragHandle(
+                        buttonId = activeBtn.id,
+                        leftPx = rightHandleLeft,
+                        topPx = rightHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        buttonPosX = activeBtn.posX,
+                        buttonPosY = activeBtn.posY,
+                        w = w,
+                        h = h,
+                        gridMode = gridMode,
+                        gridStepPx = gridStepPx,
+                        layoutId = layout?.id,
+                        accentColor = accentColor,
+                    )
+                } else {
+                    // Top pointer (points DOWN towards the button)
+                    HighlightPointer(
+                        leftPx = topHandleLeft,
+                        topPx = topHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        rotation = PC_POINTER_ROTATION_TOP,
+                        accentColor = accentColor,
+                    )
+
+                    // Bottom pointer (points UP towards the button)
+                    HighlightPointer(
+                        leftPx = bottomHandleLeft,
+                        topPx = bottomHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        rotation = PC_POINTER_ROTATION_BOTTOM,
+                        accentColor = accentColor,
+                    )
+
+                    // Left pointer (points RIGHT towards the button)
+                    HighlightPointer(
+                        leftPx = leftHandleLeft,
+                        topPx = leftHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        rotation = PC_POINTER_ROTATION_LEFT,
+                        accentColor = accentColor,
+                    )
+
+                    // Right pointer (points LEFT towards the button)
+                    HighlightPointer(
+                        leftPx = rightHandleLeft,
+                        topPx = rightHandleTop,
+                        handleSize = PC_HANDLE_SIZE,
+                        rotation = PC_POINTER_ROTATION_RIGHT,
+                        accentColor = accentColor,
+                    )
+                }
             }
         }
 
