@@ -2487,17 +2487,19 @@ private fun ButtonsDeck(
     val buttons = layout?.buttons ?: emptyList()
     val isEditingPositions by MacroPadState.isEditingButtonPositions.collectAsState()
     val gridMode by MacroPadState.gridMode.collectAsState()
+    val isGridMode = layout?.isGridMode == true
     var isReordering by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
     var movingItemKey by remember { mutableStateOf<Any?>(null) }
     val movingIndex = if (movingItemKey != null) buttons.indexOfFirst { it.id == movingItemKey } else -1
+    val headerCount = if (isGridMode) 1 else MPE_BUTTON_HEADER_COUNT
 
     val reorderState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            if (layout != null && buttons.isNotEmpty()) {
-                val fromButtonIdx = (from.index - MPE_BUTTON_HEADER_COUNT).coerceIn(0, buttons.lastIndex)
-                val toButtonIdx = (to.index - MPE_BUTTON_HEADER_COUNT).coerceIn(0, buttons.lastIndex)
+            if (layout != null && buttons.isNotEmpty() && !isGridMode) {
+                val fromButtonIdx = (from.index - headerCount).coerceIn(0, buttons.lastIndex)
+                val toButtonIdx = (to.index - headerCount).coerceIn(0, buttons.lastIndex)
                 if (fromButtonIdx != toButtonIdx) {
                     val mutable = layout.buttons.toMutableList()
                     mutable.add(toButtonIdx, mutable.removeAt(fromButtonIdx))
@@ -2508,7 +2510,7 @@ private fun ButtonsDeck(
 
     LaunchedEffect(movingItemKey, movingIndex) {
         if (movingItemKey != null && movingIndex >= 0) {
-            lazyListState.animateScrollToItem(movingIndex + MPE_BUTTON_HEADER_COUNT)
+            lazyListState.animateScrollToItem(movingIndex + headerCount)
         }
     }
 
@@ -2528,59 +2530,61 @@ private fun ButtonsDeck(
             )
         }
 
-        item {
-            val gridModes = listOf(GridMode.OFF, GridMode.RECTANGULAR, GridMode.RADIAL)
-            val gridIdx = gridModes.indexOf(gridMode).coerceAtLeast(0)
-            GamepadChoiceCard(
-                title = stringResource(R.string.macropad_editor_snap_grid),
-                description = stringResource(R.string.macropad_editor_snap_grid_desc),
-                selectedText =
-                    when (gridMode) {
-                        GridMode.OFF -> stringResource(R.string.macropad_editor_grid_off_label)
-                        GridMode.RECTANGULAR -> stringResource(R.string.macropad_editor_grid_rectangular_label)
-                        GridMode.RADIAL -> stringResource(R.string.macropad_editor_grid_radial_label)
+        if (!isGridMode) {
+            item {
+                val gridModes = listOf(GridMode.OFF, GridMode.RECTANGULAR, GridMode.RADIAL)
+                val gridIdx = gridModes.indexOf(gridMode).coerceAtLeast(0)
+                GamepadChoiceCard(
+                    title = stringResource(R.string.macropad_editor_snap_grid),
+                    description = stringResource(R.string.macropad_editor_snap_grid_desc),
+                    selectedText =
+                        when (gridMode) {
+                            GridMode.OFF -> stringResource(R.string.macropad_editor_grid_off_label)
+                            GridMode.RECTANGULAR -> stringResource(R.string.macropad_editor_grid_rectangular_label)
+                            GridMode.RADIAL -> stringResource(R.string.macropad_editor_grid_radial_label)
+                        },
+                    icon = Icons.Rounded.Grid4x4,
+                    onPrevious = { MacroPadState.setGridMode(gridModes[(gridIdx - 1 + gridModes.size) % gridModes.size]) },
+                    onNext = { MacroPadState.setGridMode(gridModes[(gridIdx + 1) % gridModes.size]) },
+                    onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
+                )
+            }
+
+            item {
+                GamepadActionCard(
+                    title = stringResource(R.string.macropad_editor_add_button),
+                    description = stringResource(R.string.macropad_editor_create_button_desc),
+                    icon = Icons.Rounded.Add,
+                    onClick = onAddButton,
+                    onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
+                )
+            }
+
+            item {
+                GamepadSectionHeader(
+                    text = stringResource(R.string.macropad_editor_manage_buttons),
+                    color = accentColor,
+                )
+            }
+
+            item {
+                GamepadToggleCard(
+                    title = stringResource(R.string.macropad_editor_reorder_buttons),
+                    description =
+                        if (isReordering) {
+                            stringResource(R.string.macropad_editor_reorder_buttons_enabled_desc)
+                        } else {
+                            stringResource(R.string.macropad_editor_reorder_buttons_disabled_desc)
+                        },
+                    checked = isReordering,
+                    icon = Icons.Rounded.SwapVert,
+                    onCheckedChange = {
+                        isReordering = it
+                        if (!it) movingItemKey = null
                     },
-                icon = Icons.Rounded.Grid4x4,
-                onPrevious = { MacroPadState.setGridMode(gridModes[(gridIdx - 1 + gridModes.size) % gridModes.size]) },
-                onNext = { MacroPadState.setGridMode(gridModes[(gridIdx + 1) % gridModes.size]) },
-                onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
-            )
-        }
-
-        item {
-            GamepadActionCard(
-                title = stringResource(R.string.macropad_editor_add_button),
-                description = stringResource(R.string.macropad_editor_create_button_desc),
-                icon = Icons.Rounded.Add,
-                onClick = onAddButton,
-                onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
-            )
-        }
-
-        item {
-            GamepadSectionHeader(
-                text = stringResource(R.string.macropad_editor_manage_buttons),
-                color = accentColor,
-            )
-        }
-
-        item {
-            GamepadToggleCard(
-                title = stringResource(R.string.macropad_editor_reorder_buttons),
-                description =
-                    if (isReordering) {
-                        stringResource(R.string.macropad_editor_reorder_buttons_enabled_desc)
-                    } else {
-                        stringResource(R.string.macropad_editor_reorder_buttons_disabled_desc)
-                    },
-                checked = isReordering,
-                icon = Icons.Rounded.SwapVert,
-                onCheckedChange = {
-                    isReordering = it
-                    if (!it) movingItemKey = null
-                },
-                onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
-            )
+                    onFocusChanged = { if (it) MacroPadState.setSelectedButtonId(null) },
+                )
+            }
         }
 
         if (buttons.isEmpty()) {
@@ -2615,7 +2619,9 @@ private fun ButtonsDeck(
                     } else {
                         val actionLabel = btn.action.displayLabel()
                         val sizeLabel =
-                            if (btn.action !is PadAction.ScrollWheel) {
+                            if (isGridMode) {
+                                "${btn.effectiveColSpan}×${btn.effectiveRowSpan}"
+                            } else if (btn.action !is PadAction.ScrollWheel) {
                                 "${btn.buttonSize.cols}×${btn.buttonSize.rows}"
                             } else {
                                 null
