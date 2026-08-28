@@ -43,6 +43,7 @@ class IntegrationHomeScreenTargetInfoTest {
                 hoveredPackage = "com.example.game",
                 hoveredAppLabel = "Hovered Title",
                 hoveredRomPath = "/roms/hovered.sfc",
+                hoveredRomIdentifier = "hovered.sfc",
                 hoveredSystemId = "snes",
                 activeSession = activeGameSession,
                 lastDetectedSession = lastGameSession,
@@ -54,6 +55,7 @@ class IntegrationHomeScreenTargetInfoTest {
         assertEquals("com.example.game", target.pkg)
         assertEquals("Hovered Title", target.label)
         assertEquals("/roms/hovered.sfc", target.romPath)
+        assertEquals("hovered.sfc", target.romIdentifier)
         assertEquals("snes", target.systemId)
     }
 
@@ -161,7 +163,7 @@ class IntegrationHomeScreenTargetInfoTest {
     }
 
     @Test
-    fun resolveTargetAppInfo_whenNothingActiveReturnsEmptyTargetInfo() {
+    fun resolveTargetAppInfo_lastDetectedSessionFallbackWhenNothingActive() {
         val target =
             resolveTargetAppInfo(
                 hoveredPackage = null,
@@ -175,10 +177,10 @@ class IntegrationHomeScreenTargetInfoTest {
                 installedApps = emptyList(),
             )
 
-        assertNull(target.pkg)
-        assertNull(target.label)
-        assertNull(target.romPath)
-        assertNull(target.systemId)
+        assertEquals("com.retroarch.lastgame", target.pkg)
+        assertEquals("zelda.sfc", target.label)
+        assertEquals("/sdcard/roms/snes/zelda.sfc", target.romPath)
+        assertEquals("snes", target.systemId)
     }
 
     @Test

@@ -17,7 +17,7 @@ private val coordinatorScope = CoroutineScope(SupervisorJob() + Dispatchers.Main
 
 fun isSelfPackage(packageName: String): Boolean {
     val pkg = packageName.lowercase().trim()
-    return (pkg == "com.stormpanda.megingiard" || pkg.startsWith("com.stormpanda.megingiard.")) &&
+    return (pkg == "com.stormpanda.megingiard" || pkg == "com.stormpanda.megingiard.zh" || pkg == "com.stormpanda.megingiard.debug" || pkg == "com.stormpanda.megingiard.zh.debug") &&
         !pkg.startsWith("com.stormpanda.megingiard.gamefocus")
 }
 
@@ -52,7 +52,6 @@ private fun isLauncherOrTaskSwitcher(packageName: String): Boolean {
     return pkg.startsWith("com.stormpanda.megingiard.gamefocus") ||
         pkg.contains("launcher") ||
         pkg.contains("home") ||
-        pkg == "org.es_de.frontend" ||
         pkg == "com.android.systemui"
 }
 
@@ -71,7 +70,11 @@ object AutoSwitchCoordinator {
                 if (session != null) {
                     if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
                         val matchedProfile =
-                            MacroPadState.findBestMatchingProfile(session.packageName, session.romPath, session.systemId)
+                            MacroPadState.findBestMatchingProfile(
+                                session.packageName,
+                                session.romIdentifier ?: session.romPath,
+                                session.systemId,
+                            )
                         if (matchedProfile != null) {
                             val currentActiveId = MacroPadState.activeProfileId.value
                             if (matchedProfile.id != currentActiveId) {
@@ -85,7 +88,11 @@ object AutoSwitchCoordinator {
                     } else {
                         AppLog.d(TAG, "activeSession observed: auto-mode disabled, skipping profile switch for ${session.gameTitle}")
                     }
-                    AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
+                    AppStateManager.setStandaloneForegroundState(
+                        focusedApp = session.packageName,
+                        focusedRomPath = session.romPath ?: session.romIdentifier,
+                        focusedRomIdentifier = session.romIdentifier ?: session.romPath,
+                    )
                 } else {
                     val currentForeground = _foregroundApp.value
                     if (currentForeground != null && !EmulatorDetectionFunnel.isRegisteredEmulator(currentForeground)) {
@@ -104,7 +111,11 @@ object AutoSwitchCoordinator {
         val session = EmulatorDetectionFunnel.activeSession.value
         if (session != null) {
             val matchedProfile =
-                MacroPadState.findBestMatchingProfile(session.packageName, session.romPath, session.systemId)
+                MacroPadState.findBestMatchingProfile(
+                    session.packageName,
+                    session.romIdentifier ?: session.romPath,
+                    session.systemId,
+                )
             if (matchedProfile != null && matchedProfile.id != MacroPadState.activeProfileId.value) {
                 AppLog.i(
                     TAG,
@@ -152,44 +163,9 @@ object AutoSwitchCoordinator {
         // 1. Process emulator package changes for ROM detection
         if (isRegisteredEmulator) {
             coordinatorScope.launch {
-                val session = EmulatorDetectionFunnel.onPackageForeground(normalized)
-                    ?: EmulatorDetectionFunnel.lastDetectedSession.value?.takeIf { it.packageName == normalized }
-                if (session != null) {
-                    AppStateManager.setStandaloneForegroundState(session.packageName, session.romPath)
-                    if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
-                        val matchedProfile =
-                            MacroPadState.findBestMatchingProfile(session.packageName, session.romPath, session.systemId)
-                        if (matchedProfile != null) {
-                            val currentActiveId = MacroPadState.activeProfileId.value
-                            if (matchedProfile.id != currentActiveId) {
-                                AppLog.i(
-                                    TAG,
-                                    "onPackageForeground: auto-switching to profile '${matchedProfile.name}' (id=${matchedProfile.id}) for emulator session (${session.gameTitle})",
-                                )
-                                MacroPadState.setActiveProfileId(matchedProfile.id)
-                            }
-                        }
-                    }
-                } else {
-                    val existingRom = AppStateManager.focusedRomPath.value
-                    if (AppStateManager.focusedAppPackageName.value != normalized || existingRom == null) {
-                        AppStateManager.setStandaloneForegroundState(normalized, null)
-                    }
-                    val directMatchedProfile = MacroPadState.findBestMatchingProfile(normalized)
-                    if (directMatchedProfile != null) {
-                        val currentActiveId = MacroPadState.activeProfileId.value
-                        if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO && directMatchedProfile.id != currentActiveId) {
-                            AppLog.i(
-                                TAG,
-                                "onPackageChanged: auto-switching to profile '${directMatchedProfile.name}' (id=${directMatchedProfile.id}) for app '$normalized'",
-                            )
-                            MacroPadState.setActiveProfileId(directMatchedProfile.id)
-                        }
-                    }
-                }
+                EmulatorDetectionFunnel.onPackageForeground(normalized)
             }
-            return
-        } else if (normalized != "com.android.systemui") {
+        } else if (!isLauncherOrSwitcher) {
             EmulatorDetectionFunnel.clearSession()
         }
 
@@ -222,25 +198,63 @@ object AutoSwitchCoordinator {
         }
 
         // 3. Sync standalone foreground package state with AppStateManager
-        if (normalized == "com.android.systemui") {
-            AppLog.d(TAG, "onPackageChanged: Preserving focused game state while system UI/task switcher '$normalized' is active.")
-            return
-        }
-
-        if (isLauncherOrSwitcher && clientActive) {
-            AppLog.d(TAG, "onPackageChanged: Preserving client integration state while launcher '$normalized' is active.")
-            return
-        }
-
         if (isLauncherOrSwitcher) {
-            AppLog.d(TAG, "onPackageChanged: Launcher '$normalized' active in standalone mode. Resetting focused app state.")
-            AppStateManager.setStandaloneForegroundState(null, null)
+            AppLog.d(TAG, "onPackageChanged: Preserving focused game state while task switcher/launcher '$normalized' is active.")
+            return
+        } else if (!isRegisteredEmulator) {
+            AppStateManager.setStandaloneForegroundState(normalized, null)
+        } else {
+            val session = EmulatorDetectionFunnel.activeSession.value ?: EmulatorDetectionFunnel.lastDetectedSession.value
+            if (session != null && session.packageName == normalized) {
+                AppStateManager.setStandaloneForegroundState(
+                    focusedApp = session.packageName,
+                    focusedRomPath = session.romPath ?: session.romIdentifier,
+                    focusedRomIdentifier = session.romIdentifier ?: session.romPath,
+                )
+            } else {
+                val currentFocusedPkg = AppStateManager.focusedAppPackageName.value
+                val currentFocusedRom = AppStateManager.focusedRomPath.value
+                val currentActiveProfile = MacroPadState.activeProfile.value
+                if (currentFocusedPkg == normalized &&
+                    currentActiveProfile?.matches(normalized, currentFocusedRom, isActiveProfile = true) == true
+                ) {
+                    AppLog.d(TAG, "onPackageChanged: preserving active ROM path '$currentFocusedRom' for emulator '$normalized'")
+                } else {
+                    AppStateManager.setStandaloneForegroundState(normalized, null)
+                }
+            }
+        }
+
+        // 4. Auto profile switching
+        val session = EmulatorDetectionFunnel.activeSession.value ?: EmulatorDetectionFunnel.lastDetectedSession.value
+        if (isRegisteredEmulator && session != null && session.packageName == normalized) {
+            AppLog.d(
+                TAG,
+                "onPackageChanged: active ROM session exists for emulator '$normalized' (${session.romIdentifier ?: session.romPath})",
+            )
+            if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
+                val matchedProfile =
+                    MacroPadState.findBestMatchingProfile(
+                        session.packageName,
+                        session.romIdentifier ?: session.romPath,
+                        session.systemId,
+                    )
+                if (matchedProfile != null) {
+                    val currentActiveId = MacroPadState.activeProfileId.value
+                    if (matchedProfile.id != currentActiveId) {
+                        AppLog.i(
+                            TAG,
+                            "onPackageChanged: auto-switching to profile '${matchedProfile.name}' (id=${matchedProfile.id}) for emulator session (${session.gameTitle})",
+                        )
+                        MacroPadState.setActiveProfileId(matchedProfile.id)
+                    }
+                }
+            } else {
+                AppLog.d(TAG, "onPackageChanged: auto-mode disabled, skipping profile switch for ${session.gameTitle}")
+            }
             return
         }
 
-        AppStateManager.setStandaloneForegroundState(normalized, null)
-
-        // 4. Auto profile switching for standalone non-emulator apps
         val directMatchedProfile = MacroPadState.findBestMatchingProfile(normalized)
         if (directMatchedProfile != null) {
             val currentActiveId = MacroPadState.activeProfileId.value
@@ -254,7 +268,9 @@ object AutoSwitchCoordinator {
                 AppLog.d(TAG, "onPackageChanged: profile '${directMatchedProfile.name}' is already active or auto-mode disabled")
             }
         } else {
-            AppLog.d(TAG, "onPackageChanged: No profile mapped to app '$normalized', keeping active profile")
+            if (!isRegisteredEmulator) {
+                AppLog.d(TAG, "onPackageChanged: no profile mapped to package '$normalized'")
+            }
         }
     }
 

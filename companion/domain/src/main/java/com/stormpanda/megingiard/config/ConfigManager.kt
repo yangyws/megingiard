@@ -8,9 +8,7 @@ import android.provider.OpenableColumns
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadAction
-import com.stormpanda.megingiard.macropad.PadIconStore
 import com.stormpanda.megingiard.macropad.PadProfile
-import com.stormpanda.megingiard.macropad.referencedImageAssetIds
 import com.stormpanda.megingiard.security.HmacUtil
 import com.stormpanda.megingiard.settings.SettingsManager
 import kotlinx.coroutines.Dispatchers
@@ -203,7 +201,9 @@ object ConfigManager {
 
     fun getPendingInAppImageCount(): Int = _pendingInAppImportImages.value.size
 
-    fun getPendingImageCount(): Int = _pendingImportImages.value.size
+    fun getPendingInAppImages(): Map<String, ByteArray> = _pendingInAppImportImages.value
+
+    fun getPendingImages(): Map<String, ByteArray> = _pendingImportImages.value
 
     /** Called by MainActivity when the in-app file picker returns a .mgrd URI. */
     fun setPendingInAppUri(
@@ -222,12 +222,21 @@ object ConfigManager {
         _pendingInAppUri.value = null
     }
 
+    private val _inAppImportError = MutableStateFlow<String?>(null)
+    val inAppImportError: StateFlow<String?> = _inAppImportError.asStateFlow()
+
+    fun setInAppImportError(error: String?) {
+        AppLog.d(TAG, "setInAppImportError: $error")
+        _inAppImportError.value = error
+    }
+
     /** Clears in-app import state — call after confirm or dismiss of ImportPreviewDialog. */
     fun clearInAppPendingImport() {
         AppLog.d(TAG, "clearInAppPendingImport")
         _pendingInAppUri.value = null
         _pendingInAppParsedImport.value = null
         _pendingInAppImportImages.value = emptyMap()
+        _inAppImportError.value = null
         _pendingInAppImportMode.value = ImportMode.BACKUP_RESTORE
     }
 
@@ -246,7 +255,9 @@ object ConfigManager {
     }
 
     sealed interface ExportResult {
-        data object Success : ExportResult
+        data class Success(
+            val kind: ExportKind? = null,
+        ) : ExportResult
 
         data class Failure(
             val message: String?,
@@ -324,11 +335,22 @@ object ConfigManager {
         val backgroundsDir = File(context.filesDir, "backgrounds")
         for (profile in profiles) {
             for (layout in profile.layouts) {
-                val file = File(backgroundsDir, "bg_${layout.id}")
-                if (file.exists() && file.isFile) {
+                if (layout.backgroundImagePath.isNullOrEmpty()) continue
+                val bgPath = layout.backgroundImagePath!!
+                val fileByPath = File(context.filesDir, bgPath)
+                val fileByLayoutId = File(backgroundsDir, "bg_${layout.id}")
+                val file =
+                    if (fileByPath.exists() && fileByPath.isFile) {
+                        fileByPath
+                    } else if (fileByLayoutId.exists() && fileByLayoutId.isFile) {
+                        fileByLayoutId
+                    } else {
+                        null
+                    }
+                if (file != null) {
                     val bytes = file.readBytes()
                     val hash =
-                        com.stormpanda.megingiard.security.HmacUtil
+                        HmacUtil
                             .sha256Hex(bytes)
                             .lowercase()
                     result["bg_${layout.id}"] = hash
@@ -370,32 +392,32 @@ object ConfigManager {
         AppLog.i(TAG, "writeToUri: uri=$uri includeBackgrounds=$includeBackgrounds")
         val json = exportJson.encodeToString(export)
         val backgroundsDir = File(context.filesDir, "backgrounds")
-        val padIconsDir = File(context.filesDir, "padicons")
         val imageFilesToBundle = mutableMapOf<String, File>()
 
-        if (includeBackgrounds && backgroundsDir.exists()) {
+        if (includeBackgrounds) {
             for (profile in export.profiles) {
                 for (layout in profile.layouts) {
-                    val file = File(backgroundsDir, "bg_${layout.id}")
-                    if (file.exists() && file.isFile) {
+                    if (layout.backgroundImagePath.isNullOrEmpty()) continue
+                    val bgPath = layout.backgroundImagePath!!
+                    val fileByPath = File(context.filesDir, bgPath)
+                    val fileByLayoutId = File(backgroundsDir, "bg_${layout.id}")
+                    val file =
+                        if (fileByPath.exists() && fileByPath.isFile) {
+                            fileByPath
+                        } else if (fileByLayoutId.exists() && fileByLayoutId.isFile) {
+                            fileByLayoutId
+                        } else {
+                            null
+                        }
+                    if (file != null) {
                         imageFilesToBundle["backgrounds/bg_${layout.id}"] = file
                     }
                 }
             }
         }
 
-        if (padIconsDir.exists()) {
-            val iconIds = referencedImageAssetIds(export.profiles)
-            for (id in iconIds) {
-                val file = File(padIconsDir, "$id.webp")
-                if (file.exists() && file.isFile) {
-                    imageFilesToBundle["padicons/$id.webp"] = file
-                }
-            }
-        }
-
         context.contentResolver.openOutputStream(uri)?.use { out ->
-            if (imageFilesToBundle.isNotEmpty()) {
+            if (includeBackgrounds && imageFilesToBundle.isNotEmpty()) {
                 ZipOutputStream(out).use { zip ->
                     // 1. Write config.json
                     val configEntry = ZipEntry("config.json")
@@ -403,7 +425,7 @@ object ConfigManager {
                     zip.write(json.toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
 
-                    // 2. Write background and icon images
+                    // 2. Write background image entries
                     for ((entryPath, file) in imageFilesToBundle) {
                         val entry = ZipEntry(entryPath)
                         zip.putNextEntry(entry)
@@ -498,9 +520,6 @@ object ConfigManager {
                             } else if (entryName.startsWith("backgrounds/") || entryName.startsWith("bg_")) {
                                 val key = entryName.removePrefix("backgrounds/").removePrefix("bg_")
                                 imagesMap[key] = entryBytes
-                            } else if (entryName.startsWith("padicons/") || entryName.startsWith("padicon_")) {
-                                val key = entryName.removePrefix("padicons/").removePrefix("padicon_").removeSuffix(".webp")
-                                imagesMap["padicon_$key"] = entryBytes
                             }
                         }
                         zip.closeEntry()
@@ -552,17 +571,21 @@ object ConfigManager {
     suspend fun applyImport(
         context: Context,
         export: MegingiardExport,
+        images: Map<String, ByteArray>? = null,
     ) {
         AppLog.i(TAG, "applyImport: schema=${export.schemaVersion}")
-        if (export.settings.isNotEmpty()) {
-            SettingsManager.importGroupedSettingsAwait(export.settings)
+        val resolvedImages = images ?: _pendingInAppImportImages.value.ifEmpty { _pendingImportImages.value }
+        try {
+            if (export.settings.isNotEmpty()) {
+                SettingsManager.importGroupedSettingsAwait(export.settings)
+            }
+            if (export.profiles.isNotEmpty()) {
+                importMacroPadData(context, export.profiles, resolvedImages)
+            }
+        } finally {
+            clearPendingImport()
+            clearInAppPendingImport()
         }
-        if (export.profiles.isNotEmpty()) {
-            val images = _pendingInAppImportImages.value.ifEmpty { _pendingImportImages.value }
-            importMacroPadData(context, export.profiles, images)
-        }
-        clearPendingImport()
-        clearInAppPendingImport()
     }
 
     /**
@@ -572,13 +595,17 @@ object ConfigManager {
     suspend fun applyProfileImport(
         context: Context,
         export: MegingiardExport,
+        images: Map<String, ByteArray>? = null,
     ) {
         AppLog.i(TAG, "applyProfileImport: schema=${export.schemaVersion} profiles=${export.profiles.size}")
         check(export.profiles.isNotEmpty()) { "The file does not contain any profiles" }
-        val images = _pendingInAppImportImages.value.ifEmpty { _pendingImportImages.value }
-        importMacroPadData(context, export.profiles, images)
-        clearPendingImport()
-        clearInAppPendingImport()
+        val resolvedImages = images ?: _pendingInAppImportImages.value.ifEmpty { _pendingImportImages.value }
+        try {
+            importMacroPadData(context, export.profiles, resolvedImages)
+        } finally {
+            clearPendingImport()
+            clearInAppPendingImport()
+        }
     }
 
     // ── MacroPad import with UUID remapping ─────────────────────────────────
@@ -586,7 +613,7 @@ object ConfigManager {
     /**
      * Imports profiles with new UUIDs so they don't collide with existing ones.
      */
-    private suspend fun importMacroPadData(
+    private fun importMacroPadData(
         context: Context,
         profiles: List<PadProfile>,
         images: Map<String, ByteArray> = emptyMap(),
@@ -597,14 +624,6 @@ object ConfigManager {
             (images.isNotEmpty() || profiles.any { p -> p.layouts.any { !it.backgroundImagePath.isNullOrEmpty() } })
         ) {
             backgroundsDir.mkdirs()
-        }
-
-        // Extract any bundled pad icons
-        for ((key, bytes) in images) {
-            if (key.startsWith("padicon_")) {
-                val id = key.removePrefix("padicon_")
-                PadIconStore.putRaw(context, id, bytes)
-            }
         }
 
         for (profile in profiles) {
@@ -626,7 +645,12 @@ object ConfigManager {
                     val oldLayoutId = layout.id
                     val newLayoutId = UUID.randomUUID().toString()
 
-                    val imageBytes = images[oldLayoutId] ?: images["bg_$oldLayoutId"] ?: images["backgrounds/bg_$oldLayoutId"]
+                    val bgKeyFromPath = layout.backgroundImagePath?.substringAfterLast("/")?.removePrefix("bg_")
+                    val imageBytes =
+                        images[oldLayoutId]
+                            ?: images["bg_$oldLayoutId"]
+                            ?: images["backgrounds/bg_$oldLayoutId"]
+                            ?: bgKeyFromPath?.let { key -> images[key] ?: images["bg_$key"] ?: images["backgrounds/bg_$key"] }
 
                     val newBgPath: String? =
                         if (imageBytes != null) {

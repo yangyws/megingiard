@@ -42,8 +42,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -80,17 +78,25 @@ import com.stormpanda.megingiard.config.ConfigManager
 import com.stormpanda.megingiard.config.MegingiardExport
 import com.stormpanda.megingiard.keyboard.KeyboardScreen
 import com.stormpanda.megingiard.keyboard.KeyboardSettingsOverlay
-import com.stormpanda.megingiard.macropad.BackgroundSettingsOverlay
+import com.stormpanda.megingiard.macropad.GamepadRecordingState
 import com.stormpanda.megingiard.macropad.HapticStrength
 import com.stormpanda.megingiard.macropad.MacroPadEditor
 import com.stormpanda.megingiard.macropad.MacroPadScreen
 import com.stormpanda.megingiard.macropad.MacroPadState
+import com.stormpanda.megingiard.macropad.PhysicalGamepadRecordingManager
+import com.stormpanda.megingiard.macropad.PhysicalGamepadRecordingSheet
+import com.stormpanda.megingiard.macropad.TouchRecordingManager
+import com.stormpanda.megingiard.macropad.TouchRecordingSheet
+import com.stormpanda.megingiard.macropad.TouchRecordingState
 import com.stormpanda.megingiard.macropad.triggerHapticFeedback
+import com.stormpanda.megingiard.mirror.CutoutLayoutEditor
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
 import com.stormpanda.megingiard.onboarding.OnboardingWizardManager
 import com.stormpanda.megingiard.privd.PrivdManager
+import com.stormpanda.megingiard.privd.PrivdSetupWizardDialog
 import com.stormpanda.megingiard.services.MegingiardAccessibilityService
 import com.stormpanda.megingiard.settings.GlobalSettingsScreen
+import com.stormpanda.megingiard.settings.MacroPadSettings
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.touchpad.FullscreenMouseOverlay
 import com.stormpanda.megingiard.touchpad.TouchpadSettingsOverlay
@@ -102,6 +108,7 @@ import com.stormpanda.megingiard.ui.PrivdReconnectPromptDialog
 import com.stormpanda.megingiard.ui.QuickMenuBar
 import com.stormpanda.megingiard.ui.QuickMenuBarLayout
 import com.stormpanda.megingiard.ui.QuickMenuTutorialDialog
+import com.stormpanda.megingiard.ui.ScreenshotPreviewOverlay
 import com.stormpanda.megingiard.ui.WelcomeTutorialDialog
 import com.stormpanda.megingiard.ui.onboarding.OnboardingWizardDialog
 import com.stormpanda.megingiard.ui.rememberBezelBrush
@@ -144,6 +151,8 @@ fun MainAppScreen() {
     val isGesturesEnabled = !isAnyMenuOpen && !isFullscreenKeyboardActive && !isFullscreenMouseActive && !isViewportEditActive
 
     val showPromptDialog by AppStateManager.isPrivdPromptActive.collectAsState()
+    val physicalRecordingState by PhysicalGamepadRecordingManager.state.collectAsState()
+    val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsState()
 
     LaunchedEffect(isBackgroundSettingsActive) {
         if (isBackgroundSettingsActive) {
@@ -163,6 +172,7 @@ fun MainAppScreen() {
     ) = rememberQuickMenuGestureMetrics()
 
     val context = LocalContext.current
+    val isDualScreen = remember(context) { DisplayDetector.findSecondaryDisplay(context) != null }
     var showExitDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val pendingImportUri by ConfigManager.pendingUri.collectAsState()
@@ -195,8 +205,10 @@ fun MainAppScreen() {
                 ConfigManager.setInAppParsedImport(export)
             }.onFailure { err ->
                 AppLog.e(TAG, "In-app import parse failed: ${err.message}")
+                val errorMsg = err.message ?: context.getString(R.string.config_error_unknown)
                 ConfigManager.clearInAppPendingImport()
-                importError = err.message ?: context.getString(R.string.config_error_unknown)
+                ConfigManager.setInAppImportError(errorMsg)
+                importError = errorMsg
             }
     }
 
@@ -204,24 +216,28 @@ fun MainAppScreen() {
         WrongScreenOverlay(
             colors = colors,
             onRetry = {
-                val act = context as? Activity
-                val currentDisplay = act?.display?.displayId ?: context.display?.displayId ?: Display.DEFAULT_DISPLAY
-                AppLog.i(TAG, "wrong-screen retry tapped: displayId=$currentDisplay")
-                val isValid = currentDisplay != Display.DEFAULT_DISPLAY
-                AppStateManager.setOnValidScreen(isValid)
-
-                if (!isValid) {
-                    val secondaryDisplay = DisplayDetector.findSecondaryDisplay(context)
-                    if (secondaryDisplay != null) {
-                        AppLog.i(TAG, "Relocating MainActivity to secondary display id=${secondaryDisplay.displayId}")
-                        val options = ActivityOptions.makeBasic().setLaunchDisplayId(secondaryDisplay.displayId)
-                        val intent = Intent(context, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                val displayId = context.display?.displayId ?: Display.DEFAULT_DISPLAY
+                val secondaryDisplay = DisplayDetector.findSecondaryDisplay(context)
+                AppLog.i(
+                    TAG,
+                    "wrong-screen retry tapped: displayId=$displayId secondaryDisplay=${secondaryDisplay?.displayId}",
+                )
+                if (secondaryDisplay != null && displayId == Display.DEFAULT_DISPLAY) {
+                    val options =
+                        ActivityOptions.makeBasic().apply {
+                            setLaunchDisplayId(secondaryDisplay.displayId)
                         }
-                        context.startActivity(intent, options.toBundle())
-                    } else {
-                        Toast.makeText(context, R.string.wrong_screen_message, Toast.LENGTH_SHORT).show()
-                    }
+                    val retryIntent =
+                        Intent(context, MainActivity::class.java).apply {
+                            addFlags(
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                            )
+                        }
+                    context.startActivity(retryIntent, options.toBundle())
+                    (context as? Activity)?.finishAndRemoveTask()
+                } else {
+                    val isValid = DisplayDetector.isValidScreen(displayId)
+                    AppStateManager.setOnValidScreen(isValid)
                 }
             },
         )
@@ -229,6 +245,7 @@ fun MainAppScreen() {
         BackHandler { showExitDialog = true }
 
         val isWizardActive by OnboardingWizardManager.isWizardActive.collectAsState()
+        val isPrivdSetupWizardActive by AppStateManager.isPrivdSetupWizardActive.collectAsState()
 
         Box(
             modifier =
@@ -241,8 +258,9 @@ fun MainAppScreen() {
                         kbBarMaxX,
                         isGesturesEnabled,
                         isWizardActive,
+                        isPrivdSetupWizardActive,
                     ) {
-                        if (!isGesturesEnabled || isWizardActive) return@pointerInput
+                        if (!isGesturesEnabled || isWizardActive || isPrivdSetupWizardActive) return@pointerInput
                         val qmSwipe =
                             SwipeGestureProcessor(
                                 edgeZonePx = edgeZonePx,
@@ -390,17 +408,24 @@ fun MainAppScreen() {
         ) {
             val showIntegrationHome by AppStateManager.showIntegrationHome.collectAsState()
 
-            if (showIntegrationHome) {
+            if (shouldShowCompanionHub(
+                    showIntegrationHome = showIntegrationHome,
+                    isEditorActive = isEditorActive,
+                    isViewportEditActive = isViewportEditActive,
+                    isBackgroundSettingsActive = isBackgroundSettingsActive,
+                )
+            ) {
                 IntegrationHomeScreen()
             } else {
                 MacroPadScreen()
             }
 
+            val recordingRequested by TouchRecordingManager.recordingRequested.collectAsState()
+            val touchRecordingState by TouchRecordingManager.state.collectAsState()
+
             // Fullscreen modal overlays — rendered above MacroPad but below QuickMenuBar.
-            // Suppressed when ambient mode is active: the overlays are rendered on the
-            // secondary display inside MirrorPresentation instead.
             AnimatedVisibility(
-                visible = isFullscreenMouseActive && !isCapturing,
+                visible = isFullscreenMouseActive,
                 enter =
                     slideInVertically(
                         animationSpec = tween(MAS_KB_SLIDE_ANIM_DURATION_MS),
@@ -416,7 +441,7 @@ fun MainAppScreen() {
                 FullscreenMouseOverlay()
             }
             AnimatedVisibility(
-                visible = isFullscreenKeyboardActive && !isCapturing,
+                visible = isFullscreenKeyboardActive,
                 enter =
                     slideInVertically(
                         animationSpec = tween(MAS_KB_SLIDE_ANIM_DURATION_MS),
@@ -434,8 +459,42 @@ fun MainAppScreen() {
                     forcedLayout = fullscreenKeyboardLayout,
                 )
             }
+
+            if (isViewportEditActive) {
+                CutoutLayoutEditor()
+            }
+
+            if (recordingRequested && touchRecordingState is TouchRecordingState.Recording) {
+                TouchRecordingSheet(
+                    state = touchRecordingState,
+                    onStop = {
+                        TouchRecordingManager.finishRecording()
+                        AppStateManager.resumeSuspended()
+                    },
+                    onCancel = {
+                        TouchRecordingManager.cancelRecording()
+                        AppStateManager.resumeSuspended()
+                    },
+                )
+            }
+
+            if (physicalRecordingState is GamepadRecordingState.Recording) {
+                PhysicalGamepadRecordingSheet(
+                    state = physicalRecordingState,
+                    swapFaceButtons = swapFaceButtons,
+                    onStop = {
+                        PhysicalGamepadRecordingManager.finishRecording()
+                        AppStateManager.resumeSuspended()
+                    },
+                    onCancel = {
+                        PhysicalGamepadRecordingManager.cancelRecording()
+                        AppStateManager.resumeSuspended()
+                    },
+                )
+            }
+
             AnimatedVisibility(
-                visible = isEditorActive,
+                visible = isEditorActive && !isDualScreen,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.fillMaxSize(),
@@ -445,25 +504,28 @@ fun MainAppScreen() {
                 )
             }
             AnimatedVisibility(
-                visible = isBackgroundSettingsActive,
+                visible = isBackgroundSettingsActive && !isDualScreen,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                BackgroundSettingsOverlay(
+                MacroPadEditor(
                     onDone = { AppStateManager.setBackgroundSettingsActive(false) },
                 )
             }
 
-            // Quick Menu Bar + Quick Menu overlay — hidden while editor or ambient settings
-            // are open because those modals render their own full-screen chrome.
-            // Also hidden when fullscreen keyboard is active.
-            if (!isEditorActive && !isBackgroundSettingsActive && !isFullscreenKeyboardActive && !isFullscreenMouseActive) {
+            // Quick Menu Bar + Quick Menu overlay — rendered on secondary display,
+            // suppressed only if a single-screen fallback settings overlay is covering
+            // the display or when fullscreen keyboard/mouse is active.
+            val isSingleScreenModalActive = !isDualScreen && isAnyMenuOpen
+            if (!isSingleScreenModalActive && !isFullscreenKeyboardActive && !isFullscreenMouseActive) {
                 QuickMenuBar()
             }
 
+            ScreenshotPreviewOverlay(modifier = Modifier.align(Alignment.Center))
+
             AnimatedVisibility(
-                visible = isGlobalSettingsOpen,
+                visible = isGlobalSettingsOpen && !isDualScreen,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.fillMaxSize(),
@@ -474,7 +536,7 @@ fun MainAppScreen() {
             }
 
             AnimatedVisibility(
-                visible = isKeyboardSettingsOpen,
+                visible = isKeyboardSettingsOpen && !isDualScreen,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.fillMaxSize(),
@@ -484,7 +546,7 @@ fun MainAppScreen() {
                 )
             }
             AnimatedVisibility(
-                visible = isTouchpadSettingsOpen,
+                visible = isTouchpadSettingsOpen && !isDualScreen,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier.fillMaxSize(),
@@ -499,9 +561,9 @@ fun MainAppScreen() {
             IncomingImportDialog(
                 export = export,
                 onConfirm = {
+                    val pendingImages = ConfigManager.getPendingImages()
                     coroutineScope.launch {
-                        ConfigManager.applyImport(context, export)
-                        ConfigManager.clearPendingImport()
+                        ConfigManager.applyImport(context, export, pendingImages)
                     }
                 },
                 onDismiss = { ConfigManager.clearPendingImport() },
@@ -575,6 +637,14 @@ fun MainAppScreen() {
                     val active = MegingiardAccessibilityService.isEnabled(context)
                     AppStateManager.setAccessibilityActive(active)
                     AppStateManager.setPrivdPromptDismissed(true)
+                },
+            )
+        }
+
+        if (isPrivdSetupWizardActive && !isWizardActive) {
+            PrivdSetupWizardDialog(
+                onDismiss = {
+                    AppStateManager.setPrivdSetupWizardOpen(false)
                 },
             )
         }
@@ -805,3 +875,15 @@ private fun IncomingImportDialog(
         },
     )
 }
+
+/**
+ * Evaluates whether the Companion Home Hub (`IntegrationHomeScreen`) should be displayed
+ * as the base screen layer, or whether `MacroPadScreen` should take precedence (such as when
+ * an editor, screen mirror cutout arrangement, or background editor is active).
+ */
+internal fun shouldShowCompanionHub(
+    showIntegrationHome: Boolean,
+    isEditorActive: Boolean,
+    isViewportEditActive: Boolean,
+    isBackgroundSettingsActive: Boolean,
+): Boolean = showIntegrationHome && !isEditorActive && !isViewportEditActive && !isBackgroundSettingsActive

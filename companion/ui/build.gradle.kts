@@ -153,8 +153,14 @@ val validateReleaseSignature = tasks.register<ValidateReleaseSignatureTask>("val
 val nativeCTest = tasks.register<Exec>("nativeCTest") {
     group = "verification"
     description = "Compiles and executes native C unit tests."
-    workingDir = rootProject.projectDir
-    commandLine("./scripts/run_native_tests.sh")
+    val isWin = System.getProperty("os.name").lowercase().contains("windows")
+    enabled = !isWin
+    if (!isWin) {
+        workingDir(rootDir)
+        commandLine("./scripts/run_native_tests.sh")
+    } else {
+        commandLine("cmd", "/c", "echo Skipping nativeCTest on Windows")
+    }
 }
 
 // Ensure the privileged-mirror DEX asset is built before any app packaging task, and native C tests run before unit tests.

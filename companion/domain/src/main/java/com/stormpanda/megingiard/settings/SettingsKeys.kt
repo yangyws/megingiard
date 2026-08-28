@@ -22,6 +22,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 internal val KEY_AUTO_SWITCH_PROFILES = booleanPreferencesKey("auto_switch_profiles")
 internal val KEY_EXCLUDE_FROM_RECENTS = booleanPreferencesKey("exclude_from_recents")
 internal val KEY_ACCENT_COLOR = intPreferencesKey("accent_color")
+internal val KEY_CUSTOM_ACCENT_COLOR = intPreferencesKey("custom_accent_color")
 internal val KEY_OVERLAY_AT_BOTTOM = booleanPreferencesKey("overlay_at_bottom")
 internal val KEY_OVERLAY_FADE_OUT = booleanPreferencesKey("overlay_fade_out")
 internal val KEY_OVERLAY_TRANSITION_HAPTICS = booleanPreferencesKey("overlay_transition_haptics")
@@ -75,9 +76,6 @@ internal val KEY_TOUCHPAD_MOUSE_MIDDLE_MODE = stringPreferencesKey("touchpad_mou
 // MacroPad touch recording
 internal val KEY_SKIP_TOUCH_RECORD_DIALOG = booleanPreferencesKey("skip_touch_record_dialog")
 
-// MacroPad gamepad recording
-internal val KEY_SKIP_GAMEPAD_RECORD_DIALOG = booleanPreferencesKey("skip_gamepad_record_dialog")
-
 // MacroPad — gamepad face-button label swap (display only, keycodes unchanged)
 internal val KEY_GAMEPAD_SWAP_FACE_BUTTONS = booleanPreferencesKey("gamepad_swap_face_buttons")
 
@@ -116,6 +114,7 @@ internal val KEY_LATEST_RELEASE_NOTES = stringPreferencesKey("latest_release_not
 private val GLOBAL_KEYS: Set<Preferences.Key<*>> =
     setOf(
         KEY_ACCENT_COLOR,
+        KEY_CUSTOM_ACCENT_COLOR,
         KEY_OVERLAY_AT_BOTTOM,
         KEY_OVERLAY_FADE_OUT,
         KEY_OVERLAY_TRANSITION_HAPTICS,
@@ -187,7 +186,6 @@ internal val EXCLUDED_KEYS: Set<Preferences.Key<*>> =
         KEY_MACROPAD_ACTIVE_PROFILE_ID,
         KEY_KB_TOUCHPAD_ENABLED,
         KEY_SKIP_TOUCH_RECORD_DIALOG,
-        KEY_SKIP_GAMEPAD_RECORD_DIALOG,
         KEY_SAVED_LOCKED,
         KEY_SAVED_PROJECTION,
         KEY_SHOW_MACRO_EDITOR_TUTORIAL,
@@ -198,11 +196,6 @@ internal val EXCLUDED_KEYS: Set<Preferences.Key<*>> =
         KEY_LATEST_RELEASE_URL,
         KEY_LATEST_RELEASE_NOTES,
     )
-
-/** Reverse lookup: DataStore key name → section name. */
-internal val KEY_TO_SECTION: Map<String, String> by lazy {
-    SECTION_MAP.flatMap { (section, keys) -> keys.map { it.name to section } }.toMap()
-}
 
 /** Flat map from DataStore key name to the actual typed key instance, used by config import. */
 internal val KEY_BY_NAME: Map<String, Preferences.Key<*>> by lazy {
@@ -233,7 +226,6 @@ internal val BOOLEAN_KEYS: Set<Preferences.Key<*>> =
         KEY_TOUCHPAD_NATURAL_SCROLL,
         KEY_TOUCHPAD_HAPTICS_ENABLED,
         KEY_SKIP_TOUCH_RECORD_DIALOG,
-        KEY_SKIP_GAMEPAD_RECORD_DIALOG,
         KEY_GAMEPAD_SWAP_FACE_BUTTONS,
         KEY_MACROPAD_AMBIENT_PREVIEW,
         KEY_MACROPAD_AMBIENT_APPLY_THEME,
@@ -246,6 +238,7 @@ internal val BOOLEAN_KEYS: Set<Preferences.Key<*>> =
 internal val INT_KEYS: Set<Preferences.Key<*>> =
     setOf(
         KEY_ACCENT_COLOR,
+        KEY_CUSTOM_ACCENT_COLOR,
         KEY_TOUCHPAD_MIRROR_DIM,
         KEY_WELCOME_TOUR_COMPLETED_VERSION,
     )

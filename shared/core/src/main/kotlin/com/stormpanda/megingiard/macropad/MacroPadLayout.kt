@@ -65,6 +65,12 @@ enum class TrackpointMode {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Editor Grid Mode
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum class GridMode { OFF, RECTANGULAR, RADIAL }
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Button color style — per-layout override for neutral vs accented appearance
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -228,11 +234,6 @@ sealed class PadAction {
     @SerialName("mirror_touch_projection")
     data object MirrorTouchProjection : PadAction()
 
-    /** Takes a screenshot of the mirrored display and saves to Pictures/Megingiard. */
-    @Serializable
-    @SerialName("screenshot")
-    data object Screenshot : PadAction()
-
     // ── Profile / Navigation ──────────────────────────────────────────────
 
     /** Switches to the next enabled layout within the active profile. */
@@ -293,7 +294,6 @@ fun PadAction.defaultIconName(): String? =
         is PadAction.MirrorFreeze -> "pause_circle"
         is PadAction.MirrorViewportEdit -> "crop_free"
         is PadAction.MirrorTouchProjection -> "touch_app"
-        is PadAction.Screenshot -> "photo_camera"
         is PadAction.FullScreenMouse -> "mouse"
         is PadAction.FullScreenKeyboard -> "keyboard"
         is PadAction.AppLauncher -> "apps"
@@ -339,28 +339,7 @@ data class PadButton(
     val buttonBorderColor: ColorOption? = null,
     val buttonBgColor: ColorOption? = null,
     val invisible: Boolean = false,
-    val imageAssetId: String? = null,
-    val showLabel: Boolean = true,
-    val showLabelBg: Boolean = false,
-    val enlargeIcon: Boolean = false,
-    val fullBleedIcon: Boolean = false,
-    val gridCol: Int? = null,
-    val gridRow: Int? = null,
-    val colSpan: Int = 1,
-    val rowSpan: Int = 1,
-    @Transient val resolvedCell: CellBounds? = null,
-) {
-    val effectiveColSpan: Int get() = colSpan.coerceAtLeast(1)
-    val effectiveRowSpan: Int get() = rowSpan.coerceAtLeast(1)
-
-    fun isWithinGrid(cols: Int, rows: Int): Boolean {
-        val c = gridCol ?: return false
-        val r = gridRow ?: return false
-        val cs = effectiveColSpan
-        val rs = effectiveRowSpan
-        return c >= 0 && r >= 0 && (c + cs) <= cols && (r + rs) <= rows
-    }
-}
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Background Touchpad configuration — per-layout relative mouse touchpad settings
@@ -381,28 +360,32 @@ data class BackgroundTouchpadConfig(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PadLayoutMode — positioning mode for PadLayout
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Serializable
-enum class PadLayoutMode {
-    FREE,
-    GRID,
-}
-
-const val MAX_GRID_COLS = 8
-const val MAX_GRID_ROWS = 6
-const val MIN_GRID_SIZE = 1
-const val DEFAULT_GRID_COLS = 5
-const val DEFAULT_GRID_ROWS = 4
-
-// ─────────────────────────────────────────────────────────────────────────────
 // PadLayout — a single button arrangement within a profile
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * A named button arrangement within a [PadProfile]. Each profile can contain
  * multiple layouts; the user switches between them at runtime.
+ *
+ * @param id                          Stable unique identifier (UUID string).
+ * @param name                        User-visible layout name.
+ * @param enabled                     Whether this layout participates in next/previous navigation.
+ * @param buttons                     All buttons placed on this layout.
+ * @param ambientDim                  Dim overlay alpha [0.0, 0.9] when screen mirror is active.
+
+ * @param mirrorSavedScale            Persisted mirror zoom level.
+ * @param mirrorSavedOffsetX          Persisted mirror pan X offset.
+ * @param mirrorSavedOffsetY          Persisted mirror pan Y offset.
+ * @param mirrorAutoStart             Remembered mirror preference for this layout. Set to
+ *                                    `true` when the user explicitly starts mirroring on
+ *                                    this layout, and to `false` when the user explicitly
+ *                                    stops mirroring or cancels the consent prompt. Runtime
+ *                                    service teardown does not mutate this flag.
+ * @param buttonColorNoMirror         Button color style used when screen mirroring is inactive.
+ *                                    Defaults to [ButtonColorStyle.ACCENTED].
+ * @param buttonColorMirror           Button color style used when screen mirroring is active
+ *                                    (ambient overlay). Defaults to [ButtonColorStyle.NEUTRAL].
+ * @param backgroundTouchpad          Per-layout background touchpad settings for relative mouse.
  */
 @Serializable
 data class PadLayout(
@@ -437,20 +420,19 @@ data class PadLayout(
     val bgImageScale: Float = 1f,
     val bgImageOffsetX: Float = 0f,
     val bgImageOffsetY: Float = 0f,
-    val bgImageFill: Boolean = false,
     val backgroundImageDim: Float = 0f,
     val backgroundTouchpad: BackgroundTouchpadConfig = BackgroundTouchpadConfig(),
-    val layoutMode: PadLayoutMode = PadLayoutMode.FREE,
-    val gridCols: Int = DEFAULT_GRID_COLS,
-    val gridRows: Int = DEFAULT_GRID_ROWS,
-    val gridShowBorders: Boolean = true,
-    val gridShowButtonBg: Boolean = true,
-) {
-    val isGridMode: Boolean get() = layoutMode == PadLayoutMode.GRID
+)
 
-    val effectiveGridCols: Int get() = gridCols.coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS)
-    val effectiveGridRows: Int get() = gridRows.coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS)
-}
+/**
+ * Returns true if this layout has no buttons, no background image, no screen cutouts,
+ * and no background touchpad enabled (i.e. is an untouched / empty layout).
+ */
+fun PadLayout.isEmpty(): Boolean =
+    buttons.isEmpty() &&
+        backgroundImagePath == null &&
+        mirrorCutouts.isEmpty() &&
+        !backgroundTouchpad.enabled
 
 // ─────────────────────────────────────────────────────────────────────────────
 @Serializable

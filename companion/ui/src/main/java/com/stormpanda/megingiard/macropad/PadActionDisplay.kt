@@ -1,9 +1,28 @@
 package com.stormpanda.megingiard.macropad
 
 import android.content.Context
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ViewQuilt
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.ControlCamera
+import androidx.compose.material.icons.rounded.CropFree
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Mouse
+import androidx.compose.material.icons.rounded.PauseCircle
+import androidx.compose.material.icons.rounded.SmartButton
+import androidx.compose.material.icons.rounded.SportsEsports
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.stormpanda.megingiard.AppLog
@@ -18,21 +37,47 @@ internal enum class ActionGroup {
     KEYBOARD,
     GAMEPAD,
     MOUSE,
+    APP_LAUNCHER,
     MACRO,
     LAYOUT,
     MIRROR,
     OTHER,
 }
 
+internal fun ActionGroup.icon(): ImageVector =
+    when (this) {
+        ActionGroup.KEYBOARD -> Icons.Rounded.Keyboard
+        ActionGroup.GAMEPAD -> Icons.Rounded.SportsEsports
+        ActionGroup.MOUSE -> Icons.Rounded.Mouse
+        ActionGroup.APP_LAUNCHER -> Icons.Rounded.Apps
+        ActionGroup.MACRO -> Icons.Rounded.SmartButton
+        ActionGroup.LAYOUT -> Icons.AutoMirrored.Rounded.ViewQuilt
+        ActionGroup.MIRROR -> Icons.Rounded.Cast
+        ActionGroup.OTHER -> Icons.Rounded.Layers
+    }
+
 internal fun ActionGroup.labelResId(): Int =
     when (this) {
         ActionGroup.KEYBOARD -> R.string.macropad_action_group_keyboard
         ActionGroup.GAMEPAD -> R.string.macropad_action_group_gamepad
         ActionGroup.MOUSE -> R.string.macropad_action_group_mouse
+        ActionGroup.APP_LAUNCHER -> R.string.macropad_action_group_app_launcher
         ActionGroup.MACRO -> R.string.macropad_action_group_macro
         ActionGroup.LAYOUT -> R.string.macropad_action_group_layout
         ActionGroup.MIRROR -> R.string.macropad_action_group_mirror
         ActionGroup.OTHER -> R.string.macropad_action_group_other
+    }
+
+internal fun ActionGroup.descriptionResId(): Int =
+    when (this) {
+        ActionGroup.KEYBOARD -> R.string.macropad_action_group_keyboard_desc
+        ActionGroup.GAMEPAD -> R.string.macropad_action_group_gamepad_desc
+        ActionGroup.MOUSE -> R.string.macropad_action_group_mouse_desc
+        ActionGroup.APP_LAUNCHER -> R.string.macropad_action_group_app_launcher_desc
+        ActionGroup.MACRO -> R.string.macropad_action_group_macro_desc
+        ActionGroup.LAYOUT -> R.string.macropad_action_group_layout_desc
+        ActionGroup.MIRROR -> R.string.macropad_action_group_mirror_desc
+        ActionGroup.OTHER -> R.string.macropad_action_group_other_desc
     }
 
 internal fun ActionGroup.actions(): List<ActionCategory> =
@@ -53,6 +98,10 @@ internal fun ActionGroup.actions(): List<ActionCategory> =
             )
         }
 
+        ActionGroup.APP_LAUNCHER -> {
+            listOf(ActionCategory.APP_LAUNCHER)
+        }
+
         ActionGroup.MACRO -> {
             listOf(ActionCategory.MACRO)
         }
@@ -69,7 +118,6 @@ internal fun ActionGroup.actions(): List<ActionCategory> =
             listOf(
                 ActionCategory.MIRROR_PLAY_STOP,
                 ActionCategory.MIRROR_FREEZE,
-                ActionCategory.MIRROR_SCREENSHOT,
                 ActionCategory.MIRROR_VIEWPORT_EDIT,
                 ActionCategory.MIRROR_TOUCH_PROJECTION,
                 ActionCategory.BACKGROUND_PEEK,
@@ -78,7 +126,6 @@ internal fun ActionGroup.actions(): List<ActionCategory> =
 
         ActionGroup.OTHER -> {
             listOf(
-                ActionCategory.APP_LAUNCHER,
                 ActionCategory.FULLSCREEN_MOUSE,
                 ActionCategory.FULLSCREEN_KEYBOARD,
             )
@@ -98,7 +145,6 @@ internal enum class ActionCategory {
     PROFILE_SWITCHER,
     MIRROR_PLAY_STOP,
     MIRROR_FREEZE,
-    MIRROR_SCREENSHOT,
     MIRROR_VIEWPORT_EDIT,
     MIRROR_TOUCH_PROJECTION,
     FULLSCREEN_MOUSE,
@@ -120,12 +166,32 @@ internal fun ActionCategory.labelResId(): Int =
         ActionCategory.PROFILE_SWITCHER -> R.string.macropad_action_profile_switcher
         ActionCategory.MIRROR_PLAY_STOP -> R.string.macropad_action_mirror_play_stop
         ActionCategory.MIRROR_FREEZE -> R.string.macropad_action_mirror_freeze
-        ActionCategory.MIRROR_SCREENSHOT -> R.string.macropad_action_mirror_screenshot
         ActionCategory.MIRROR_VIEWPORT_EDIT -> R.string.macropad_action_mirror_viewport_edit
         ActionCategory.MIRROR_TOUCH_PROJECTION -> R.string.macropad_action_mirror_touch_projection
         ActionCategory.FULLSCREEN_MOUSE -> R.string.macropad_action_fullscreen_mouse
         ActionCategory.FULLSCREEN_KEYBOARD -> R.string.macropad_action_fullscreen_keyboard
         ActionCategory.APP_LAUNCHER -> R.string.macropad_action_app_launcher
+    }
+
+internal fun ActionCategory.icon(): ImageVector =
+    when (this) {
+        ActionCategory.KEYBOARD_KEY -> Icons.Rounded.Keyboard
+        ActionCategory.GAMEPAD_BUTTON -> Icons.Rounded.SportsEsports
+        ActionCategory.MOUSE_BUTTON -> Icons.Rounded.Mouse
+        ActionCategory.SCROLL_WHEEL -> Icons.Rounded.SwapVert
+        ActionCategory.TRACKPOINT -> Icons.Rounded.ControlCamera
+        ActionCategory.MACRO -> Icons.Rounded.SmartButton
+        ActionCategory.BACKGROUND_PEEK -> Icons.Rounded.Visibility
+        ActionCategory.LAYOUT_NEXT -> Icons.AutoMirrored.Rounded.ArrowForward
+        ActionCategory.LAYOUT_PREVIOUS -> Icons.AutoMirrored.Rounded.ArrowBack
+        ActionCategory.PROFILE_SWITCHER -> Icons.Rounded.SwapHoriz
+        ActionCategory.MIRROR_PLAY_STOP -> Icons.Rounded.Cast
+        ActionCategory.MIRROR_FREEZE -> Icons.Rounded.PauseCircle
+        ActionCategory.MIRROR_VIEWPORT_EDIT -> Icons.Rounded.CropFree
+        ActionCategory.MIRROR_TOUCH_PROJECTION -> Icons.Rounded.TouchApp
+        ActionCategory.FULLSCREEN_MOUSE -> Icons.Rounded.Mouse
+        ActionCategory.FULLSCREEN_KEYBOARD -> Icons.Rounded.Keyboard
+        ActionCategory.APP_LAUNCHER -> Icons.Rounded.Apps
     }
 
 internal fun ActionCategory.defaultAction(): PadAction =
@@ -151,7 +217,12 @@ internal fun ActionCategory.defaultAction(): PadAction =
         }
 
         ActionCategory.MACRO -> {
-            PadAction.Macro("")
+            PadAction.Macro(
+                MacroPadState.activeProfile.value
+                    ?.macros
+                    ?.firstOrNull()
+                    ?.id ?: "",
+            )
         }
 
         ActionCategory.BACKGROUND_PEEK -> {
@@ -176,10 +247,6 @@ internal fun ActionCategory.defaultAction(): PadAction =
 
         ActionCategory.MIRROR_FREEZE -> {
             PadAction.MirrorFreeze
-        }
-
-        ActionCategory.MIRROR_SCREENSHOT -> {
-            PadAction.Screenshot
         }
 
         ActionCategory.MIRROR_VIEWPORT_EDIT -> {
@@ -223,15 +290,15 @@ internal fun ActionCategory.group(): ActionGroup =
 
         ActionCategory.MIRROR_PLAY_STOP,
         ActionCategory.MIRROR_FREEZE,
-        ActionCategory.MIRROR_SCREENSHOT,
         ActionCategory.MIRROR_VIEWPORT_EDIT,
         ActionCategory.MIRROR_TOUCH_PROJECTION,
         ActionCategory.BACKGROUND_PEEK,
         -> ActionGroup.MIRROR
 
+        ActionCategory.APP_LAUNCHER -> ActionGroup.APP_LAUNCHER
+
         ActionCategory.FULLSCREEN_MOUSE,
         ActionCategory.FULLSCREEN_KEYBOARD,
-        ActionCategory.APP_LAUNCHER,
         -> ActionGroup.OTHER
     }
 
@@ -249,7 +316,6 @@ internal fun PadAction.categoryResId(): Int =
         is PadAction.ProfileSwitcher -> R.string.macropad_action_profile_switcher
         is PadAction.MirrorPlayStop -> R.string.macropad_action_mirror_play_stop
         is PadAction.MirrorFreeze -> R.string.macropad_action_mirror_freeze
-        is PadAction.Screenshot -> R.string.macropad_action_mirror_screenshot
         is PadAction.MirrorViewportEdit -> R.string.macropad_action_mirror_viewport_edit
         is PadAction.MirrorTouchProjection -> R.string.macropad_action_mirror_touch_projection
         is PadAction.FullScreenMouse -> R.string.macropad_action_fullscreen_mouse
@@ -271,7 +337,6 @@ internal fun PadAction.toCategory(): ActionCategory =
         is PadAction.ProfileSwitcher -> ActionCategory.PROFILE_SWITCHER
         is PadAction.MirrorPlayStop -> ActionCategory.MIRROR_PLAY_STOP
         is PadAction.MirrorFreeze -> ActionCategory.MIRROR_FREEZE
-        is PadAction.Screenshot -> ActionCategory.MIRROR_SCREENSHOT
         is PadAction.MirrorViewportEdit -> ActionCategory.MIRROR_VIEWPORT_EDIT
         is PadAction.MirrorTouchProjection -> ActionCategory.MIRROR_TOUCH_PROJECTION
         is PadAction.FullScreenMouse -> ActionCategory.FULLSCREEN_MOUSE
@@ -305,7 +370,6 @@ internal fun ActionCategory.isEnabled(
         ActionCategory.MIRROR_FREEZE,
         ActionCategory.MIRROR_VIEWPORT_EDIT,
         ActionCategory.MIRROR_TOUCH_PROJECTION,
-        ActionCategory.MIRROR_SCREENSHOT,
         -> true
 
         ActionCategory.FULLSCREEN_MOUSE,
@@ -399,10 +463,6 @@ internal fun PadAction.displayLabel(): String {
             context.getString(R.string.macropad_action_mirror_freeze)
         }
 
-        is PadAction.Screenshot -> {
-            context.getString(R.string.macropad_action_mirror_screenshot)
-        }
-
         is PadAction.MirrorViewportEdit -> {
             context.getString(R.string.macropad_action_mirror_viewport_edit)
         }
@@ -452,6 +512,14 @@ internal fun ButtonSize.displayLabel(): String =
         ButtonSize.SIZE_2X1 -> stringResource(R.string.macropad_button_size_2x1)
         ButtonSize.SIZE_1X2 -> stringResource(R.string.macropad_button_size_1x2)
         ButtonSize.SIZE_2X2 -> stringResource(R.string.macropad_button_size_2x2)
+    }
+
+@Composable
+internal fun ButtonShape.displayLabel(): String =
+    when (this) {
+        ButtonShape.SQUARE -> stringResource(R.string.macropad_editor_shape_square)
+        ButtonShape.CIRCLE -> stringResource(R.string.macropad_editor_shape_circle)
+        ButtonShape.ICON_ONLY -> stringResource(R.string.macropad_editor_shape_icon_only)
     }
 
 internal fun MouseButton.displayLabel(): String =
@@ -522,6 +590,102 @@ internal fun gamepadCodeDisplayLabel(
             )
         }
 
+        GamepadKeycodes.BTN_DPAD_UP -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_up)
+        }
+
+        GamepadKeycodes.BTN_DPAD_DOWN -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_down)
+        }
+
+        GamepadKeycodes.BTN_DPAD_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_left)
+        }
+
+        GamepadKeycodes.BTN_DPAD_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_right)
+        }
+
+        GamepadKeycodes.CODE_DPAD_UP_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_up_left)
+        }
+
+        GamepadKeycodes.CODE_DPAD_UP_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_up_right)
+        }
+
+        GamepadKeycodes.CODE_DPAD_DOWN_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_down_left)
+        }
+
+        GamepadKeycodes.CODE_DPAD_DOWN_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_dpad_down_right)
+        }
+
+        GamepadKeycodes.CODE_LS_UP -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_up)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_down)
+        }
+
+        GamepadKeycodes.CODE_LS_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_left)
+        }
+
+        GamepadKeycodes.CODE_LS_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_right)
+        }
+
+        GamepadKeycodes.CODE_LS_UP_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_up_left)
+        }
+
+        GamepadKeycodes.CODE_LS_UP_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_up_right)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_down_left)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_ls_down_right)
+        }
+
+        GamepadKeycodes.CODE_RS_UP -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_up)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_down)
+        }
+
+        GamepadKeycodes.CODE_RS_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_left)
+        }
+
+        GamepadKeycodes.CODE_RS_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_right)
+        }
+
+        GamepadKeycodes.CODE_RS_UP_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_up_left)
+        }
+
+        GamepadKeycodes.CODE_RS_UP_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_up_right)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN_LEFT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_down_left)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN_RIGHT -> {
+            context.getString(R.string.macropad_gamepad_btn_rs_down_right)
+        }
+
         else -> {
             GamepadKeycodes.PRESETS.firstOrNull { it.code == code }?.label ?: code.toString()
         }
@@ -569,6 +733,102 @@ internal fun gamepadCodeDisplayLabel(
                 stringResource(R.string.macropad_gamepad_symbol_square),
                 stringResource(R.string.macropad_gamepad_position_west),
             )
+        }
+
+        GamepadKeycodes.BTN_DPAD_UP -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_up)
+        }
+
+        GamepadKeycodes.BTN_DPAD_DOWN -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_down)
+        }
+
+        GamepadKeycodes.BTN_DPAD_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_left)
+        }
+
+        GamepadKeycodes.BTN_DPAD_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_right)
+        }
+
+        GamepadKeycodes.CODE_DPAD_UP_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_up_left)
+        }
+
+        GamepadKeycodes.CODE_DPAD_UP_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_up_right)
+        }
+
+        GamepadKeycodes.CODE_DPAD_DOWN_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_down_left)
+        }
+
+        GamepadKeycodes.CODE_DPAD_DOWN_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_dpad_down_right)
+        }
+
+        GamepadKeycodes.CODE_LS_UP -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_up)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_down)
+        }
+
+        GamepadKeycodes.CODE_LS_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_left)
+        }
+
+        GamepadKeycodes.CODE_LS_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_right)
+        }
+
+        GamepadKeycodes.CODE_LS_UP_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_up_left)
+        }
+
+        GamepadKeycodes.CODE_LS_UP_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_up_right)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_down_left)
+        }
+
+        GamepadKeycodes.CODE_LS_DOWN_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_ls_down_right)
+        }
+
+        GamepadKeycodes.CODE_RS_UP -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_up)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_down)
+        }
+
+        GamepadKeycodes.CODE_RS_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_left)
+        }
+
+        GamepadKeycodes.CODE_RS_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_right)
+        }
+
+        GamepadKeycodes.CODE_RS_UP_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_up_left)
+        }
+
+        GamepadKeycodes.CODE_RS_UP_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_up_right)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN_LEFT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_down_left)
+        }
+
+        GamepadKeycodes.CODE_RS_DOWN_RIGHT -> {
+            stringResource(R.string.macropad_gamepad_btn_rs_down_right)
         }
 
         else -> {

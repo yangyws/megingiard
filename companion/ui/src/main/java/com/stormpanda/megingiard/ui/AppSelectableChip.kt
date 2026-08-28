@@ -1,10 +1,8 @@
 package com.stormpanda.megingiard.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -35,6 +33,7 @@ import androidx.compose.ui.unit.dp
 private val CHIP_CORNER = 20.dp
 private val CHIP_H_PADDING = 12.dp
 private val CHIP_V_PADDING = 6.dp
+private val CHIP_CONTENT_SPACING = 6.dp
 
 /**
  * A fully-rounded selectable pill chip.
@@ -45,12 +44,13 @@ private val CHIP_V_PADDING = 6.dp
  * @param modifier         Optional outer modifier.
  * @param enabled          When false the chip is non-interactive and rendered at reduced opacity.
  * @param contentDescription Accessibility label; defaults to [text] when null.
+ * @param selectedContentColor Color of text and icons when selected. Defaults to [AppColors.onAccent].
+ * @param unselectedContentColor Color of text and icons when unselected. Defaults to [AppColors.onControlOverlay].
  * @param leadingIcon      Optional leading icon slot. The lambda receives the resolved content
- *                         color (onAccent when selected, onControlOverlay otherwise) so callers
+ *                         color (onAccent when selected, unselectedContentColor otherwise) so callers
  *                         can tint icons without knowing about selection state.
  * @param trailingContent  Optional trailing content slot, resolved like [leadingIcon].
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppSelectableChip(
     text: String,
@@ -58,17 +58,17 @@ fun AppSelectableChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    isDragging: Boolean = false,
     contentDescription: String? = null,
-    onDoubleClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
+    selectedContentColor: Color = LocalAppColors.current.onAccent,
+    unselectedContentColor: Color = LocalAppColors.current.onControlOverlay,
     leadingIcon: (@Composable (contentColor: Color) -> Unit)? = null,
     trailingContent: (@Composable (contentColor: Color) -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
-    val contentColor = if (selected) colors.onAccent else colors.onControlOverlay
+    val contentColor = if (selected) selectedContentColor else unselectedContentColor
     val effectiveAlpha = if (enabled) 1f else 0.38f
-    val hasCombined = onLongClick != null || onDoubleClick != null
+
+    val chipBorderColor = (if (selected) colors.accent else colors.controlOverlayBorder).copy(alpha = effectiveAlpha)
 
     Box(
         modifier =
@@ -86,27 +86,18 @@ fun AppSelectableChip(
                         }
                     ).copy(alpha = (if (selected) 0.85f else 0.5f) * effectiveAlpha),
                 ).border(
-                    if (isDragging) 1.5.dp else 1.dp,
-                    if (isDragging) Color.White else (if (selected) colors.accent else colors.controlOverlayBorder)
-                        .copy(alpha = effectiveAlpha),
+                    1.dp,
+                    chipBorderColor,
                     RoundedCornerShape(CHIP_CORNER),
-                ).then(
-                    if (hasCombined) {
-                        Modifier.combinedClickable(
-                            enabled = enabled,
-                            onClick = onClick,
-                            onDoubleClick = onDoubleClick,
-                            onLongClick = onLongClick,
-                        )
-                    } else {
-                        Modifier.clickable(enabled = enabled, onClick = onClick)
-                    },
+                ).primaryOverlayFocusable(
+                    onClick = if (enabled) onClick else null,
+                    shape = RoundedCornerShape(CHIP_CORNER),
                 ).padding(horizontal = CHIP_H_PADDING, vertical = CHIP_V_PADDING),
     ) {
         if (leadingIcon != null || trailingContent != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(CHIP_CONTENT_SPACING),
             ) {
                 leadingIcon?.invoke(contentColor.copy(alpha = effectiveAlpha))
                 Text(

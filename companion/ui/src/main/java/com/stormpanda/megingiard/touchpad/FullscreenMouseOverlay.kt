@@ -1,12 +1,10 @@
 package com.stormpanda.megingiard.touchpad
 
 import android.os.Vibrator
-import android.view.TextureView
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,19 +26,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AspectRatio
-import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.VerticalAlignBottom
-import androidx.compose.material.icons.rounded.VerticalAlignCenter
-import androidx.compose.material.icons.rounded.VerticalAlignTop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,13 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
@@ -78,7 +65,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.R
@@ -86,9 +72,10 @@ import com.stormpanda.megingiard.input.MouseInjector
 import com.stormpanda.megingiard.input.TouchInjector
 import com.stormpanda.megingiard.macropad.HapticStrength
 import com.stormpanda.megingiard.macropad.triggerHaptic
-import com.stormpanda.megingiard.mirror.LocalMirrorPresentation
-import com.stormpanda.megingiard.mirror.MirrorViewportController
+import com.stormpanda.megingiard.mirror.EmbeddedMirrorView
+import com.stormpanda.megingiard.mirror.MasterSurfaceRegistry
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
+import com.stormpanda.megingiard.mirror.ScreenCutout
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.settings.TouchpadSettings
 import com.stormpanda.megingiard.ui.LocalAppColors
@@ -99,11 +86,9 @@ import kotlinx.coroutines.withContext
 private const val TAG = "FullscreenMouseOverlay"
 
 // Layout dimensions matching the keyboard style
-private val TP_CONTAINER_HEIGHT = 320.dp
-private val TP_TOOLBAR_HEIGHT = 44.dp
 private val TP_BOTTOM_BAR_HEIGHT = 50.dp
 private val TP_GLOBE_BUTTON_WIDTH = 72.dp
-private val TP_ICON_SIZE_MEDIUM = 26.dp
+private val TP_ICON_SIZE_MEDIUM = 24.dp
 
 // Mouse 4 & 5 buttons layout dimensions
 private val TP_MOUSE_4_5_MARGIN_HORIZONTAL = 4.dp
@@ -139,9 +124,6 @@ fun FullscreenMouseOverlay() {
     val touchpadMirroringEnabled by TouchpadSettings.touchpadMirroringEnabled.collectAsState()
     val touchpadMirrorDim by TouchpadSettings.touchpadMirrorDim.collectAsState()
     val isCapturing by ScreenCaptureManager.isCapturing.collectAsState()
-    val touchpadPosition by TouchpadSettings.touchpadPosition.collectAsState()
-    val touchpadFillMode by TouchpadSettings.touchpadFillMode.collectAsState()
-    val touchpadMouseMiddleMode by TouchpadSettings.touchpadMouseMiddleMode.collectAsState()
     val isMirroringActive = !touchpadUseMouse && touchpadMirroringEnabled && isCapturing
 
     val useMouseState = rememberUpdatedState(touchpadUseMouse)
@@ -180,13 +162,6 @@ fun FullscreenMouseOverlay() {
 
     val pointersInsideTouchpad = remember { HashSet<Long>() }
     var hasActivePointers by remember { mutableStateOf(false) }
-    val overlayTransitionHaptics by SettingsManager.overlayTransitionHaptics.collectAsState()
-
-    LaunchedEffect(Unit) {
-        if (overlayTransitionHaptics && vibrator != null) {
-            triggerHaptic(vibrator, HapticStrength.LIGHT)
-        }
-    }
 
     // Injector Lifecycle
     LaunchedEffect(touchpadUseMouse) {
@@ -210,15 +185,10 @@ fun FullscreenMouseOverlay() {
                 AppStateManager.setWasMirroringStartedByTouchpad(true)
                 AppStateManager.requestMirrorStart()
             }
-            MirrorViewportController.resetViewport()
-            ScreenCaptureManager.setFollowActive(false)
         } else {
             if (AppStateManager.wasMirroringStartedByTouchpad.value) {
                 AppStateManager.requestMirrorStop()
                 AppStateManager.setWasMirroringStartedByTouchpad(false)
-            }
-            if (isCapturing) {
-                MirrorViewportController.restoreFromLayout()
             }
         }
     }
@@ -274,10 +244,11 @@ fun FullscreenMouseOverlay() {
                                             }
                                         val clampedX = localPos.x.coerceIn(0f, sw)
                                         val clampedY = localPos.y.coerceIn(0f, sh)
+                                        val isInside = inner != null && outer != null && localPos.x in 0f..sw && localPos.y in 0f..sh
 
                                         when (event.type) {
                                             PointerEventType.Press -> {
-                                                if (!change.previousPressed) {
+                                                if (!change.previousPressed && isInside) {
                                                     pointersInsideTouchpad.add(id)
                                                     if (!change.isConsumed) {
                                                         processor.onPress(
@@ -293,17 +264,28 @@ fun FullscreenMouseOverlay() {
                                             }
 
                                             PointerEventType.Move -> {
-                                                if (wasTracked && !change.isConsumed) {
-                                                    val delta = change.positionChange()
-                                                    processor.onMove(
-                                                        pointerId = id,
-                                                        x = clampedX,
-                                                        y = clampedY,
-                                                        deltaX = delta.x,
-                                                        deltaY = delta.y,
-                                                        surfaceW = sw,
-                                                        surfaceH = sh,
-                                                    )
+                                                if (wasTracked) {
+                                                    if (!isInside && !useMouseState.value) {
+                                                        pointersInsideTouchpad.remove(id)
+                                                        processor.onRelease(
+                                                            pointerId = id,
+                                                            x = clampedX,
+                                                            y = clampedY,
+                                                            surfaceW = sw,
+                                                            surfaceH = sh,
+                                                        )
+                                                    } else if (!change.isConsumed) {
+                                                        val delta = change.positionChange()
+                                                        processor.onMove(
+                                                            pointerId = id,
+                                                            x = clampedX,
+                                                            y = clampedY,
+                                                            deltaX = delta.x,
+                                                            deltaY = delta.y,
+                                                            surfaceW = sw,
+                                                            surfaceH = sh,
+                                                        )
+                                                    }
                                                 }
                                             }
 
@@ -387,29 +369,11 @@ fun FullscreenMouseOverlay() {
                                             onUp = { MouseInjector.leftUp() },
                                             modifier = Modifier.weight(1.2f).fillMaxHeight(),
                                         )
-                                        if (touchpadMouseMiddleMode == "SCROLL") {
-                                            Column(
-                                                modifier = Modifier.weight(0.45f).fillMaxHeight(),
-                                                verticalArrangement = Arrangement.spacedBy(3.dp),
-                                            ) {
-                                                TouchpadMouseButton(
-                                                    onDown = { MouseInjector.scrollWheel(1) },
-                                                    icon = Icons.Rounded.KeyboardArrowUp,
-                                                    modifier = Modifier.fillMaxWidth().weight(1f),
-                                                )
-                                                TouchpadMouseButton(
-                                                    onDown = { MouseInjector.scrollWheel(-1) },
-                                                    icon = Icons.Rounded.KeyboardArrowDown,
-                                                    modifier = Modifier.fillMaxWidth().weight(1f),
-                                                )
-                                            }
-                                        } else {
-                                            TouchpadMouseButton(
-                                                onDown = { MouseInjector.middleDown() },
-                                                onUp = { MouseInjector.middleUp() },
-                                                modifier = Modifier.weight(0.45f).fillMaxHeight(),
-                                            )
-                                        }
+                                        TouchpadMouseButton(
+                                            onDown = { MouseInjector.middleDown() },
+                                            onUp = { MouseInjector.middleUp() },
+                                            modifier = Modifier.weight(0.4f).fillMaxHeight(),
+                                        )
                                         TouchpadMouseButton(
                                             onDown = { MouseInjector.rightDown() },
                                             onUp = { MouseInjector.rightUp() },
@@ -446,64 +410,39 @@ fun FullscreenMouseOverlay() {
                                 }
                             }
                         } else {
-                            val touchAlignment =
-                                when (touchpadPosition) {
-                                    "TOP" -> Alignment.TopCenter
-                                    "CENTER" -> Alignment.Center
-                                    else -> Alignment.BottomCenter
-                                }
-                            val isFill = touchpadFillMode == "FILL"
-
                             Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = touchAlignment,
+                                modifier =
+                                    Modifier
+                                        .padding(
+                                            top = 8.dp,
+                                            bottom = TP_BOTTOM_BAR_HEIGHT + 4.dp,
+                                            start = 8.dp,
+                                            end = 8.dp,
+                                        ).aspectRatio(16f / 9f)
+                                        .onGloballyPositioned { innerCoords = it }
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isMirroringActive) Color.Transparent else colors.appBackground)
+                                        .border(
+                                            width = 1.dp,
+                                            brush = insetBezelBrush,
+                                            shape = RoundedCornerShape(12.dp),
+                                        ),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .padding(
-                                                top = if (touchpadPosition == "TOP") 4.dp else 8.dp,
-                                                bottom = TP_BOTTOM_BAR_HEIGHT + (if (touchpadPosition == "BOTTOM") 2.dp else 4.dp),
-                                                start = 8.dp,
-                                                end = 8.dp,
-                                            )
-                                            .then(
-                                                if (isFill) {
-                                                    Modifier.fillMaxSize()
-                                                } else {
-                                                    Modifier.aspectRatio(16f / 9f, matchHeightConstraintsFirst = true)
-                                                },
-                                            )
-                                            .onGloballyPositioned { innerCoords = it }
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(if (isMirroringActive) Color.Transparent else colors.appBackground)
-                                            .border(
-                                                width = 1.dp,
-                                                brush = insetBezelBrush,
-                                                shape = RoundedCornerShape(12.dp),
-                                            ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    if (isMirroringActive) {
-                                        val presentation = LocalMirrorPresentation.current
-                                        if (presentation != null) {
-                                            AndroidView(
-                                                factory = { ctx ->
-                                                    presentation.acquireMasterTextureView() ?: TextureView(ctx)
-                                                },
-                                                modifier = Modifier.fillMaxSize(),
-                                                onRelease = { view ->
-                                                    presentation.releaseMasterTextureView(view)
-                                                },
-                                            )
-                                        }
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxSize()
-                                                    .background(Color.Black.copy(alpha = touchpadMirrorDim / 100f)),
-                                        )
-                                    }
+                                if (isMirroringActive) {
+                                    EmbeddedMirrorView(
+                                        modifier = Modifier.fillMaxSize(),
+                                        surfaceOwner = MasterSurfaceRegistry.OWNER_TOUCHPAD,
+                                        surfacePriority = MasterSurfaceRegistry.PRIORITY_TOUCHPAD,
+                                        overrideCutouts = listOf(ScreenCutout.FULLSCREEN),
+                                        showLayoutBackground = false,
+                                    )
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = touchpadMirrorDim / 100f)),
+                                    )
                                 }
                             }
                         }
@@ -519,7 +458,7 @@ fun FullscreenMouseOverlay() {
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(TP_BOTTOM_BAR_HEIGHT)
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 16.dp),
         ) {
             // Left-aligned: Collapse button
             Row(
@@ -532,7 +471,7 @@ fun FullscreenMouseOverlay() {
                     modifier =
                         Modifier
                             .fillMaxHeight()
-                            .width(40.dp)
+                            .width(TP_GLOBE_BUTTON_WIDTH)
                             .offset(y = (-3).dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(if (isPressed) colors.keyPressed else Color.Transparent)
@@ -540,12 +479,7 @@ fun FullscreenMouseOverlay() {
                                 enabled = !hasActivePointers,
                                 interactionSource = interactionSource,
                                 indication = null,
-                                onClick = {
-                                    if (overlayTransitionHaptics && vibrator != null) {
-                                        triggerHaptic(vibrator, HapticStrength.LIGHT)
-                                    }
-                                    AppStateManager.setFullscreenMouseActive(false)
-                                },
+                                onClick = { AppStateManager.setFullscreenMouseActive(false) },
                             ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -569,84 +503,20 @@ fun FullscreenMouseOverlay() {
                 )
             }
 
-            // Right-aligned: Touchpad Controls (Position, Fill, Play/Pause) + Settings
+            // Right-aligned: Play/Pause (conditional) + Settings buttons
             Row(
                 modifier = Modifier.fillMaxHeight().align(Alignment.CenterEnd),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (!touchpadUseMouse) {
-                    val nextPos =
-                        when (touchpadPosition) {
-                            "BOTTOM" -> "CENTER"
-                            "CENTER" -> "TOP"
-                            else -> "BOTTOM"
-                        }
-
-                    // Position Cycle button (only in 16:9 mode, not in Fill mode)
-                    if (touchpadFillMode != "FILL") {
-                        val interactionSourcePos = remember { MutableInteractionSource() }
-                        val isPosPressed by interactionSourcePos.collectIsPressedAsState()
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxHeight()
-                                    .width(36.dp)
-                                    .offset(y = (-3).dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isPosPressed) colors.keyPressed else Color.Transparent)
-                                    .clickable(
-                                        interactionSource = interactionSourcePos,
-                                        indication = null,
-                                        onClick = {
-                                            TouchpadSettings.setTouchpadPosition(nextPos)
-                                        },
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TouchpadPositionIcon(
-                                targetPosition = nextPos,
-                                tint = colors.onSurface.copy(alpha = 0.85f),
-                            )
-                        }
-                    }
-
-                    // Fill Mode Toggle button (Action-oriented: Shows target mode to switch to)
-                    val interactionSourceFill = remember { MutableInteractionSource() }
-                    val isFillPressed by interactionSourceFill.collectIsPressedAsState()
-                    val isFill = touchpadFillMode == "FILL"
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxHeight()
-                                .width(36.dp)
-                                .offset(y = (-3).dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isFillPressed) colors.keyPressed else Color.Transparent)
-                                .clickable(
-                                    interactionSource = interactionSourceFill,
-                                    indication = null,
-                                    onClick = {
-                                        TouchpadSettings.setTouchpadFillMode(if (isFill) "FIT_16_9" else "FILL")
-                                    },
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        TouchpadFillModeIcon(
-                            isFill = isFill,
-                            targetPosition = touchpadPosition,
-                            tint = colors.onSurface.copy(alpha = 0.85f),
-                        )
-                    }
-
-                    // Play/Pause button
                     val interactionSourcePlay = remember { MutableInteractionSource() }
                     val isPlayPressed by interactionSourcePlay.collectIsPressedAsState()
                     Box(
                         modifier =
                             Modifier
                                 .fillMaxHeight()
-                                .width(36.dp)
+                                .width(TP_GLOBE_BUTTON_WIDTH)
                                 .offset(y = (-3).dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (isPlayPressed) colors.keyPressed else Color.Transparent)
@@ -662,40 +532,7 @@ fun FullscreenMouseOverlay() {
                         Icon(
                             imageVector = if (touchpadMirroringEnabled) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = stringResource(R.string.cd_touchpad_toggle_mirroring),
-                            tint = colors.onSurface.copy(alpha = 0.85f),
-                            modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
-                        )
-                    }
-                }
-
-                if (touchpadUseMouse) {
-                    // Action-oriented: If in SCROLL, shows Mouse icon (click to switch to Middle Click).
-                    // If in CLICK, shows SwapVert icon (click to switch to Scroll Wheel).
-                    val interactionSourceMiddleMode = remember { MutableInteractionSource() }
-                    val isMiddleModePressed by interactionSourceMiddleMode.collectIsPressedAsState()
-                    val middleActionIcon = if (touchpadMouseMiddleMode == "SCROLL") Icons.Rounded.Mouse else Icons.Rounded.SwapVert
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxHeight()
-                                .width(36.dp)
-                                .offset(y = (-3).dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isMiddleModePressed) colors.keyPressed else Color.Transparent)
-                                .clickable(
-                                    interactionSource = interactionSourceMiddleMode,
-                                    indication = null,
-                                    onClick = {
-                                        val nextMode = if (touchpadMouseMiddleMode == "SCROLL") "CLICK" else "SCROLL"
-                                        TouchpadSettings.setTouchpadMouseMiddleMode(nextMode)
-                                    },
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = middleActionIcon,
-                            contentDescription = stringResource(R.string.cd_touchpad_mouse_middle_mode),
-                            tint = colors.onSurface.copy(alpha = 0.85f),
+                            tint = colors.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.size(TP_ICON_SIZE_MEDIUM),
                         )
                     }
@@ -707,16 +544,14 @@ fun FullscreenMouseOverlay() {
                     modifier =
                         Modifier
                             .fillMaxHeight()
-                            .width(36.dp)
+                            .width(TP_GLOBE_BUTTON_WIDTH)
                             .offset(y = (-3).dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(if (isSettingsPressed) colors.keyPressed else Color.Transparent)
                             .clickable(
                                 interactionSource = interactionSourceSettings,
                                 indication = null,
-                                onClick = {
-                                    AppStateManager.setTouchpadSettingsOpen(true)
-                                },
+                                onClick = { AppStateManager.setTouchpadSettingsOpen(true) },
                             ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -735,10 +570,9 @@ fun FullscreenMouseOverlay() {
 @Composable
 private fun TouchpadMouseButton(
     onDown: () -> Unit,
-    onUp: () -> Unit = {},
+    onUp: () -> Unit,
     modifier: Modifier = Modifier,
     text: String? = null,
-    icon: ImageVector? = null,
 ) {
     var pressed by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -825,14 +659,7 @@ private fun TouchpadMouseButton(
                     ),
             contentAlignment = Alignment.Center,
         ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = text,
-                    tint = colors.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(18.dp),
-                )
-            } else if (text != null) {
+            if (text != null) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelSmall,
@@ -900,7 +727,7 @@ private fun ModeToggleButton(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = stringResource(R.string.touchpad_mode_mouse),
+                        text = "Mouse",
                         color = mouseColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -933,7 +760,7 @@ private fun ModeToggleButton(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.touchpad_mode_touch),
+                        text = "Touch",
                         color = touchColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -943,89 +770,3 @@ private fun ModeToggleButton(
         }
     }
 }
-
-/**
- * Action-oriented Touchpad Position icon (Solid Material Surface style).
- * Displays an outer solid miniature display frame with a solid, bright target position block
- * (TOP, CENTER, or BOTTOM) that clicking will switch to.
- */
-@Composable
-private fun TouchpadPositionIcon(
-    targetPosition: String,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Canvas(modifier = modifier.size(26.dp, 22.dp)) {
-        val strokeWidth = 1.5.dp.toPx()
-        val cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
-        val innerCornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
-
-        // Outer display background
-        drawRoundRect(
-            color = tint.copy(alpha = 0.15f),
-            topLeft = Offset.Zero,
-            size = size,
-            cornerRadius = cornerRadius,
-        )
-
-        // Outer display frame border
-        drawRoundRect(
-            color = tint.copy(alpha = 0.50f),
-            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-            size = Size(size.width - strokeWidth, size.height - strokeWidth),
-            cornerRadius = cornerRadius,
-            style = Stroke(width = strokeWidth),
-        )
-
-        // Inner solid target position block (prominent solid block matching Settings gear weight)
-        val padMarginX = 2.5.dp.toPx()
-        val padWidth = size.width - (padMarginX * 2)
-        val padHeight = 8.5.dp.toPx()
-        val padTop =
-            when (targetPosition) {
-                "TOP" -> 2.5.dp.toPx()
-                "CENTER" -> (size.height - padHeight) / 2f
-                else -> size.height - 2.5.dp.toPx() - padHeight
-            }
-
-        // Inner solid block
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(padMarginX, padTop),
-            size = Size(padWidth, padHeight),
-            cornerRadius = innerCornerRadius,
-        )
-    }
-}
-
-/**
- * Action-oriented Fill Mode icon displaying the target state to switch to (Solid Material Surface style).
- * When in FILL mode -> renders [TouchpadPositionIcon] indicating the exact 16:9 position that clicking
- * will return to.
- * When in FIT_16_9 mode -> depicts fullscreen expand icon (click to expand to full screen).
- */
-@Composable
-private fun TouchpadFillModeIcon(
-    isFill: Boolean,
-    targetPosition: String,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    if (isFill) {
-        // In FILL mode -> action is to switch back to 16:9 at targetPosition, using the exact position icon
-        TouchpadPositionIcon(
-            targetPosition = targetPosition,
-            tint = tint,
-            modifier = modifier,
-        )
-    } else {
-        // In FIT_16_9 mode -> action is to expand to full bleed
-        Icon(
-            imageVector = Icons.Rounded.Fullscreen,
-            contentDescription = stringResource(R.string.cd_touchpad_fill_mode),
-            tint = tint,
-            modifier = modifier.size(TP_ICON_SIZE_MEDIUM),
-        )
-    }
-}
-

@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.Gamepad
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.rounded.Visibility
@@ -83,7 +82,6 @@ import com.stormpanda.megingiard.macropad.MaterialSymbol
 import com.stormpanda.megingiard.macropad.PadLayout
 import com.stormpanda.megingiard.macropad.PadProfile
 import com.stormpanda.megingiard.macropad.ProfileAssociation
-import com.stormpanda.megingiard.mirror.ScreenCutout
 import com.stormpanda.megingiard.session.ActiveGameSession
 import com.stormpanda.megingiard.session.EmulatorDetectionFunnel
 import com.stormpanda.megingiard.update.UpdateManager
@@ -102,7 +100,6 @@ private val IH_PADDING_SCREEN = 20.dp
 private val IH_PADDING_HEADER_TOP = 12.dp
 private val IH_PADDING_HEADER_BOTTOM = 8.dp
 private val IH_SPACING_CARD = 12.dp
-private val IH_SPACING_SECTION = 16.dp
 private val IH_SPACING_GRID = 12.dp
 private val IH_HERO_ICON_SIZE = 32.dp
 private val IH_HERO_ICON_BG_SIZE = 56.dp
@@ -150,11 +147,13 @@ fun IntegrationHomeScreen(modifier: Modifier = Modifier) {
     val hoveredSecondaryColor by AppStateManager.hoveredAppSecondaryColor.collectAsState()
     val hoveredPackage by AppStateManager.hoveredAppPackageName.collectAsState()
     val hoveredRomPath by AppStateManager.hoveredRomPath.collectAsState()
+    val hoveredRomIdentifier by AppStateManager.hoveredRomIdentifier.collectAsState()
     val hoveredSystemId by AppStateManager.hoveredSystemId.collectAsState()
     val activeSession by EmulatorDetectionFunnel.activeSession.collectAsState()
     val lastDetectedSession by EmulatorDetectionFunnel.lastDetectedSession.collectAsState()
     val focusedAppPackageName by AppStateManager.focusedAppPackageName.collectAsState()
     val focusedRomPath by AppStateManager.focusedRomPath.collectAsState()
+    val focusedRomIdentifier by AppStateManager.focusedRomIdentifier.collectAsState()
 
     val isGameFocus = isClientActive && clientPackage?.startsWith(MegingiardIpcContract.GAMEFOCUS_PACKAGE) == true
 
@@ -324,22 +323,26 @@ fun IntegrationHomeScreen(modifier: Modifier = Modifier) {
                         hoveredPackage,
                         hoveredAppLabel,
                         hoveredRomPath,
+                        hoveredRomIdentifier,
                         hoveredSystemId,
                         activeSession,
                         lastDetectedSession,
                         focusedAppPackageName,
                         focusedRomPath,
+                        focusedRomIdentifier,
                         installedApps,
                     ) {
                         resolveTargetAppInfo(
                             hoveredPackage = hoveredPackage,
                             hoveredAppLabel = hoveredAppLabel,
                             hoveredRomPath = hoveredRomPath,
+                            hoveredRomIdentifier = hoveredRomIdentifier,
                             hoveredSystemId = hoveredSystemId,
                             activeSession = activeSession,
                             lastDetectedSession = lastDetectedSession,
                             focusedAppPackageName = focusedAppPackageName,
                             focusedRomPath = focusedRomPath,
+                            focusedRomIdentifier = focusedRomIdentifier,
                             installedApps = installedApps,
                             resolveAppLabel = { pkg -> resolveAppLabel(context, pkg) },
                         )
@@ -348,28 +351,29 @@ fun IntegrationHomeScreen(modifier: Modifier = Modifier) {
                 val targetPkg = targetInfo.pkg
                 val targetLabel = targetInfo.label
                 val targetRom = targetInfo.romPath
+                val targetRomIdentifier = targetInfo.romIdentifier ?: targetInfo.romPath
                 val targetSystem = targetInfo.systemId
 
                 val associatedProfile =
-                    remember(profiles, targetPkg, targetRom, targetSystem) {
+                    remember(profiles, targetPkg, targetRomIdentifier, targetSystem) {
                         if (targetPkg == null) {
                             null
                         } else {
                             profiles.firstOrNull { profile ->
                                 profile.association?.romFileName != null &&
-                                    profile.matches(targetPkg, targetRom, targetSystem)
+                                    profile.matches(targetPkg, targetRomIdentifier, targetSystem)
                             } ?: profiles.firstOrNull { profile ->
                                 profile.association?.romFileName == null &&
-                                    profile.matches(targetPkg, targetRom, targetSystem)
+                                    profile.matches(targetPkg, targetRomIdentifier, targetSystem)
                             }
                         }
                     }
 
-                LaunchedEffect(targetPkg, targetRom, associatedProfile?.id) {
+                LaunchedEffect(targetPkg, targetRomIdentifier, associatedProfile?.id) {
                     if (targetPkg != null) {
                         AppLog.d(
                             TAG,
-                            "Hero target resolved: pkg=$targetPkg, rom=$targetRom, sys=$targetSystem, profile=${associatedProfile?.name}",
+                            "Hero target resolved: pkg=$targetPkg, rom=$targetRom, romId=$targetRomIdentifier, sys=$targetSystem, profile=${associatedProfile?.name}",
                         )
                     }
                 }
@@ -378,6 +382,7 @@ fun IntegrationHomeScreen(modifier: Modifier = Modifier) {
                     targetPackage = targetPkg,
                     targetLabel = targetLabel,
                     targetRomPath = targetRom,
+                    targetRomIdentifier = targetRomIdentifier,
                     targetSystemId = targetSystem,
                     associatedProfile = associatedProfile,
                     activeProfile = activeProfile,
@@ -464,6 +469,7 @@ private fun HeroCompanionCard(
     targetPackage: String?,
     targetLabel: String?,
     targetRomPath: String?,
+    targetRomIdentifier: String? = null,
     targetSystemId: String?,
     associatedProfile: PadProfile?,
     activeProfile: PadProfile?,
@@ -529,10 +535,11 @@ private fun HeroCompanionCard(
                     )
 
                     if (hasActiveGame) {
+                        val romDisplay = targetRomIdentifier ?: targetRomPath?.substringAfterLast('/')
                         val sysInfo =
                             listOfNotNull(
                                 targetSystemId?.uppercase(),
-                                targetRomPath?.substringAfterLast('/'),
+                                romDisplay,
                             ).joinToString(" • ")
                         if (sysInfo.isNotEmpty()) {
                             Text(
@@ -580,13 +587,7 @@ private fun HeroCompanionCard(
                             Button(
                                 onClick = {
                                     MacroPadState.setActiveProfileId(associatedProfile.id)
-                                    val currentMode = AppStateManager.companionViewMode.value
-                                    val focusedPkg = AppStateManager.focusedAppPackageName.value
-                                    val focusedRom = AppStateManager.focusedRomPath.value
-                                    val matchesFocused = associatedProfile.matches(focusedPkg, focusedRom, isActiveProfile = true)
-                                    if (currentMode != CompanionViewMode.AUTO || !matchesFocused) {
-                                        AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
-                                    }
+                                    AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                                 },
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                                 colors =
@@ -664,7 +665,6 @@ private fun HeroCompanionCard(
                                                     PadLayout(
                                                         id = defaultLayoutId,
                                                         name = context.getString(R.string.integration_home_default_layout),
-                                                        mirrorCutouts = listOf(ScreenCutout.createDefault()),
                                                     ),
                                                 ),
                                             activeLayoutId = defaultLayoutId,
@@ -787,13 +787,7 @@ private fun HeroCompanionCard(
 
                     Button(
                         onClick = {
-                            val currentMode = AppStateManager.companionViewMode.value
-                            val focusedPkg = AppStateManager.focusedAppPackageName.value
-                            val focusedRom = AppStateManager.focusedRomPath.value
-                            val matchesFocused = activeProfile.matches(focusedPkg, focusedRom, isActiveProfile = true)
-                            if (currentMode != CompanionViewMode.AUTO || !matchesFocused) {
-                                AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
-                            }
+                            AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                         },
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         colors =
@@ -852,14 +846,7 @@ private fun CompanionToolsDeck(
                 colors = colors,
                 modifier = Modifier.weight(1f),
                 onClick = {
-                    val profile = activeProfile
-                    val currentMode = AppStateManager.companionViewMode.value
-                    val focusedPkg = AppStateManager.focusedAppPackageName.value
-                    val focusedRom = AppStateManager.focusedRomPath.value
-                    val matchesFocused = profile != null && profile.matches(focusedPkg, focusedRom, isActiveProfile = true)
-                    if (currentMode != CompanionViewMode.AUTO || !matchesFocused) {
-                        AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
-                    }
+                    AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                 },
             )
 
@@ -1034,6 +1021,7 @@ internal data class TargetAppInfo(
     val pkg: String?,
     val label: String?,
     val romPath: String?,
+    val romIdentifier: String? = null,
     val systemId: String?,
 )
 
@@ -1041,11 +1029,13 @@ internal fun resolveTargetAppInfo(
     hoveredPackage: String?,
     hoveredAppLabel: String?,
     hoveredRomPath: String?,
+    hoveredRomIdentifier: String? = null,
     hoveredSystemId: String?,
     activeSession: ActiveGameSession?,
     lastDetectedSession: ActiveGameSession?,
     focusedAppPackageName: String?,
     focusedRomPath: String?,
+    focusedRomIdentifier: String? = null,
     installedApps: List<InstalledAppInfo>,
     resolveAppLabel: (String) -> String? = { null },
 ): TargetAppInfo {
@@ -1063,6 +1053,7 @@ internal fun resolveTargetAppInfo(
             pkg = hovered,
             label = label,
             romPath = hoveredRomPath,
+            romIdentifier = hoveredRomIdentifier ?: hoveredRomPath?.substringAfterLast('/'),
             systemId = hoveredSystemId,
         )
     } else if (active != null) {
@@ -1070,6 +1061,7 @@ internal fun resolveTargetAppInfo(
             pkg = active.packageName,
             label = active.gameTitle,
             romPath = active.romPath,
+            romIdentifier = active.romIdentifier ?: active.romPath?.let { File(it).name } ?: active.titleId,
             systemId = active.systemId,
         )
     } else if (focused != null) {
@@ -1079,6 +1071,7 @@ internal fun resolveTargetAppInfo(
                 pkg = focused,
                 label = label,
                 romPath = last.romPath ?: focusedRomPath,
+                romIdentifier = last.romIdentifier ?: focusedRomIdentifier ?: (last.romPath ?: focusedRomPath)?.substringAfterLast('/'),
                 systemId = last.systemId,
             )
         } else {
@@ -1089,11 +1082,21 @@ internal fun resolveTargetAppInfo(
                 pkg = focused,
                 label = label,
                 romPath = focusedRomPath,
+                romIdentifier = focusedRomIdentifier ?: focusedRomPath?.substringAfterLast('/'),
                 systemId = null,
             )
         }
+    } else if (last != null) {
+        val label = last.romPath?.let { File(it).name } ?: last.gameTitle
+        TargetAppInfo(
+            pkg = last.packageName,
+            label = label,
+            romPath = last.romPath,
+            romIdentifier = last.romIdentifier ?: last.romPath?.substringAfterLast('/'),
+            systemId = last.systemId,
+        )
     } else {
-        TargetAppInfo(null, null, null, null)
+        TargetAppInfo(null, null, null, null, null)
     }
 }
 

@@ -1,12 +1,7 @@
 package com.stormpanda.megingiard.macropad
 
-import androidx.annotation.StringRes
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,353 +14,32 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.CropSquare
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.FormatColorFill
-import androidx.compose.material.icons.rounded.Grid4x4
-import androidx.compose.material.icons.rounded.GridOff
-import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.LockOpen
-import androidx.compose.material.icons.rounded.Mouse
-import androidx.compose.material.icons.rounded.TripOrigin
-import androidx.compose.material.icons.rounded.ViewColumn
-import androidx.compose.material.icons.rounded.Wallpaper
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.ui.LocalAppColors
-import java.util.Locale
-
-private val EBC_STRIKE_COLOR = Color(0xFFEF5350)
 
 private const val TAG = "EditorBaseComponents"
 
-internal val EBC_PREVIEW_DEFAULT_SIZE = 60.dp
-private const val EBC_PREVIEW_BG_ALPHA = 0.25f
-private const val EBC_PREVIEW_GRADIENT_SCALE = 2.8f
-private val EBC_PREVIEW_ICON_SIZE = 44.dp
+internal val EBC_PREVIEW_DEFAULT_SIZE = 36.dp
+private val EBC_PREVIEW_ICON_SIZE = 20.dp
 
-private val EBC_SECTION_CHEVRON_SIZE = 18.dp
-private val EBC_SECTION_HANDLE_SPACING = 6.dp
-private val EBC_SECTION_HANDLE_CORNER = 4.dp
-private val EBC_SECTION_HANDLE_END_PADDING = 8.dp
-private const val EBC_SECTION_SUMMARY_SEPARATOR = "·"
-private const val EBC_SECTION_SEPARATOR_ALPHA = 0.7f
-private val EBC_SECTION_SUMMARY_ICON_SIZE = 14.dp
-
-@Composable
-internal fun EditorSectionHeader(
-    @StringRes textRes: Int,
-    actionIcon: ImageVector? = null,
-    actionContentDescription: String? = null,
-    onActionClick: (() -> Unit)? = null,
-    expanded: Boolean = true,
-    collapsedSummary: String? = null,
-    summaryIcon: ImageVector? = null,
-    summaryIconContentDescription: String? = null,
-    onToggleExpanded: (() -> Unit)? = null,
-) {
-    val colors = LocalAppColors.current
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(colors.surfaceVariant)
-                .padding(horizontal = MPE_PADDING, vertical = MPE_SECTION_HEADER_V_PADDING - 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .weight(1f, fill = false)
-                    .then(
-                        if (onToggleExpanded != null) {
-                            Modifier
-                                .clip(RoundedCornerShape(EBC_SECTION_HANDLE_CORNER))
-                                .clickable(onClick = onToggleExpanded)
-                                .padding(end = EBC_SECTION_HANDLE_END_PADDING)
-                        } else {
-                            Modifier
-                        },
-                    ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(EBC_SECTION_HANDLE_SPACING),
-        ) {
-            if (onToggleExpanded != null) {
-                Icon(
-                    imageVector = if (expanded) Icons.Rounded.ExpandMore else Icons.Rounded.ChevronRight,
-                    contentDescription =
-                        stringResource(
-                            if (expanded) R.string.macropad_editor_group_collapse else R.string.macropad_editor_group_expand,
-                        ),
-                    tint = colors.sectionHeaderColor,
-                    modifier = Modifier.size(EBC_SECTION_CHEVRON_SIZE),
-                )
-            }
-            Text(
-                text = stringResource(textRes).uppercase(Locale.ROOT),
-                color = colors.sectionHeaderColor,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-            )
-            if (!expanded && !collapsedSummary.isNullOrBlank()) {
-                Text(
-                    text = EBC_SECTION_SUMMARY_SEPARATOR,
-                    color = colors.onSurfaceSecondary.copy(alpha = EBC_SECTION_SEPARATOR_ALPHA),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                if (summaryIcon != null) {
-                    Icon(
-                        imageVector = summaryIcon,
-                        contentDescription = summaryIconContentDescription,
-                        tint = colors.onSurface,
-                        modifier = Modifier.size(EBC_SECTION_SUMMARY_ICON_SIZE),
-                    )
-                }
-                Text(
-                    text = collapsedSummary,
-                    color = colors.onSurface,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (actionIcon != null && onActionClick != null) {
-            Row(
-                modifier =
-                    Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable(onClick = onActionClick)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    imageVector = actionIcon,
-                    contentDescription = actionContentDescription,
-                    tint = colors.accent,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    text = stringResource(R.string.macropad_editor_add),
-                    color = colors.accent,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun EditorActionChip(
-    label: String,
-    icon: ImageVector,
-    accentColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val effectiveColor = if (enabled) accentColor else accentColor.copy(alpha = 0.38f)
-    Row(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(8.dp))
-                .border(1.dp, effectiveColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                .clickable(enabled = enabled, onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = effectiveColor, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(label, color = effectiveColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-internal fun EditorToolbarIconButton(
-    label: String,
-    icon: ImageVector,
-    accentColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    onLongClick: (() -> Unit)? = null,
-    isActive: Boolean = false,
-    isStrikethrough: Boolean = false,
-) {
-    val colors = LocalAppColors.current
-    val bg = if (isActive) accentColor.copy(alpha = 0.2f) else colors.surface
-    val border = if (isActive) accentColor else colors.onSurfaceSecondary.copy(alpha = 0.3f)
-    val tint =
-        if (isStrikethrough) {
-            colors.onSurfaceSecondary.copy(alpha = 0.5f)
-        } else if (isActive) {
-            accentColor
-        } else {
-            colors.onSurface
-        }
-
-    val hasCombined = onLongClick != null
-    Box(
-        modifier =
-            modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(bg)
-                .border(1.dp, border, RoundedCornerShape(8.dp))
-                .then(
-                    if (hasCombined) {
-                        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                    } else {
-                        Modifier.clickable(onClick = onClick)
-                    }
-                ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(20.dp),
-        )
-        if (isStrikethrough) {
-            Canvas(modifier = Modifier.size(20.dp)) {
-                drawLine(
-                    color = EBC_STRIKE_COLOR,
-                    start = Offset(size.width * 0.15f, size.height * 0.15f),
-                    end = Offset(size.width * 0.85f, size.height * 0.85f),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun EditorToolbar(
-    profile: PadProfile,
-    layout: PadLayout?,
-    accentColor: Color,
-    gridMode: GridMode,
-    isCanvasLocked: Boolean,
-    onToggleCanvasLock: () -> Unit,
-    onAddButton: () -> Unit,
-    onGridModeChange: () -> Unit,
-    onManageTouchpadSettings: () -> Unit,
-    onChangeGridCols: ((Int) -> Unit)? = null,
-    onManageGridSize: (() -> Unit)? = null,
-    onToggleGridBorders: (() -> Unit)? = null,
-    onToggleGridButtonBg: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalAppColors.current
-    val buttonLabel = stringResource(R.string.macropad_editor_toolbar_button)
-
-    if (layout?.isGridMode == true) {
-        Row(
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            EditorToolbarIconButton(
-                label = stringResource(R.string.macropad_editor_thick_borders),
-                icon = Icons.Rounded.Grid4x4,
-                accentColor = accentColor,
-                onClick = { onToggleGridBorders?.invoke() },
-                isActive = layout.gridShowBorders,
-                isStrikethrough = !layout.gridShowBorders,
-            )
-            EditorToolbarIconButton(
-                label = stringResource(R.string.macropad_editor_grid_button_bg),
-                icon = Icons.Rounded.FormatColorFill,
-                accentColor = accentColor,
-                onClick = { onToggleGridButtonBg?.invoke() },
-                isActive = layout.gridShowButtonBg,
-            )
-            EditorToolbarIconButton(
-                label = stringResource(R.string.macropad_editor_grid_size),
-                icon = Icons.Rounded.GridView,
-                accentColor = accentColor,
-                onClick = { onManageGridSize?.invoke() },
-            )
-        }
-    } else {
-        val gridIcon =
-            when (gridMode) {
-                GridMode.OFF -> Icons.Rounded.GridOff
-                GridMode.RECTANGULAR -> Icons.Rounded.Grid4x4
-                GridMode.RADIAL -> Icons.Rounded.TripOrigin
-            }
-        val gridLabel = stringResource(R.string.macropad_editor_grid_toggle)
-        val touchpadLabel = stringResource(R.string.macropad_editor_touchpad_settings)
-        val lockIcon = if (isCanvasLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen
-        val lockLabel = if (isCanvasLocked) stringResource(R.string.macropad_editor_unlock) else stringResource(R.string.macropad_editor_lock)
-
-        Row(
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            EditorToolbarIconButton(
-                label = buttonLabel,
-                icon = Icons.Rounded.Add,
-                accentColor = accentColor,
-                onClick = onAddButton,
-            )
-            EditorToolbarIconButton(
-                label = lockLabel,
-                icon = lockIcon,
-                accentColor = accentColor,
-                onClick = onToggleCanvasLock,
-                isActive = !isCanvasLocked,
-            )
-            EditorToolbarIconButton(
-                label = touchpadLabel,
-                icon = Icons.Rounded.Mouse,
-                accentColor = accentColor,
-                onClick = onManageTouchpadSettings,
-            )
-            EditorToolbarIconButton(
-                label = gridLabel,
-                icon = gridIcon,
-                accentColor = accentColor,
-                onClick = onGridModeChange,
-                isActive = gridMode != GridMode.OFF,
-            )
-        }
-    }
-}
+private val EBC_INFO_BOX_RADIUS = 12.dp
+private val EBC_INFO_BOX_BORDER_WIDTH = 1.dp
+private const val EBC_INFO_BOX_BG_ALPHA = 0.45f
+private const val EBC_INFO_BOX_BORDER_ALPHA = 0.25f
+private val EBC_INFO_BOX_PADDING_H = 16.dp
+private val EBC_INFO_BOX_PADDING_V = 12.dp
+private val EBC_ARROW_SIZE = 14.dp
+private const val EBC_ARROW_ALPHA = 0.6f
 
 @Composable
 internal fun SwordsButtonPreview(
@@ -374,17 +48,16 @@ internal fun SwordsButtonPreview(
     bgColor: Color,
     modifier: Modifier = Modifier,
     size: Dp = EBC_PREVIEW_DEFAULT_SIZE,
+    isIconOnly: Boolean = false,
 ) {
     PadButtonFace(
         width = size,
         height = size,
         shape = CircleShape,
-        isIconOnly = false,
+        isIconOnly = isIconOnly,
         isDeviceDisabled = false,
         borderColor = borderColor,
         bgColor = bgColor,
-        bgAlpha = EBC_PREVIEW_BG_ALPHA,
-        gradientScale = EBC_PREVIEW_GRADIENT_SCALE,
         modifier = modifier,
     ) {
         MaterialSymbol(
@@ -393,5 +66,69 @@ internal fun SwordsButtonPreview(
             tint = textColor,
             filled = true,
         )
+    }
+}
+
+/**
+ * Gamepad-first themed info banner displaying saved style vs in-flight changes above save buttons.
+ */
+@Composable
+internal fun ColorPreviewInfoBox(
+    title: String,
+    description: String,
+    savedPreview: @Composable () -> Unit,
+    currentPreview: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalAppColors.current
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(
+                    color = colors.surface.copy(alpha = EBC_INFO_BOX_BG_ALPHA),
+                    shape = RoundedCornerShape(EBC_INFO_BOX_RADIUS),
+                ).border(
+                    width = EBC_INFO_BOX_BORDER_WIDTH,
+                    color = colors.onSurfaceSecondary.copy(alpha = EBC_INFO_BOX_BORDER_ALPHA),
+                    shape = RoundedCornerShape(EBC_INFO_BOX_RADIUS),
+                ).padding(horizontal = EBC_INFO_BOX_PADDING_H, vertical = EBC_INFO_BOX_PADDING_V),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = colors.onSurface,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = description,
+                    color = colors.onSurfaceSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                savedPreview()
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                    contentDescription = null,
+                    tint = colors.onSurfaceSecondary.copy(alpha = EBC_ARROW_ALPHA),
+                    modifier = Modifier.size(EBC_ARROW_SIZE),
+                )
+                currentPreview()
+            }
+        }
     }
 }

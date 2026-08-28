@@ -48,17 +48,21 @@ object MegingiardIpcContract {
         val pm = context.packageManager
         val isDebug = context.packageName.endsWith(".debug") || context.packageName.contains(".debug")
 
+        val isHostCompanionApp =
+            context.packageName == "com.stormpanda.megingiard" || context.packageName == "com.stormpanda.megingiard.debug"
+
         AUTHORITY =
-            if (context.packageName.startsWith("com.stormpanda.megingiard")) {
+            if (isHostCompanionApp) {
                 if (isDebug) "com.stormpanda.megingiard.debug.provider" else "com.stormpanda.megingiard.provider"
             } else {
                 val releaseInstalled = isPackageInstalled(pm, "com.stormpanda.megingiard")
                 val debugInstalled = isPackageInstalled(pm, "com.stormpanda.megingiard.debug")
                 when {
                     isDebug && debugInstalled -> "com.stormpanda.megingiard.debug.provider"
+                    !isDebug && releaseInstalled -> "com.stormpanda.megingiard.provider"
                     releaseInstalled -> "com.stormpanda.megingiard.provider"
                     debugInstalled -> "com.stormpanda.megingiard.debug.provider"
-                    else -> "com.stormpanda.megingiard.provider"
+                    else -> if (isDebug) "com.stormpanda.megingiard.debug.provider" else "com.stormpanda.megingiard.provider"
                 }
             }
 
@@ -89,9 +93,11 @@ object MegingiardIpcContract {
     const val COLUMN_IS_ACTIVE = "is_active"
     const val COLUMN_FOCUSED_PACKAGE = "focused_package"
     const val COLUMN_FOCUSED_ROM_PATH = "focused_rom_path"
+    const val COLUMN_FOCUSED_ROM_IDENTIFIER = "focused_rom_identifier"
     const val COLUMN_HOVERED_PACKAGE = "hovered_package"
     const val COLUMN_HOVERED_LABEL = "hovered_label"
     const val COLUMN_HOVERED_ROM_PATH = "hovered_rom_path"
+    const val COLUMN_HOVERED_ROM_IDENTIFIER = "hovered_rom_identifier"
     const val COLUMN_HOVERED_SYSTEM_ID = "hovered_system_id"
     const val COLUMN_HOVERED_PRIMARY_COLOR = "hovered_primary_color"
     const val COLUMN_HOVERED_SECONDARY_COLOR = "hovered_secondary_color"

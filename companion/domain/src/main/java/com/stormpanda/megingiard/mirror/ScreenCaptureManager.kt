@@ -69,6 +69,9 @@ object ScreenCaptureManager {
     private val _screenshotRequested = MutableStateFlow(false)
     val screenshotRequested: StateFlow<Boolean> = _screenshotRequested.asStateFlow()
 
+    private val _pendingScreenshotTarget = MutableStateFlow<ScreenshotTarget?>(null)
+    val pendingScreenshotTarget: StateFlow<ScreenshotTarget?> = _pendingScreenshotTarget.asStateFlow()
+
     private val _screenshotPreview = MutableStateFlow<Bitmap?>(null)
     val screenshotPreview: StateFlow<Bitmap?> = _screenshotPreview.asStateFlow()
 
@@ -77,9 +80,6 @@ object ScreenCaptureManager {
 
     private val _isFollowActive = MutableStateFlow(false)
     val isFollowActive: StateFlow<Boolean> = _isFollowActive.asStateFlow()
-
-    private val _isPrivilegedMirror = MutableStateFlow(false)
-    val isPrivilegedMirror: StateFlow<Boolean> = _isPrivilegedMirror.asStateFlow()
 
     private var activeLayoutJob: Job? = null
     private var activeCutoutsJob: Job? = null
@@ -197,9 +197,9 @@ object ScreenCaptureManager {
         _isFrozen.value = next
     }
 
-    fun requestScreenshot(cutoutId: String? = null) {
-        AppLog.i(TAG, "requestScreenshot(cutoutId=$cutoutId)")
-        _screenshotRequest.value = ScreenshotRequest(System.currentTimeMillis(), cutoutId)
+    fun requestScreenshot(target: ScreenshotTarget = ScreenshotTarget.TOP) {
+        AppLog.d(TAG, "requestScreenshot(target=$target)")
+        _pendingScreenshotTarget.value = target
         _screenshotRequested.value = true
     }
 
@@ -207,6 +207,7 @@ object ScreenCaptureManager {
         AppLog.d(TAG, "consumeScreenshotRequest")
         _screenshotRequest.value = null
         _screenshotRequested.value = false
+        _pendingScreenshotTarget.value = null
     }
 
     fun showScreenshotPreview(bitmap: Bitmap) {
@@ -376,11 +377,6 @@ object ScreenCaptureManager {
                     delay(16)
                 }
             }
-    }
-
-    fun setPrivilegedMirror(active: Boolean) {
-        AppLog.d(TAG, "setPrivilegedMirror($active)")
-        _isPrivilegedMirror.value = active
     }
 
     /** Resets all transient mirror session state (lock, projection, freeze, follow). */
