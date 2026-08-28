@@ -136,6 +136,7 @@ private val MPE_EMPTY_PADDING_V = 12.dp
 private const val MPE_BUTTON_HEADER_COUNT = 5
 private const val MPE_CANVAS_WIDTH_PX = 1920f
 private const val MPE_CANVAS_HEIGHT_PX = 1080f
+private const val MPE_MOVE_STEP_NORMALIZED = 0.015f
 private const val MPE_EDGE_MARGIN = 0.05f
 private const val MPE_MOVE_INITIAL_DELAY_MS = 250L
 private const val MPE_MOVE_START_DELAY_MS = 80L
@@ -2759,16 +2760,29 @@ private fun EditButtonPositionsSubPageContent(
     ) {
         val currentLayout = MacroPadState.activeLayout.value ?: return
         val targetBtn = currentLayout.buttons.firstOrNull { it.id == btnId } ?: return
-        val stepX = 1f / MPE_CANVAS_WIDTH_PX
-        val stepY = 1f / MPE_CANVAS_HEIGHT_PX
-        val newX = (targetBtn.posX + dx * stepX).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
-        val newY = (targetBtn.posY + dy * stepY).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
-        if (newX != targetBtn.posX || newY != targetBtn.posY) {
-            val updated =
-                currentLayout.buttons.map {
-                    if (it.id == btnId) it.copy(posX = newX, posY = newY) else it
-                }
-            MacroPadState.updateLayout(currentLayout.copy(buttons = updated))
+
+        if (currentLayout.isGridMode) {
+            val fromCol = targetBtn.gridCol ?: 0
+            val fromRow = targetBtn.gridRow ?: 0
+            val cols = currentLayout.effectiveGridCols
+            val rows = currentLayout.effectiveGridRows
+            val toCol = (fromCol + dx).coerceIn(0, cols - targetBtn.effectiveColSpan)
+            val toRow = (fromRow + dy).coerceIn(0, rows - targetBtn.effectiveRowSpan)
+            if (toCol != fromCol || toRow != fromRow) {
+                val movedLayout = GridLayoutMath.swapOrMoveButton(currentLayout, fromCol to fromRow, toCol to toRow)
+                MacroPadState.updateLayout(movedLayout)
+            }
+        } else {
+            val step = MPE_MOVE_STEP_NORMALIZED
+            val newX = (targetBtn.posX + dx * step).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
+            val newY = (targetBtn.posY + dy * step).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
+            if (newX != targetBtn.posX || newY != targetBtn.posY) {
+                val updated =
+                    currentLayout.buttons.map {
+                        if (it.id == btnId) it.copy(posX = newX, posY = newY) else it
+                    }
+                MacroPadState.updateLayout(currentLayout.copy(buttons = updated))
+            }
         }
     }
 
@@ -2846,7 +2860,9 @@ private fun EditButtonPositionsSubPageContent(
                 } else {
                     val actionLabel = btn.action.displayLabel()
                     val sizeLabel =
-                        if (btn.action !is PadAction.ScrollWheel) {
+                        if (layout?.isGridMode == true) {
+                            "${btn.effectiveColSpan}×${btn.effectiveRowSpan}"
+                        } else if (btn.action !is PadAction.ScrollWheel) {
                             "${btn.buttonSize.cols}×${btn.buttonSize.rows}"
                         } else {
                             null
