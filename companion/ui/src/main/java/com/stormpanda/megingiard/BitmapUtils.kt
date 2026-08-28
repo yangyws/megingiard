@@ -57,7 +57,8 @@ object BitmapUtils {
                 BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
-            context.contentResolver.openInputStream(uri).use { input ->
+            val stream1 = context.contentResolver.openInputStream(uri) ?: return null
+            stream1.use { input ->
                 BitmapFactory.decodeStream(input, null, options)
             }
             val srcW = options.outWidth
@@ -69,7 +70,8 @@ object BitmapUtils {
                 BitmapFactory.Options().apply {
                     inSampleSize = sampleSize
                 }
-            context.contentResolver.openInputStream(uri).use { input ->
+            val stream2 = context.contentResolver.openInputStream(uri) ?: return null
+            stream2.use { input ->
                 BitmapFactory.decodeStream(input, null, decodeOptions)
             }
         } catch (e: Exception) {
@@ -95,6 +97,7 @@ object BitmapUtils {
                 }
             if (bitmap == null) return false
 
+            destFile.parentFile?.mkdirs()
             destFile.outputStream().use { output ->
                 bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 85, output)
             }
