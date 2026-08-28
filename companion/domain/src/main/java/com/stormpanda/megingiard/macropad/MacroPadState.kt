@@ -165,14 +165,19 @@ object MacroPadState {
         val currentActiveLayout =
             currentProfile.layouts.firstOrNull { it.id == currentProfile.activeLayoutId }
                 ?: currentProfile.layouts.firstOrNull() ?: return
-        val isExisting = currentActiveLayout.buttons.any { it.id == button.id }
-        val updatedButtons =
-            if (isExisting) {
-                currentActiveLayout.buttons.map { if (it.id == button.id) button else it }
-            } else {
-                currentActiveLayout.buttons + button
-            }
-        setPreviewLayout(currentActiveLayout.copy(buttons = updatedButtons))
+        if (currentActiveLayout.isGridMode) {
+            val result = GridLayoutMath.resizeOrSpanButton(currentActiveLayout, button)
+            setPreviewLayout(result.layout)
+        } else {
+            val isExisting = currentActiveLayout.buttons.any { it.id == button.id }
+            val updatedButtons =
+                if (isExisting) {
+                    currentActiveLayout.buttons.map { if (it.id == button.id) button else it }
+                } else {
+                    currentActiveLayout.buttons + button
+                }
+            setPreviewLayout(currentActiveLayout.copy(buttons = updatedButtons))
+        }
     }
 
     fun updatePreviewBackgroundCrop(

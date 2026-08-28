@@ -268,6 +268,32 @@ data class ResizeButtonResult(
 )
 
     /**
+     * Calculates the expanded anchor column when expanding [targetColSpan] on a grid of [cols].
+     * Expansion checks right space first; if right boundary is reached, expands leftwards.
+     */
+    fun calculateExpandedGridCol(cols: Int, currentCol: Int, targetColSpan: Int): Int {
+        if (targetColSpan <= 1) return currentCol
+        return if (currentCol + targetColSpan <= cols) {
+            currentCol
+        } else {
+            (cols - targetColSpan).coerceAtLeast(0)
+        }
+    }
+
+    /**
+     * Calculates the expanded anchor row when expanding [targetRowSpan] on a grid of [rows].
+     * Expansion checks bottom space first; if bottom boundary is reached, expands upwards.
+     */
+    fun calculateExpandedGridRow(rows: Int, currentRow: Int, targetRowSpan: Int): Int {
+        if (targetRowSpan <= 1) return currentRow
+        return if (currentRow + targetRowSpan <= rows) {
+            currentRow
+        } else {
+            (rows - targetRowSpan).coerceAtLeast(0)
+        }
+    }
+
+    /**
      * Resizes (spans) [resizedButton] in [layout].
      * In grid mode:
      * - Places [resizedButton] at its grid cell with its new span.
