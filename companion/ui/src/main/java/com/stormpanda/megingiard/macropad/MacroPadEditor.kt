@@ -851,6 +851,41 @@ fun MacroPadEditor(
                                                             appearanceDraft = appearanceDraft?.copy(name = newName)
                                                         }
                                                     },
+                                                    onLayoutModeChange = { newMode ->
+                                                        val updated = lay.copy(layoutMode = newMode).withCellsAssigned()
+                                                        MacroPadState.updateLayout(updated)
+                                                        if (appearanceDraft != null && appearanceDraft?.id == lay.id) {
+                                                            appearanceDraft = appearanceDraft?.copy(layoutMode = newMode)?.withCellsAssigned()
+                                                        }
+                                                    },
+                                                    onGridColsChange = { newCols ->
+                                                        val updated = lay.copy(gridCols = newCols).withCellsAssigned()
+                                                        MacroPadState.updateLayout(updated)
+                                                        if (appearanceDraft != null && appearanceDraft?.id == lay.id) {
+                                                            appearanceDraft = appearanceDraft?.copy(gridCols = newCols)?.withCellsAssigned()
+                                                        }
+                                                    },
+                                                    onGridRowsChange = { newRows ->
+                                                        val updated = lay.copy(gridRows = newRows).withCellsAssigned()
+                                                        MacroPadState.updateLayout(updated)
+                                                        if (appearanceDraft != null && appearanceDraft?.id == lay.id) {
+                                                            appearanceDraft = appearanceDraft?.copy(gridRows = newRows)?.withCellsAssigned()
+                                                        }
+                                                    },
+                                                    onGridShowBordersChange = { newShowBorders ->
+                                                        val updated = lay.copy(gridShowBorders = newShowBorders)
+                                                        MacroPadState.updateLayout(updated)
+                                                        if (appearanceDraft != null && appearanceDraft?.id == lay.id) {
+                                                            appearanceDraft = appearanceDraft?.copy(gridShowBorders = newShowBorders)
+                                                        }
+                                                    },
+                                                    onGridShowButtonBgChange = { newShowButtonBg ->
+                                                        val updated = lay.copy(gridShowButtonBg = newShowButtonBg)
+                                                        MacroPadState.updateLayout(updated)
+                                                        if (appearanceDraft != null && appearanceDraft?.id == lay.id) {
+                                                            appearanceDraft = appearanceDraft?.copy(gridShowButtonBg = newShowButtonBg)
+                                                        }
+                                                    },
                                                     onInvisibleButtonsChange = { newInvisible ->
                                                         MacroPadState.updateLayout(lay.copy(invisibleButtons = newInvisible))
                                                         if (appearanceDraft != null && appearanceDraft?.id == lay.id) {

@@ -68,12 +68,14 @@ import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
+import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.math.ViewportMath
 import com.stormpanda.megingiard.ui.LocalAppColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.UUID
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -324,8 +326,40 @@ internal fun PadCanvas(
             )
         }
 
-        // Render each button as a draggable chip
-        (layout?.buttons ?: emptyList()).forEach { btn ->
+        if (layout?.isGridMode == true) {
+            PadTableGrid(
+                layout = layout,
+                accentColor = accentColor,
+                onCellTap = { col, row ->
+                    val existing = GridLayoutMath.buttonAt(layout, col, row)
+                    if (existing != null) {
+                        MacroPadState.setSelectedButtonId(existing.id)
+                    } else {
+                        val newBtn =
+                            PadButton(
+                                id = UUID.randomUUID().toString(),
+                                label = context.getString(R.string.macropad_editor_new_button_default_label),
+                                posX = 0.5f,
+                                posY = 0.5f,
+                                gridCol = col,
+                                gridRow = row,
+                                colSpan = 1,
+                                rowSpan = 1,
+                                action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
+                            )
+                        MacroPadState.updateLayout(layout.copy(buttons = layout.buttons + newBtn))
+                        MacroPadState.setSelectedButtonId(newBtn.id)
+                    }
+                },
+                onCellMove = { from, to ->
+                    val moved = GridLayoutMath.swapOrMoveButton(layout, from, to)
+                    MacroPadState.updateLayout(moved)
+                },
+            )
+        }
+
+        // Render each button as a draggable chip (free-placement mode only)
+        (if (layout?.isGridMode == true) emptyList() else layout?.buttons ?: emptyList()).forEach { btn ->
             val targetLayoutId = layout?.id
             DraggableButton(
                 btn = btn,

@@ -339,7 +339,23 @@ data class PadButton(
     val buttonBorderColor: ColorOption? = null,
     val buttonBgColor: ColorOption? = null,
     val invisible: Boolean = false,
-)
+    val gridCol: Int? = null,
+    val gridRow: Int? = null,
+    val colSpan: Int = 1,
+    val rowSpan: Int = 1,
+    @Transient val resolvedCell: CellBounds? = null,
+) {
+    val effectiveColSpan: Int get() = colSpan.coerceAtLeast(1)
+    val effectiveRowSpan: Int get() = rowSpan.coerceAtLeast(1)
+
+    fun isWithinGrid(cols: Int, rows: Int): Boolean {
+        val c = gridCol ?: return false
+        val r = gridRow ?: return false
+        val cs = effectiveColSpan
+        val rs = effectiveRowSpan
+        return c >= 0 && r >= 0 && (c + cs) <= cols && (r + rs) <= rows
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Background Touchpad configuration — per-layout relative mouse touchpad settings
@@ -358,6 +374,22 @@ data class BackgroundTouchpadConfig(
     val scrollSpeed: Float = 1.0f,
     val hapticsEnabled: Boolean = true,
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PadLayoutMode — positioning mode for PadLayout
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Serializable
+enum class PadLayoutMode {
+    FREE,
+    GRID,
+}
+
+const val MAX_GRID_COLS = 8
+const val MAX_GRID_ROWS = 6
+const val MIN_GRID_SIZE = 1
+const val DEFAULT_GRID_COLS = 5
+const val DEFAULT_GRID_ROWS = 4
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PadLayout — a single button arrangement within a profile
@@ -422,7 +454,16 @@ data class PadLayout(
     val bgImageOffsetY: Float = 0f,
     val backgroundImageDim: Float = 0f,
     val backgroundTouchpad: BackgroundTouchpadConfig = BackgroundTouchpadConfig(),
-)
+    val layoutMode: PadLayoutMode = PadLayoutMode.FREE,
+    val gridCols: Int = DEFAULT_GRID_COLS,
+    val gridRows: Int = DEFAULT_GRID_ROWS,
+    val gridShowBorders: Boolean = true,
+    val gridShowButtonBg: Boolean = true,
+) {
+    val isGridMode: Boolean get() = layoutMode == PadLayoutMode.GRID
+    val effectiveGridCols: Int get() = gridCols.coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS)
+    val effectiveGridRows: Int get() = gridRows.coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS)
+}
 
 /**
  * Returns true if this layout has no buttons, no background image, no screen cutouts,

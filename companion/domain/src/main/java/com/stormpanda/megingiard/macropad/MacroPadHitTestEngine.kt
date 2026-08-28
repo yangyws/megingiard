@@ -85,6 +85,63 @@ class MacroPadHitTestEngine(
      * @param isPeekActive  true if ambient-peek mode is active
      * @return the button that was hit (for device-disabled toast), or null
      */
+    private fun isButtonHit(
+        btn: PadButton,
+        px: Float,
+        py: Float,
+        canvasW: Float,
+        canvasH: Float,
+        isGridMode: Boolean,
+        cols: Int,
+        rows: Int,
+    ): Boolean {
+        val gCol = btn.gridCol
+        val gRow = btn.gridRow
+        if (isGridMode && gCol != null && gRow != null) {
+            val cellW = canvasW / cols.coerceAtLeast(1)
+            val cellH = canvasH / rows.coerceAtLeast(1)
+            val left = gCol * cellW
+            val top = gRow * cellH
+            val right = left + btn.effectiveColSpan * cellW
+            val bottom = top + btn.effectiveRowSpan * cellH
+            return px in left..right && py in top..bottom
+        } else {
+            val isTrackpoint = btn.action is PadAction.TrackpointMove
+            val chipWidthPx =
+                if (isTrackpoint) {
+                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
+                } else {
+                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.cols)
+                }
+            val chipHeightPx =
+                if (isTrackpoint) {
+                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
+                } else {
+                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.rows)
+                }
+            val bx = btn.posX * canvasW
+            val by = btn.posY * canvasH
+            return px >= bx - chipWidthPx / 2f && px <= bx + chipWidthPx / 2f &&
+                py >= by - chipHeightPx / 2f && py <= by + chipHeightPx / 2f
+        }
+    }
+
+    /**
+     * Handle a Press event.
+     *
+     * @param pointerId     unique pointer ID
+     * @param px            pointer X in canvas pixels
+     * @param py            pointer Y in canvas pixels
+     * @param canvasW       canvas width in pixels
+     * @param canvasH       canvas height in pixels
+     * @param buttons       buttons of the currently visible layout
+     * @param profile       active pad profile (for device-enabled checks)
+     * @param isPeekActive  true if ambient-peek mode is active
+     * @param isGridMode    true if layout is in Table/Grid mode
+     * @param cols          total grid columns
+     * @param rows          total grid rows
+     * @return the button that was hit (for device-disabled toast), or null
+     */
     fun onPress(
         pointerId: Long,
         px: Float,
@@ -94,6 +151,9 @@ class MacroPadHitTestEngine(
         buttons: List<PadButton>,
         profile: PadProfile,
         isPeekActive: Boolean,
+        isGridMode: Boolean = false,
+        cols: Int = 1,
+        rows: Int = 1,
     ): PadButton? {
         val hitList =
             if (isPeekActive) {
@@ -104,23 +164,7 @@ class MacroPadHitTestEngine(
 
         val hitButton =
             hitList.firstOrNull { btn ->
-                val isTrackpoint = btn.action is PadAction.TrackpointMove
-                val chipWidthPx =
-                    if (isTrackpoint) {
-                        buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
-                    } else {
-                        buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.cols)
-                    }
-                val chipHeightPx =
-                    if (isTrackpoint) {
-                        buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
-                    } else {
-                        buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.rows)
-                    }
-                val bx = btn.posX * canvasW
-                val by = btn.posY * canvasH
-                px >= bx - chipWidthPx / 2f && px <= bx + chipWidthPx / 2f &&
-                    py >= by - chipHeightPx / 2f && py <= by + chipHeightPx / 2f
+                isButtonHit(btn, px, py, canvasW, canvasH, isGridMode, cols, rows)
             } ?: return null
 
         // Check if the required device is disabled
@@ -193,6 +237,9 @@ class MacroPadHitTestEngine(
         canvasH: Float,
         buttons: List<PadButton>,
         isPeekActive: Boolean,
+        isGridMode: Boolean = false,
+        cols: Int = 1,
+        rows: Int = 1,
     ): Boolean {
         val hitList =
             if (isPeekActive) {
@@ -201,23 +248,7 @@ class MacroPadHitTestEngine(
                 buttons
             }
         return hitList.any { btn ->
-            val isTrackpoint = btn.action is PadAction.TrackpointMove
-            val chipWidthPx =
-                if (isTrackpoint) {
-                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
-                } else {
-                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.cols)
-                }
-            val chipHeightPx =
-                if (isTrackpoint) {
-                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (btn.action as PadAction.TrackpointMove).size.multiplier)
-                } else {
-                    buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * btn.buttonSize.rows)
-                }
-            val bx = btn.posX * canvasW
-            val by = btn.posY * canvasH
-            px >= bx - chipWidthPx / 2f && px <= bx + chipWidthPx / 2f &&
-                py >= by - chipHeightPx / 2f && py <= by + chipHeightPx / 2f
+            isButtonHit(btn, px, py, canvasW, canvasH, isGridMode, cols, rows)
         }
     }
 

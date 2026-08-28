@@ -206,6 +206,24 @@ Open Settings to create a layout.</string>
     <string name="settings_macropad_new">New</string>
     <string name="macropad_reorder_profiles">Reorder Profiles</string>
     <string name="macropad_reorder_layouts">Reorder Layouts</string>
+    <string name="layout_settings_mode_title">Layout Mode</string>
+    <string name="layout_settings_mode_free">Freeform</string>
+    <string name="layout_settings_mode_grid">Table Grid</string>
+    <string name="layout_settings_mode_free_desc">Buttons can be placed and sized anywhere on the canvas.</string>
+    <string name="layout_settings_mode_grid_desc">Buttons snap into a structured N×M table grid with customizable cell spans.</string>
+    <string name="layout_settings_grid_cols">Columns</string>
+    <string name="layout_settings_grid_cols_desc">Total horizontal columns in table grid (1–8)</string>
+    <string name="layout_settings_grid_rows">Rows</string>
+    <string name="layout_settings_grid_rows_desc">Total vertical rows in table grid (1–6)</string>
+    <string name="layout_settings_grid_borders">Show Grid Borders</string>
+    <string name="layout_settings_grid_borders_desc">Display high-contrast framing borders around table cells</string>
+    <string name="layout_settings_grid_button_bg">Show Button Backgrounds</string>
+    <string name="layout_settings_grid_button_bg_desc">Display solid surface background behind button tiles</string>
+    <string name="macropad_editor_cell_span_section">Cell Span (Col × Row)</string>
+    <string name="macropad_editor_col_span">Column Span</string>
+    <string name="macropad_editor_col_span_desc">Number of horizontal grid columns this button occupies</string>
+    <string name="macropad_editor_row_span">Row Span</string>
+    <string name="macropad_editor_row_span_desc">Number of vertical grid rows this button occupies</string>
 
     <!-- MacroPad ambient display settings -->
     <string name="settings_mirror_follow_touch">Background mirror follows touch</string>

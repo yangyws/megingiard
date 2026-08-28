@@ -508,6 +508,9 @@ internal fun PadSurface(
                                                             h,
                                                             layout.buttons,
                                                             isPeekActive,
+                                                            isGridMode = layout.isGridMode,
+                                                            cols = layout.effectiveGridCols,
+                                                            rows = layout.effectiveGridRows,
                                                         )
                                                     if (isHit) {
                                                         val disabledBtn =
@@ -520,6 +523,9 @@ internal fun PadSurface(
                                                                 layout.buttons,
                                                                 profile,
                                                                 isPeekActive,
+                                                                isGridMode = layout.isGridMode,
+                                                                cols = layout.effectiveGridCols,
+                                                                rows = layout.effectiveGridRows,
                                                             )
                                                         if (disabledBtn != null) {
                                                             val reason =
@@ -664,28 +670,41 @@ internal fun PadSurface(
                 )
             }
 
-            // Render buttons (filtered by peek state)
-            val visibleButtons =
-                if (isPeekActive) {
-                    layout.buttons.filter { it.action is PadAction.BackgroundPeek }
-                } else {
-                    layout.buttons
-                }
-            visibleButtons.forEach { btn ->
-                val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(btn.action, profile)
-                val isPressed = btn.id in pressedIds
-                val isRunning =
-                    btn.action is PadAction.Macro &&
-                        (btn.action as PadAction.Macro).macroId in runningMacroIds
-                PadButton(
-                    btn = btn,
+            if (layout.isGridMode) {
+                PadTableGridLines(layout = layout)
+                PadLiveTableGrid(
+                    profile = profile,
                     layout = layout,
-                    isPressed = isPressed,
                     canvasSize = canvasSizeState.value,
                     accentColor = accentColor,
-                    isDeviceDisabled = isDeviceDisabled,
-                    isRunning = isRunning,
+                    pressedIds = pressedIds,
+                    runningMacroIds = runningMacroIds,
+                    isPeekActive = isPeekActive,
                 )
+            } else {
+                // Render buttons (filtered by peek state)
+                val visibleButtons =
+                    if (isPeekActive) {
+                        layout.buttons.filter { it.action is PadAction.BackgroundPeek }
+                    } else {
+                        layout.buttons
+                    }
+                visibleButtons.forEach { btn ->
+                    val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(btn.action, profile)
+                    val isPressed = btn.id in pressedIds
+                    val isRunning =
+                        btn.action is PadAction.Macro &&
+                            (btn.action as PadAction.Macro).macroId in runningMacroIds
+                    PadButton(
+                        btn = btn,
+                        layout = layout,
+                        isPressed = isPressed,
+                        canvasSize = canvasSizeState.value,
+                        accentColor = accentColor,
+                        isDeviceDisabled = isDeviceDisabled,
+                        isRunning = isRunning,
+                    )
+                }
             }
         }
     }

@@ -9,13 +9,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Colorize
+import androidx.compose.material.icons.rounded.BorderAll
+import androidx.compose.material.icons.rounded.DashboardCustomize
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.FormatColorText
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.TableRows
+import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -35,9 +41,11 @@ import androidx.compose.ui.unit.dp
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.ui.GamepadActionCard
+import com.stormpanda.megingiard.ui.GamepadChoiceCard
 import com.stormpanda.megingiard.ui.GamepadColorSwatch
 import com.stormpanda.megingiard.ui.GamepadSaveExitActionRow
 import com.stormpanda.megingiard.ui.GamepadSectionHeader
+import com.stormpanda.megingiard.ui.GamepadStepperCard
 import com.stormpanda.megingiard.ui.GamepadTextFieldCard
 import com.stormpanda.megingiard.ui.GamepadToggleCard
 import com.stormpanda.megingiard.ui.GamepadTwoStepConfirmCard
@@ -80,6 +88,11 @@ internal fun EditLayoutSubPageContent(
     existingNames: List<String>,
     accentColor: Color,
     onNameChange: (String) -> Unit,
+    onLayoutModeChange: (PadLayoutMode) -> Unit,
+    onGridColsChange: (Int) -> Unit,
+    onGridRowsChange: (Int) -> Unit,
+    onGridShowBordersChange: (Boolean) -> Unit,
+    onGridShowButtonBgChange: (Boolean) -> Unit,
     onInvisibleButtonsChange: (Boolean) -> Unit,
     onOpenColorSubMenu: (target: LayoutColorTarget) -> Unit,
     onOpenTouchpadSettings: () -> Unit,
@@ -241,6 +254,83 @@ internal fun EditLayoutSubPageContent(
         onSave = promptState.onSave,
         onDiscard = promptState.onDiscard,
     )
+
+    GamepadSectionHeader(
+        text = stringResource(R.string.layout_settings_mode_title),
+        color = accentColor,
+    )
+
+    val modeEntries = PadLayoutMode.entries
+    val modeLabels =
+        listOf(
+            stringResource(R.string.layout_settings_mode_free),
+            stringResource(R.string.layout_settings_mode_grid),
+        )
+    val modeIdx = modeEntries.indexOf(layout.layoutMode).coerceAtLeast(0)
+
+    GamepadChoiceCard(
+        title = stringResource(R.string.layout_settings_mode_title),
+        description =
+            if (layout.isGridMode) {
+                stringResource(R.string.layout_settings_mode_grid_desc)
+            } else {
+                stringResource(R.string.layout_settings_mode_free_desc)
+            },
+        selectedText = modeLabels[modeIdx],
+        icon = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.DashboardCustomize,
+        onPrevious = {
+            val nextIdx = (modeIdx - 1 + modeEntries.size) % modeEntries.size
+            onLayoutModeChange(modeEntries[nextIdx])
+        },
+        onNext = {
+            val nextIdx = (modeIdx + 1) % modeEntries.size
+            onLayoutModeChange(modeEntries[nextIdx])
+        },
+    )
+
+    if (layout.isGridMode) {
+        GamepadStepperCard(
+            title = stringResource(R.string.layout_settings_grid_cols),
+            description = stringResource(R.string.layout_settings_grid_cols_desc),
+            valueText = "${layout.gridCols}",
+            icon = Icons.Rounded.ViewColumn,
+            onDecrement = {
+                onGridColsChange((layout.gridCols - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
+            },
+            onIncrement = {
+                onGridColsChange((layout.gridCols + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_COLS))
+            },
+        )
+
+        GamepadStepperCard(
+            title = stringResource(R.string.layout_settings_grid_rows),
+            description = stringResource(R.string.layout_settings_grid_rows_desc),
+            valueText = "${layout.gridRows}",
+            icon = Icons.Rounded.TableRows,
+            onDecrement = {
+                onGridRowsChange((layout.gridRows - 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
+            },
+            onIncrement = {
+                onGridRowsChange((layout.gridRows + 1).coerceIn(MIN_GRID_SIZE, MAX_GRID_ROWS))
+            },
+        )
+
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_grid_borders),
+            description = stringResource(R.string.layout_settings_grid_borders_desc),
+            checked = layout.gridShowBorders,
+            icon = Icons.Rounded.BorderAll,
+            onCheckedChange = onGridShowBordersChange,
+        )
+
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_grid_button_bg),
+            description = stringResource(R.string.layout_settings_grid_button_bg_desc),
+            checked = layout.gridShowButtonBg,
+            icon = Icons.Rounded.Layers,
+            onCheckedChange = onGridShowButtonBgChange,
+        )
+    }
 
     GamepadSectionHeader(
         text = stringResource(R.string.macropad_editor_section_visibility_behavior),
