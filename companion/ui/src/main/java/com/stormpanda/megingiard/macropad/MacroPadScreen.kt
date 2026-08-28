@@ -413,6 +413,17 @@ internal fun PadSurface(
             )
         }
 
+    val currentProfile by rememberUpdatedState(profile)
+    val currentLayout by rememberUpdatedState(layout)
+    val currentIsPeekActive by rememberUpdatedState(isPeekActive)
+    val currentEngine by rememberUpdatedState(engine)
+    val currentBgTouchpadActive by rememberUpdatedState(bgTouchpadActive)
+    val currentIsTouchProjectionActive by rememberUpdatedState(isTouchProjectionActive)
+    val currentOverlayAtBottom by rememberUpdatedState(overlayAtBottom)
+    val currentEdgeZonePx by rememberUpdatedState(edgeZonePx)
+    val currentIsQuickMenuOpen by rememberUpdatedState(viewModel.isQuickMenuOpen.value)
+    val currentOnDisabledActionFeedback by rememberUpdatedState(onDisabledActionFeedback)
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize(),
@@ -424,26 +435,28 @@ internal fun PadSurface(
                     .clip(RoundedCornerShape(MP_CORNER_RADIUS))
                     .background(if (transparentBackground) Color.Transparent else Color.Black)
                     .onSizeChanged { canvasSizeState.value = it }
-                    .pointerInput(
-                        profile,
-                        layout,
-                        canvasSizeState.value,
-                        bgTouchpadActive,
-                        isTouchProjectionActive,
-                        overlayAtBottom,
-                        edgeZonePx,
-                    ) {
+                    .pointerInput(Unit) {
                         try {
                             awaitPointerEventScope {
                                 var pointerStartPos: Offset? = null
                                 while (true) {
                                     val event = awaitPointerEvent(PointerEventPass.Main)
+                                    val activeProfile = currentProfile
+                                    val activeLayout = currentLayout
+                                    val activeEngine = currentEngine
+                                    val activeBgTouchpad = currentBgTouchpadActive
+                                    val activeTouchProjection = currentIsTouchProjectionActive
+                                    val activeOverlayAtBottom = currentOverlayAtBottom
+                                    val activeEdgeZone = currentEdgeZonePx
+                                    val activeQuickMenuOpen = currentIsQuickMenuOpen
+                                    val activePeek = currentIsPeekActive
+
                                     val canvasSize = canvasSizeState.value
                                     val w = canvasSize.width.toFloat().coerceAtLeast(1f)
                                     val h = canvasSize.height.toFloat().coerceAtLeast(1f)
 
                                     // Block input while quick menu overlay is open
-                                    if (viewModel.isQuickMenuOpen.value && event.type != PointerEventType.Release) {
+                                    if (activeQuickMenuOpen && event.type != PointerEventType.Release) {
                                         event.changes.forEach { it.consume() }
                                         continue
                                     }
@@ -454,10 +467,10 @@ internal fun PadSurface(
                                         // Always release pointers when fingers are lifted or touch is cancelled,
                                         // even if another component has consumed the event.
                                         if (!change.pressed && change.previousPressed) {
-                                            if (engine.isPointerTracked(id)) {
-                                                engine.onRelease(id, layout.buttons, profile)
+                                            if (activeEngine.isPointerTracked(id)) {
+                                                activeEngine.onRelease(id, activeLayout.buttons, activeProfile)
                                                 change.consume()
-                                            } else if (isTouchProjectionActive) {
+                                            } else if (activeTouchProjection) {
                                                 projectionController.onRelease(
                                                     pointerId = id,
                                                     x = change.position.x,
@@ -465,20 +478,20 @@ internal fun PadSurface(
                                                     boxW = w,
                                                     boxH = h,
                                                 )
-                                            } else if (bgTouchpadActive) {
+                                            } else if (activeBgTouchpad) {
                                                 bgTouchpadProcessor.onRelease(id, change.position.x, change.position.y, w, h)
                                                 change.consume()
-                                            } else if (layout.isEmpty()) {
+                                            } else if (activeLayout.isEmpty()) {
                                                 val start = pointerStartPos
                                                 if (start != null) {
                                                     val dx = change.position.x - start.x
                                                     val dy = change.position.y - start.y
                                                     val distSq = dx * dx + dy * dy
                                                     val nearEdge =
-                                                        if (overlayAtBottom) {
-                                                            start.y >= h - edgeZonePx || change.position.y >= h - edgeZonePx
+                                                        if (activeOverlayAtBottom) {
+                                                            start.y >= h - activeEdgeZone || change.position.y >= h - activeEdgeZone
                                                         } else {
-                                                            start.y <= edgeZonePx || change.position.y <= edgeZonePx
+                                                            start.y <= activeEdgeZone || change.position.y <= activeEdgeZone
                                                         }
                                                     if (!nearEdge &&
                                                         distSq <= MP_EMPTY_MAX_TAP_DISPLACEMENT_PX * MP_EMPTY_MAX_TAP_DISPLACEMENT_PX
@@ -497,53 +510,53 @@ internal fun PadSurface(
                                         when (event.type) {
                                             PointerEventType.Press -> {
                                                 if (!change.previousPressed) {
-                                                    if (layout.isEmpty()) {
+                                                    if (activeLayout.isEmpty()) {
                                                         pointerStartPos = change.position
                                                     }
                                                     val isHit =
-                                                        engine.hitTest(
+                                                        activeEngine.hitTest(
                                                             change.position.x,
                                                             change.position.y,
                                                             w,
                                                             h,
-                                                            layout.buttons,
-                                                            isPeekActive,
-                                                            isGridMode = layout.isGridMode,
-                                                            cols = layout.effectiveGridCols,
-                                                            rows = layout.effectiveGridRows,
+                                                            activeLayout.buttons,
+                                                            activePeek,
+                                                            isGridMode = activeLayout.isGridMode,
+                                                            cols = activeLayout.effectiveGridCols,
+                                                            rows = activeLayout.effectiveGridRows,
                                                         )
                                                     if (isHit) {
                                                         val disabledBtn =
-                                                            engine.onPress(
+                                                            activeEngine.onPress(
                                                                 id,
                                                                 change.position.x,
                                                                 change.position.y,
                                                                 w,
                                                                 h,
-                                                                layout.buttons,
-                                                                profile,
-                                                                isPeekActive,
-                                                                isGridMode = layout.isGridMode,
-                                                                cols = layout.effectiveGridCols,
-                                                                rows = layout.effectiveGridRows,
+                                                                activeLayout.buttons,
+                                                                activeProfile,
+                                                                activePeek,
+                                                                isGridMode = activeLayout.isGridMode,
+                                                                cols = activeLayout.effectiveGridCols,
+                                                                rows = activeLayout.effectiveGridRows,
                                                             )
                                                         if (disabledBtn != null) {
                                                             val reason =
                                                                 MacroPadHitTestEngine.deviceDisabledReason(
                                                                     disabledBtn.action,
-                                                                    profile,
+                                                                    activeProfile,
                                                                 )
                                                             if (reason != null) {
-                                                                onDisabledActionFeedback(reason)
+                                                                currentOnDisabledActionFeedback(reason)
                                                             }
                                                         }
                                                         change.consume()
-                                                    } else if (isTouchProjectionActive) {
+                                                    } else if (activeTouchProjection) {
                                                         val nearEdge =
-                                                            if (overlayAtBottom) {
-                                                                change.position.y >= h - edgeZonePx
+                                                            if (activeOverlayAtBottom) {
+                                                                change.position.y >= h - activeEdgeZone
                                                             } else {
-                                                                change.position.y <= edgeZonePx
+                                                                change.position.y <= activeEdgeZone
                                                             }
                                                         if (!nearEdge) {
                                                             projectionController.onPress(
@@ -556,14 +569,14 @@ internal fun PadSurface(
                                                                 pointerCount = event.changes.size,
                                                             )
                                                         }
-                                                    } else if (bgTouchpadActive) {
+                                                    } else if (activeBgTouchpad) {
                                                         bgTouchpadProcessor.onPress(
                                                             id,
                                                             change.position.x,
                                                             change.position.y,
                                                             w,
                                                             h,
-                                                            overlayOpen = viewModel.isQuickMenuOpen.value,
+                                                            overlayOpen = activeQuickMenuOpen,
                                                         )
                                                         change.consume()
                                                     }
@@ -571,19 +584,19 @@ internal fun PadSurface(
                                             }
 
                                             PointerEventType.Move -> {
-                                                if (engine.isPointerTracked(id)) {
+                                                if (activeEngine.isPointerTracked(id)) {
                                                     val delta = change.positionChange()
-                                                    engine.onMove(
+                                                    activeEngine.onMove(
                                                         id,
                                                         change.position.x,
                                                         change.position.y,
                                                         delta.x,
                                                         delta.y,
-                                                        layout.buttons,
-                                                        profile,
+                                                        activeLayout.buttons,
+                                                        activeProfile,
                                                     )
                                                     change.consume()
-                                                } else if (isTouchProjectionActive) {
+                                                } else if (activeTouchProjection) {
                                                     projectionController.onMove(
                                                         pointerId = id,
                                                         x = change.position.x,
@@ -592,7 +605,7 @@ internal fun PadSurface(
                                                         boxH = h,
                                                         isConsumed = change.isConsumed,
                                                     )
-                                                } else if (bgTouchpadActive) {
+                                                } else if (activeBgTouchpad) {
                                                     val delta = change.positionChange()
                                                     bgTouchpadProcessor.onMove(
                                                         id,
@@ -615,11 +628,11 @@ internal fun PadSurface(
                                 }
                             }
                         } finally {
-                            engine.releaseAll(layout.buttons)
-                            if (isTouchProjectionActive) {
+                            currentEngine.releaseAll(currentLayout.buttons)
+                            if (currentIsTouchProjectionActive) {
                                 projectionController.reset()
                             }
-                            if (bgTouchpadActive) {
+                            if (currentBgTouchpadActive) {
                                 bgTouchpadProcessor.onCancel()
                             }
                         }
