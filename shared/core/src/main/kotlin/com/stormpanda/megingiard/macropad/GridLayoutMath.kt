@@ -261,12 +261,135 @@ object GridLayoutMath {
         return true
     }
 
-    fun canSpanButton(
+data class ResizeButtonResult(
+    val layout: PadLayout,
+    val movedButtons: List<PadButton>,
+    val replacedButtons: List<PadButton>,
+)
+
+    /**
+     * Resizes (spans) [resizedButton] in [layout].
+     * In grid mode:
+     * - Places [resizedButton] at its grid cell with its new span.
+     * - Finds all buttons that collide with this expanded area.
+     * - Tries to shift each colliding button to the nearest available free cells in the grid.
+     * - Any colliding button that cannot fit into the remaining free cells is replaced (removed).
+     * Returns a [ResizeButtonResult] containing the updated layout and lists of moved & replaced buttons.
+     */
+    fun resizeOrSpanButton(
         layout: PadLayout,
-        buttonId: String,
-        newColSpan: Int,
-        newRowSpan: Int,
-    ): Boolean = canSpanButton(layout, layout.buttons.firstOrNull { it.id == buttonId }, newColSpan, newRowSpan)
+        resizedButton: PadButton,
+    ): ResizeButtonResult {
+        if (!layout.isGridMode) {
+            val isNew = layout.buttons.none { it.id == resizedButton.id }
+            val updated =
+                if (isNew) {
+                    layout.buttons + resizedButton
+                } else {
+                    layout.buttons.map { if (it.id == resizedButton.id) resizedButton else it }
+                }
+            return ResizeButtonResult(
+                layout = layout.copy(buttons = updated),
+                movedButtons = emptyList(),
+                replacedButtons = emptyList(),
+            )
+        }
+
+        val cols = layout.effectiveGridCols
+        val rows = layout.effectiveGridRows
+        val btnCol = (resizedButton.gridCol ?: 0).coerceIn(0, cols - 1)
+        val btnRow = (resizedButton.gridRow ?: 0).coerceIn(0, rows - 1)
+        val colSpan = resizedButton.effectiveColSpan.coerceIn(1, cols - btnCol)
+        val rowSpan = resizedButton.effectiveRowSpan.coerceIn(1, rows - btnRow)
+        val adjustedButton =
+            resizedButton.copy(
+                gridCol = btnCol,
+                gridRow = btnRow,
+                colSpan = colSpan,
+                rowSpan = rowSpan,
+            )
+
+        // Set of occupied cells
+        val occupied = mutableSetOf<Pair<Int, Int>>()
+        for (c in btnCol until (btnCol + colSpan)) {
+            for (r in btnRow until (btnRow + rowSpan)) {
+                occupied.add(c to r)
+            }
+        }
+
+        val otherButtons = layout.buttons.filter { it.id != adjustedButton.id && it.isWithinGrid(cols, rows) }
+        val colliding = mutableListOf<PadButton>()
+        val nonColliding = mutableListOf<PadButton>()
+
+        for (other in otherButtons) {
+            val oc = other.gridCol ?: continue
+            val or = other.gridRow ?: continue
+            val ocs = other.effectiveColSpan
+            val ors = other.effectiveRowSpan
+
+            val overlaps =
+                maxOf(btnCol, oc) < minOf(btnCol + colSpan, oc + ocs) &&
+                    maxOf(btnRow, or) < minOf(btnRow + rowSpan, or + ors)
+            if (overlaps) {
+                colliding.add(other)
+            } else {
+                nonColliding.add(other)
+                for (c in oc until (oc + ocs)) {
+                    for (r in or until (or + ors)) {
+                        occupied.add(c to r)
+                    }
+                }
+            }
+        }
+
+        val movedButtons = mutableListOf<PadButton>()
+        val replacedButtons = mutableListOf<PadButton>()
+        val placedOtherButtons = nonColliding.toMutableList()
+
+        for (target in colliding) {
+            val tcs = target.effectiveColSpan
+            val trs = target.effectiveRowSpan
+            var placed = false
+            for (r in 0..(rows - trs)) {
+                for (c in 0..(cols - tcs)) {
+                    var canFit = true
+                    for (dc in 0 until tcs) {
+                        for (dr in 0 until trs) {
+                            if ((c + dc to r + dr) in occupied) {
+                                canFit = false
+                                break
+                            }
+                        }
+                        if (!canFit) break
+                    }
+                    if (canFit) {
+                        val moved = target.copy(gridCol = c, gridRow = r)
+                        for (dc in 0 until tcs) {
+                            for (dr in 0 until trs) {
+                                occupied.add(c + dc to r + dr)
+                            }
+                        }
+                        placedOtherButtons.add(moved)
+                        movedButtons.add(moved)
+                        placed = true
+                        break
+                    }
+                }
+                if (placed) break
+            }
+
+            if (!placed) {
+                replacedButtons.add(target)
+            }
+        }
+
+        val finalButtons = placedOtherButtons + adjustedButton
+        return ResizeButtonResult(
+            layout = layout.copy(buttons = finalButtons),
+            movedButtons = movedButtons,
+            replacedButtons = replacedButtons,
+        )
+    }
 
     /**
      * Checks whether moving the button at cell [from] to cell [to] in [layout] is valid
