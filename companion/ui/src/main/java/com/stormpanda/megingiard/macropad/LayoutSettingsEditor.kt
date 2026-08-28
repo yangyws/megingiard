@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.ViewColumn
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -108,6 +109,12 @@ internal fun EditLayoutSubPageContent(
             .collectLatest { inFlightLayout ->
                 MacroPadState.setPreviewLayout(inFlightLayout)
             }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            MacroPadState.clearPreviewLayout()
+        }
     }
 
     val normalizedName = nameText.trim()
