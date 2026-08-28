@@ -134,4 +134,54 @@ class GridLayoutMathTest {
         // With a 2x2 grid, all cell borders must be ruled: 3 vertical lines (col 0, 1, 2) and 3 horizontal lines (row 0, 1, 2)
         assertEquals(6, lines.size)
     }
+
+    @Test
+    fun testResizeOrSpanButtonShiftsCollidingButtons() {
+        val btn1 = createButton("btn1", 0, 0)
+        val btn2 = createButton("btn2", 1, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 2,
+                gridRows = 2,
+            )
+
+        val expandedBtn1 = btn1.copy(colSpan = 2, rowSpan = 1)
+        val result = GridLayoutMath.resizeOrSpanButton(layout, expandedBtn1)
+
+        assertEquals(1, result.movedButtons.size)
+        assertEquals(0, result.replacedButtons.size)
+        assertEquals("btn2", result.movedButtons.first().id)
+        // btn2 was shifted to an empty cell on row 1
+        assertEquals(1, result.movedButtons.first().gridRow)
+        assertEquals(2, result.layout.buttons.size)
+    }
+
+    @Test
+    fun testResizeOrSpanButtonReplacesWhenGridIsFull() {
+        val btn1 = createButton("btn1", 0, 0)
+        val btn2 = createButton("btn2", 1, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 2,
+                gridRows = 1,
+            )
+
+        val expandedBtn1 = btn1.copy(colSpan = 2, rowSpan = 1)
+        val result = GridLayoutMath.resizeOrSpanButton(layout, expandedBtn1)
+
+        assertEquals(0, result.movedButtons.size)
+        assertEquals(1, result.replacedButtons.size)
+        assertEquals("btn2", result.replacedButtons.first().id)
+        assertEquals(1, result.layout.buttons.size)
+        assertEquals("btn1", result.layout.buttons.first().id)
+    }
 }
+

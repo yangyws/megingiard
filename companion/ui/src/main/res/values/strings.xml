@@ -1148,6 +1148,9 @@ Open Settings to create a layout.</string>
     <string name="macropad_layout_deleted_toast">Layout \"%1$s\" deleted</string>
     <string name="macropad_layout_duplicated_toast">Layout \"%1$s\" duplicated and selected</string>
     <string name="macropad_button_deleted_toast">Button deleted</string>
+    <string name="macropad_buttons_shifted_toast">%1$d button(s) shifted to empty cells</string>
+    <string name="macropad_buttons_replaced_toast">%1$d button(s) replaced due to overlap</string>
+    <string name="macropad_buttons_shifted_and_replaced_toast">%1$d shifted, %2$d replaced</string>
     <string name="macropad_macro_deleted_toast">Macro \"%1$s\" deleted</string>
     <string name="macropad_editor_save_button_colors_title">Save Button Color Defaults</string>
     <string name="macropad_editor_save_button_colors_desc">Apply and save updated default button colors</string>
