@@ -135,8 +135,8 @@ private const val TAG = "MacroPadEditor"
 private val MPE_DECK_SPACING = 10.dp
 private val MPE_EMPTY_PADDING_V = 12.dp
 private const val MPE_BUTTON_HEADER_COUNT = 5
-private const val MPE_BOTTOM_SCREEN_WIDTH_PX = 1240f
-private const val MPE_BOTTOM_SCREEN_HEIGHT_PX = 1080f
+private const val MPE_CANVAS_WIDTH_PX = 1240f
+private const val MPE_CANVAS_HEIGHT_PX = 1080f
 private const val MPE_MOVE_STEP_NORMALIZED = 0.015f
 private const val MPE_EDGE_MARGIN = 0.05f
 private const val MPE_MOVE_INITIAL_DELAY_MS = 250L
@@ -570,7 +570,7 @@ fun MacroPadEditor(
                                                                 )
                                                             val screenW =
                                                                 ScreenCaptureManager.surfaceWidth.value.toFloat().let {
-                                                                    if (it > 0f) it else 1920f
+                                                                    if (it > 0f) it else 1240f
                                                                 }
                                                             val screenH =
                                                                 ScreenCaptureManager.surfaceHeight.value.toFloat().let {
@@ -2775,8 +2775,8 @@ private fun EditButtonPositionsSubPageContent(
                 MacroPadState.updateLayout(movedLayout)
             }
         } else {
-            val stepX = if (precisionMovement) (1f / MPE_BOTTOM_SCREEN_WIDTH_PX) else MPE_MOVE_STEP_NORMALIZED
-            val stepY = if (precisionMovement) (1f / MPE_BOTTOM_SCREEN_HEIGHT_PX) else MPE_MOVE_STEP_NORMALIZED
+            val stepX = if (precisionMovement) (1f / MPE_CANVAS_WIDTH_PX) else MPE_MOVE_STEP_NORMALIZED
+            val stepY = if (precisionMovement) (1f / MPE_CANVAS_HEIGHT_PX) else MPE_MOVE_STEP_NORMALIZED
             val newX = (targetBtn.posX + dx * stepX).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
             val newY = (targetBtn.posY + dy * stepY).coerceIn(MPE_EDGE_MARGIN, 1f - MPE_EDGE_MARGIN)
             if (newX != targetBtn.posX || newY != targetBtn.posY) {
