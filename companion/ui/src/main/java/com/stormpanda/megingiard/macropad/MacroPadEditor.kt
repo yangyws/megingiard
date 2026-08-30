@@ -89,11 +89,6 @@ import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.CompanionViewMode
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.keyboard.LinuxKeycodes
-import com.stormpanda.megingiard.mirror.AspectRatioMode
-import com.stormpanda.megingiard.mirror.CutoutPlacementHelper
-import com.stormpanda.megingiard.mirror.ScreenCaptureManager
-import com.stormpanda.megingiard.mirror.ScreenCutout
-import com.stormpanda.megingiard.mirror.adjustSourceCropToAspectRatio
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdState
 import com.stormpanda.megingiard.settings.MacroPadSettings
@@ -545,63 +540,6 @@ fun MacroPadEditor(
                                                             subPageStack + MacroPadSubPage.MirrorAdvancedSettings(activeLayout.id),
                                                         )
                                                     },
-                                                    onAddCutout = {
-                                                        val layout = activeLayout
-                                                        val slot = CutoutPlacementHelper.findAvailableSlot(layout.mirrorCutouts)
-                                                        if (slot == null) {
-                                                            DialogToastManager.show(
-                                                                context.getString(R.string.mirror_editor_no_space),
-                                                            )
-                                                        } else {
-                                                            val newId = UUID.randomUUID().toString()
-                                                            val initialCutout =
-                                                                ScreenCutout(
-                                                                    id = newId,
-                                                                    name = "Cutout ${layout.mirrorCutouts.size + 1}",
-                                                                    srcX = 0.25f,
-                                                                    srcY = 0.25f,
-                                                                    srcWidth = 0.5f,
-                                                                    srcHeight = 0.5f,
-                                                                    destX = slot.destX,
-                                                                    destY = slot.destY,
-                                                                    destWidth = slot.destWidth,
-                                                                    destHeight = slot.destHeight,
-                                                                    aspectRatioMode = AspectRatioMode.BOTTOM,
-                                                                )
-                                                            val screenW =
-                                                                ScreenCaptureManager.surfaceWidth.value.toFloat().let {
-                                                                    if (it > 0f) it else 1240f
-                                                                }
-                                                            val screenH =
-                                                                ScreenCaptureManager.surfaceHeight.value.toFloat().let {
-                                                                    if (it > 0f) it else 1080f
-                                                                }
-                                                            val srcW =
-                                                                ScreenCaptureManager.captureSourceWidth.value.toFloat().let {
-                                                                    if (it > 0f) it else 1920f
-                                                                }
-                                                            val srcH =
-                                                                ScreenCaptureManager.captureSourceHeight.value.toFloat().let {
-                                                                    if (it > 0f) it else 1080f
-                                                                }
-                                                            val newCutout =
-                                                                adjustSourceCropToAspectRatio(
-                                                                    cutout = initialCutout,
-                                                                    screenW = screenW,
-                                                                    screenH = screenH,
-                                                                    srcW = srcW,
-                                                                    srcH = srcH,
-                                                                )
-                                                            MacroPadState.updateLayout(
-                                                                layout.copy(
-                                                                    mirrorCutouts = layout.mirrorCutouts + newCutout,
-                                                                ),
-                                                            )
-                                                            MacroPadNavState.setStack(
-                                                                subPageStack + MacroPadSubPage.CutoutSettings(newId),
-                                                            )
-                                                        }
-                                                    },
                                                     onEditCutout = { cutout ->
                                                         MacroPadNavState.setStack(
                                                             subPageStack + MacroPadSubPage.CutoutSettings(cutout.id),
@@ -625,7 +563,16 @@ fun MacroPadEditor(
                                                     onDiscard = {
                                                         MacroPadState.clearPreviewLayout()
                                                     },
-                                                    onConfirm = { bgImagePath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgDim ->
+                                                    onConfirm = {
+                                                        bgImagePath,
+                                                        useAsMask,
+                                                        bgChanged,
+                                                        bgScale,
+                                                        bgOffsetX,
+                                                        bgOffsetY,
+                                                        bgDim,
+                                                        bgScaleMode,
+                                                        ->
                                                         MacroPadState.clearPreviewLayout()
                                                         MacroPadState.updateLayout(
                                                             activeLayout.copy(
@@ -637,6 +584,7 @@ fun MacroPadEditor(
                                                                 bgImageOffsetX = bgOffsetX,
                                                                 bgImageOffsetY = bgOffsetY,
                                                                 backgroundImageDim = bgDim,
+                                                                bgScaleMode = bgScaleMode,
                                                             ),
                                                         )
                                                         DialogToastManager.show(
@@ -669,7 +617,11 @@ fun MacroPadEditor(
                                                 profile = profile,
                                                 accentColor = colors.accent,
                                                 onNewMacro = {
-                                                    MacroPadNavState.setStack(subPageStack + MacroPadSubPage.ChooseMacroMode)
+                                                    if (PrivdManager.state.value != PrivdState.RUNNING) {
+                                                        DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                                                    } else {
+                                                        MacroPadNavState.setStack(subPageStack + MacroPadSubPage.ChooseMacroMode)
+                                                    }
                                                 },
                                                 onEditMacro = { macro ->
                                                     MacroPadNavState.setStack(subPageStack + MacroPadSubPage.MacroTimeline(macro = macro))
@@ -701,13 +653,16 @@ fun MacroPadEditor(
                                                 accentColor = colors.accent,
                                                 onDiscard = { MacroPadNavState.pop() },
                                                 onCreate = { name ->
+                                                    val newId = UUID.randomUUID().toString()
                                                     val newProf =
                                                         PadProfile(
-                                                            id = UUID.randomUUID().toString(),
+                                                            id = newId,
                                                             name = name,
                                                         )
                                                     MacroPadState.addProfile(newProf)
-                                                    MacroPadNavState.pop()
+                                                    MacroPadState.setActiveProfileId(newId)
+                                                    MacroPadNavState.selectSection(EditorSection.PROFILES)
+                                                    MacroPadNavState.setStack(emptyList())
                                                 },
                                             )
                                         }
@@ -815,14 +770,13 @@ fun MacroPadEditor(
                                                 existingNames = profile.layouts.map { it.name },
                                                 accentColor = colors.accent,
                                                 onDiscard = { MacroPadNavState.pop() },
-                                                onCreate = { name, invisibleBtns ->
+                                                onCreate = { name ->
                                                     val newId = UUID.randomUUID().toString()
                                                     val newLayout =
                                                         PadLayout(
                                                             id = newId,
                                                             name = name,
                                                             enabled = true,
-                                                            invisibleButtons = invisibleBtns,
                                                         )
                                                     MacroPadState.addLayout(newLayout)
                                                     MacroPadNavState.setStack(listOf(MacroPadSubPage.EditLayout(newId)))
@@ -906,15 +860,21 @@ fun MacroPadEditor(
                                                     },
                                                     onDeleteLayout = {
                                                         val deletedName = lay.name
-                                                        scope.launch {
-                                                            MacroPadMediaRepository.deleteBackgroundImage(context, lay.id)
+                                                        val isDeleted = MacroPadState.deleteLayout(lay.id)
+                                                        if (isDeleted) {
+                                                            scope.launch {
+                                                                MacroPadMediaRepository.deleteBackgroundImage(context, lay.id)
+                                                            }
+                                                            appearanceDraft = null
+                                                            MacroPadNavState.pop()
+                                                            DialogToastManager.show(
+                                                                context.getString(R.string.macropad_layout_deleted_toast, deletedName),
+                                                            )
+                                                        } else {
+                                                            DialogToastManager.show(
+                                                                context.getString(R.string.macropad_layout_cannot_delete_last_toast),
+                                                            )
                                                         }
-                                                        MacroPadState.deleteLayout(lay.id)
-                                                        appearanceDraft = null
-                                                        MacroPadNavState.pop()
-                                                        DialogToastManager.show(
-                                                            context.getString(R.string.macropad_layout_deleted_toast, deletedName),
-                                                        )
                                                     },
                                                     onDiscard = { MacroPadNavState.pop() },
                                                     onSaveColors = { textCol, borderCol, bgCol ->
@@ -1096,6 +1056,9 @@ fun MacroPadEditor(
                                                         BackgroundPickerManager.setPickedUri(uri)
                                                         MacroPadNavState.pop()
                                                     },
+                                                    onDiscard = {
+                                                        MacroPadNavState.pop()
+                                                    },
                                                 )
                                             }
                                         }
@@ -1152,6 +1115,9 @@ fun MacroPadEditor(
                                                     onSelect = { targetProfileId ->
                                                         MacroPadState.copyLayoutToProfile(lay, profile.id, targetProfileId)
                                                         MacroPadNavState.pop()
+                                                        DialogToastManager.show(
+                                                            context.getString(R.string.macropad_layout_copied_toast),
+                                                        )
                                                     },
                                                 )
                                             }
@@ -1190,6 +1156,10 @@ fun MacroPadEditor(
                                         ) {
                                             ChooseButtonTypeSubPageContent(
                                                 onSelectType = { group ->
+                                                    if (group == ActionGroup.MACRO && PrivdManager.state.value != PrivdState.RUNNING) {
+                                                        DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                                                        return@ChooseButtonTypeSubPageContent
+                                                    }
                                                     val hasMacros = profile.macros.isNotEmpty()
                                                     val defaultCategory =
                                                         group.actions().firstOrNull { it.isEnabled(true, true, true, hasMacros) }
@@ -1953,16 +1923,28 @@ fun MacroPadEditor(
                                                     PhysicalGamepadRecordingManager.startRecording()
                                                 },
                                                 onBuildManual = {
+                                                    if (privdState != PrivdState.RUNNING) {
+                                                        DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                                                        return@ChooseMacroModeSubPageContent
+                                                    }
                                                     val newMacro = createNewMacro()
                                                     applyNewMacroToStack(newMacro)
                                                 },
                                                 onRecordTouchTap = {
+                                                    if (privdState != PrivdState.RUNNING) {
+                                                        DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                                                        return@ChooseMacroModeSubPageContent
+                                                    }
                                                     val newMacro = createNewMacro()
                                                     applyNewMacroToStack(newMacro)
                                                     AppStateManager.suspendCurrentAndDismiss()
                                                     TouchRecordingManager.requestRecording(TouchRecordingMode.TAP)
                                                 },
                                                 onRecordTouchGesture = {
+                                                    if (privdState != PrivdState.RUNNING) {
+                                                        DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                                                        return@ChooseMacroModeSubPageContent
+                                                    }
                                                     val newMacro = createNewMacro()
                                                     applyNewMacroToStack(newMacro)
                                                     AppStateManager.suspendCurrentAndDismiss()
@@ -3014,6 +2996,17 @@ private fun MacrosDeck(
     onEditMacro: (Macro) -> Unit,
     onDeleteMacro: (Macro) -> Unit,
 ) {
+    val privdState by PrivdManager.state.collectAsState()
+    val isPrivdRunning = privdState == PrivdState.RUNNING
+
+    if (!isPrivdRunning) {
+        GamepadInfoBox(
+            text = stringResource(R.string.macropad_macro_privd_required_banner),
+            modifier = Modifier.firstDeckItem(),
+        )
+        return
+    }
+
     GamepadActionCard(
         title = stringResource(R.string.macropad_editor_open_timeline_title),
         description = stringResource(R.string.macropad_editor_open_timeline_desc),

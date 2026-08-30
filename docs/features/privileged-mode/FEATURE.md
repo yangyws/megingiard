@@ -102,7 +102,7 @@ every device since Android 11 (API 30).
 | Feature                                      | What it gains                                                                                 | Without Privileged Mode                                                                                                                                        |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Gamepad merge** (MacroPad → physical pad)  | Single-controller emulation: games see only one controller.                                   | Falls back to a virtual uinput gamepad. Most games still recognise both, but a few (e.g. some Steam Big Picture flows) only accept the first-connected device. |
-| **Gamepad recording** (physical pad → macro) | Macro recording from the real controller while the target game still receives the same input. | Falls back to the on-screen virtual controller recording overlay.                                                                                              |
+| **Macro subsystem** (execution, recording, editing) | Low-latency physical controller & touch capture directly over running games; hardware evdev input injection. | Blocked with proactive UI feedback: use-mode buttons show disabled styling with floating warning banners; editor decks display warning banners and prevent recording / execution. |
 | **Privileged mirror** (FR-M9)                | No MediaProjection consent dialog when direct SurfaceControl output starts successfully.      | Falls back to `MediaProjection` + `VirtualDisplay` with the system consent dialog. DRM content keeps working.                                                  |
 | **Relative mouse** (Touchpad / Keyboard)     | Low-latency, scheduler-boosted mouse events. Shell UID execution prevents cursor lag under CPU contention. | Falls back to spawning a local virtual mouse binary (`mouseinjector_arm64`) as an app subprocess. |
 | **Virtual keyboard** (Keyboard)             | Low-latency, scheduler-boosted keystrokes. Shell UID execution prevents typing lag under CPU contention.   | Falls back to spawning a local virtual keyboard binary (`keyinjector_arm64`) as an app subprocess. |
@@ -355,6 +355,9 @@ the existing protocol.
 | App → D   | `SUB GAMEPAD\n`                | Start streaming physical gamepad evdev events to the app |
 | App → D   | `UNSUB GAMEPAD\n`              | Stop streaming physical gamepad evdev events             |
 | D → App   | `EVT <type> <code> <value>\n`  | Physical evdev event while subscribed                    |
+| App → D   | `SUB TOUCH\n`                  | Start streaming physical touchscreen evdev events to app |
+| App → D   | `UNSUB TOUCH\n`                | Stop streaming physical touchscreen evdev events        |
+| D → App   | `EVT_TOUCH <type> <code> <val>`| Physical touchscreen evdev event while subscribed        |
 | App → D   | `MIRROR START_DIRECT w h\n`    | Spawn direct-Surface `app_process` mirror child (FR-M9/FR-M11) |
 | D → App   | `MIRROR_DIRECT_READY\n`        | Direct mirror child bound its readiness socket           |
 | D → App   | `MIRROR_DIRECT_ERR <reason>\n` | Direct mirror child failed to start                      |
@@ -370,7 +373,7 @@ the existing protocol.
 
 For the privileged mirror (`MIRROR START_DIRECT`), the `app_process` child registers the Binder service `megingiard.direct.surface` to receive multiple target `Surface` instances and their physical dimensions. This allows the direct mirror server to set up and capture multiple concurrent virtual displays mapping to different cutout regions without process restarts.
 
-`SUB GAMEPAD` opens the physical evdev node read-only and starts a reader thread that forwards filtered `EVT` lines to the app. The fd is **not** grabbed via `EVIOCGRAB` — evdev is multicast, so Android's EventHub continues to dispatch the same events to the foreground game in parallel. Recording is therefore purely passive observation; nothing is intercepted or replayed.
+`SUB GAMEPAD` and `SUB TOUCH` open the physical evdev nodes (`/dev/input/event*` for gamepad, `/dev/input/event6` for touchscreen) read-only/read-write and start dedicated reader threads that forward filtered `EVT` and `EVT_TOUCH` lines to the app. The fds are **not** grabbed via `EVIOCGRAB` — evdev is multicast, so Android's EventHub continues to dispatch the same events to the foreground game in parallel. Recording is therefore purely passive observation; nothing is intercepted or replayed.
 
 On startup the daemon prints exactly one line on **stdout** so the
 spawn command can detect success:

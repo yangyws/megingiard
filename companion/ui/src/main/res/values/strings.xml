@@ -111,6 +111,8 @@ Open Settings to create a layout.</string>
     <!-- Keyboard trackpoint mouse button position setting -->
     <string name="macropad_device_disabled_mouse">Mouse has been disabled for this layout</string>
     <string name="macropad_device_disabled_touch">Touch has been disabled for this layout</string>
+    <string name="macropad_device_disabled_macro_privd">Macros require Privileged Mode. Please activate Privileged Mode in Settings.</string>
+    <string name="macropad_macro_privd_required_banner">Privileged Mode is required to create, edit, test, and execute macros. Please activate Privileged Mode in Settings.</string>
     <string name="macropad_editor_delete_profile">Delete Profile</string>
     <string name="macropad_editor_delete_layout">Delete Layout</string>
     <string name="macropad_editor_cancel">Cancel</string>
@@ -393,6 +395,12 @@ Open Settings to create a layout.</string>
     <string name="layout_settings_bg_image_use_as_mask_desc">Draw the background image on top of screen mirror cutouts. Useful for PNGs with transparency.</string>
     <string name="layout_settings_bg_image_crop">Crop</string>
     <string name="layout_settings_bg_image_crop_desc">Pinch to zoom and drag to pan the background image on the bottom screen.</string>
+    <string name="layout_settings_bg_image_crop_disabled_stretch">Cropping and positioning are disabled when stretch scaling is active.</string>
+    <string name="layout_settings_bg_scale_mode">Scaling</string>
+    <string name="layout_settings_bg_scale_mode_desc">Choose how the background image adapts to the screen aspect ratio.</string>
+    <string name="bg_scale_mode_fill">Fill</string>
+    <string name="bg_scale_mode_fit">Fit</string>
+    <string name="bg_scale_mode_stretch">Stretch</string>
     <string name="layout_settings_bg_image_adjustments">Image Adjustments &amp; Masking</string>
     <string name="layout_settings_bg_section_title">Background</string>
     <string name="layout_settings_bg_image_dimming_title">Dimming</string>
@@ -584,7 +592,6 @@ Open Settings to create a layout.</string>
 
     <!-- Cutout Layout Editor -->
     <string name="mirror_editor_add_cutout">Add Cutout</string>
-    <string name="mirror_editor_add_cutout_desc">Create a new screen mirror region</string>
     <string name="mirror_editor_done">Done</string>
     <string name="mirror_editor_aspect_ratio_mode">Fixed Aspect Ratio</string>
     <string name="mirror_editor_aspect_ratio_free">Free</string>
@@ -598,9 +605,8 @@ Open Settings to create a layout.</string>
     <string name="mirror_editor_cutout_name_hint">Cutout Name</string>
     <string name="mirror_editor_adjust_top_cutout">Adjust Top Cutout</string>
     <string name="mirror_editor_adjust_bottom_cutout">Adjust Bottom Cutout</string>
-    <string name="mirror_editor_move_badge">MOVE</string>
-    <string name="mirror_editor_resize_badge">RESIZE</string>
-    <string name="mirror_editor_adjust_toast">Use D-Pad to move. Hold R2 to resize.</string>
+    <string name="mirror_editor_saved_badge">SAVED</string>
+    <string name="mirror_editor_adjust_toast">Use D-Pad to move. Hold R2 to resize. Hold L2 for precision.</string>
     <string name="mirror_editor_no_cutouts">No Cutouts</string>
     <string name="mirror_editor_save_changes">Save Changes</string>
     <string name="mirror_editor_saved_toast">Layout changes saved</string>
@@ -941,6 +947,7 @@ Open Settings to create a layout.</string>
     <string name="gamepad_action_enable">Enable</string>
     <string name="gamepad_action_custom_color">Custom Color</string>
     <string name="gamepad_action_select">Select</string>
+    <string name="gamepad_slider_fine_adjustment_toast">Hold L2 for precise adjustments</string>
     <string name="macropad_picker_visual_keyboard_title">Select Keyboard Key</string>
     <string name="macropad_picker_keyboard_nav_title">Navigation &amp; Extended</string>
     <string name="macropad_picker_visual_gamepad_title">Select Gamepad Button</string>
@@ -1146,7 +1153,9 @@ Open Settings to create a layout.</string>
     <string name="macropad_profile_deleted_toast">Profile \"%1$s\" deleted</string>
     <string name="macropad_profile_duplicated_toast">Profile \"%1$s\" duplicated and selected</string>
     <string name="macropad_layout_deleted_toast">Layout \"%1$s\" deleted</string>
+    <string name="macropad_layout_cannot_delete_last_toast">The last layout cannot be deleted</string>
     <string name="macropad_layout_duplicated_toast">Layout \"%1$s\" duplicated and selected</string>
+    <string name="macropad_layout_copied_toast">Layout successfully copied!</string>
     <string name="macropad_button_deleted_toast">Button deleted</string>
     <string name="macropad_buttons_shifted_toast">%1$d button(s) shifted to empty cells</string>
     <string name="macropad_buttons_replaced_toast">%1$d button(s) replaced due to overlap</string>
@@ -1166,6 +1175,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_editor_save_layout_desc">Apply and save layout appearance configuration</string>
     <string name="macropad_editor_new_layout_default_name">New Layout</string>
     <string name="macropad_editor_new_button_default_label">New Button</string>
+    <string name="macropad_editor_button_preview_text">Label</string>
     <string name="gamepad_action_save_and_exit">Save &amp; Exit</string>
     <string name="gamepad_action_save_and_exit_desc">Apply and save changes</string>
     <string name="gamepad_action_discard_and_exit">Discard &amp; Exit</string>

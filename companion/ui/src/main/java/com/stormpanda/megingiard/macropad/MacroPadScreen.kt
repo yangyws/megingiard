@@ -21,6 +21,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Mouse
+import androidx.compose.material.icons.rounded.SportsEsports
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +34,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +74,7 @@ import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.input.TouchInjector
+import com.stormpanda.megingiard.math.ViewportMath
 import com.stormpanda.megingiard.mirror.EmbeddedMirrorView
 import com.stormpanda.megingiard.mirror.MasterSurfaceRegistry
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
@@ -76,6 +82,8 @@ import com.stormpanda.megingiard.mirror.TouchProjectionController
 import com.stormpanda.megingiard.mirror.TouchScreenObserver
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.touchpad.TouchpadGestureProcessor
+import com.stormpanda.megingiard.ui.DialogToastManager
+import com.stormpanda.megingiard.ui.DialogToastPill
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.rememberBezelBrush
 import com.stormpanda.megingiard.ui.rememberQuickMenuGestureMetrics
@@ -92,7 +100,6 @@ private val MP_CORNER_RADIUS = 0.dp
 // Shared with PadCanvas so the editor canvas is pixel-identical to use mode.
 internal val MP_SCREEN_PADDING = 0.dp
 
-private const val MP_DISABLED_FEEDBACK_HIDE_MS = 1800L
 private const val MP_DISABLED_FEEDBACK_RATE_LIMIT_MS = 650L
 
 // Dynamic haptic interval bounds: faster movement → shorter interval
@@ -134,8 +141,6 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
     val isCroppingBackground by MacroPadState.isCroppingBackground.collectAsState()
     val gridMode by MacroPadState.gridMode.collectAsState()
     val colors = LocalAppColors.current
-    var disabledFeedback by remember { mutableStateOf<DisabledReason?>(null) }
-    var disabledFeedbackTrigger by remember { mutableIntStateOf(0) }
     var lastFeedbackAtMs by remember { mutableLongStateOf(0L) }
 
     // Single watcher that starts/stops injectors reactively based on all modal flags
@@ -199,42 +204,41 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
                     val now = SystemClock.elapsedRealtime()
                     if (now - lastFeedbackAtMs < MP_DISABLED_FEEDBACK_RATE_LIMIT_MS) return@PadSurface
                     lastFeedbackAtMs = now
-                    disabledFeedback = reason
-                    disabledFeedbackTrigger += 1
+                    val feedbackText =
+                        when (reason) {
+                            DisabledReason.KEYBOARD -> context.getString(R.string.macropad_device_disabled_keyboard)
+                            DisabledReason.GAMEPAD -> context.getString(R.string.macropad_device_disabled_gamepad)
+                            DisabledReason.MOUSE -> context.getString(R.string.macropad_device_disabled_mouse)
+                            DisabledReason.TOUCH -> context.getString(R.string.macropad_device_disabled_touch)
+                            DisabledReason.MACRO_PRIVD -> context.getString(R.string.macropad_device_disabled_macro_privd)
+                        }
+                    val feedbackIcon =
+                        when (reason) {
+                            DisabledReason.KEYBOARD -> Icons.Rounded.Keyboard
+                            DisabledReason.GAMEPAD -> Icons.Rounded.SportsEsports
+                            DisabledReason.MOUSE -> Icons.Rounded.Mouse
+                            DisabledReason.TOUCH -> Icons.Rounded.TouchApp
+                            DisabledReason.MACRO_PRIVD -> Icons.Rounded.Warning
+                        }
+                    DialogToastManager.show(
+                        message = feedbackText,
+                        icon = feedbackIcon,
+                    )
                     AppLog.d(TAG, "show disabled action feedback: $reason")
                 },
             )
         }
 
-        val reason = disabledFeedback
-        if (reason != null) {
-            val feedbackText =
-                when (reason) {
-                    DisabledReason.KEYBOARD -> stringResource(R.string.macropad_device_disabled_keyboard)
-                    DisabledReason.GAMEPAD -> stringResource(R.string.macropad_device_disabled_gamepad)
-                    DisabledReason.MOUSE -> stringResource(R.string.macropad_device_disabled_mouse)
-                    DisabledReason.TOUCH -> stringResource(R.string.macropad_device_disabled_touch)
-                }
-            Text(
-                text = feedbackText,
-                color = colors.onSurface,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
+        val activeToast by DialogToastManager.currentToast.collectAsState()
+        if (!isEditorActive && !isViewportEditActive) {
+            DialogToastPill(
+                toast = activeToast,
                 modifier =
                     Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 12.dp)
-                        .fillMaxWidth(0.8f)
-                        .background(colors.surface.copy(alpha = 0.92f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(top = 12.dp, start = 24.dp, end = 24.dp),
             )
         }
-    }
-
-    LaunchedEffect(disabledFeedbackTrigger) {
-        if (disabledFeedbackTrigger == 0) return@LaunchedEffect
-        delay(MP_DISABLED_FEEDBACK_HIDE_MS)
-        disabledFeedback = null
     }
 }
 
@@ -256,7 +260,7 @@ internal fun PadSurface(
     val colors = LocalAppColors.current
     val context = LocalContext.current
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    val canvasSizeState = remember { androidx.compose.runtime.mutableStateOf(IntSize.Zero) }
+    val canvasSizeState = remember { mutableStateOf(IntSize.Zero) }
     val hapticLastMsByButton = remember { mutableMapOf<String, Long>() }
 
     var bgBitmap by remember(layout.backgroundImagePath, layout.backgroundImageVersion) { mutableStateOf<ImageBitmap?>(null) }
@@ -645,33 +649,76 @@ internal fun PadSurface(
                     val iw = bgBitmap!!.width.toFloat()
                     val ih = bgBitmap!!.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                        val userScale = layout.bgImageScale
-                        val ox = layout.bgImageOffsetX
-                        val oy = layout.bgImageOffsetY
+                        when (layout.bgScaleMode) {
+                            BackgroundScaleMode.STRETCH -> {
+                                drawImage(
+                                    image = bgBitmap!!,
+                                    dstOffset = IntOffset.Zero,
+                                    dstSize = IntSize(cw.toInt(), ch.toInt()),
+                                    colorFilter = bgImageDimFilter,
+                                )
+                            }
 
-                        val scaleBase = maxOf(cw / iw, ch / ih)
-                        val ws = iw * scaleBase
-                        val hs = ih * scaleBase
+                            BackgroundScaleMode.FIT -> {
+                                val userScale = layout.bgImageScale
+                                val ox = layout.bgImageOffsetX
+                                val oy = layout.bgImageOffsetY
 
-                        val maxTx = ((ws * userScale - cw) / 2f).coerceAtLeast(0f)
-                        val maxTy = ((hs * userScale - ch) / 2f).coerceAtLeast(0f)
-                        val clampedX = (ox * cw).coerceIn(-maxTx, maxTx)
-                        val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
+                                val scaleBase = ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                                val ws = iw * scaleBase
+                                val hs = ih * scaleBase
 
-                        drawImage(
-                            image = bgBitmap!!,
-                            dstOffset =
-                                IntOffset(
-                                    ((cw - ws * userScale) / 2f + clampedX).toInt(),
-                                    ((ch - hs * userScale) / 2f + clampedY).toInt(),
-                                ),
-                            dstSize =
-                                IntSize(
-                                    (ws * userScale).toInt(),
-                                    (hs * userScale).toInt(),
-                                ),
-                            colorFilter = bgImageDimFilter,
-                        )
+                                val maxTx = ((ws * userScale - cw) / 2f).coerceAtLeast(0f)
+                                val maxTy = ((hs * userScale - ch) / 2f).coerceAtLeast(0f)
+                                val clampedX = (ox * cw).coerceIn(-maxTx, maxTx)
+                                val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
+
+                                drawImage(
+                                    image = bgBitmap!!,
+                                    dstOffset =
+                                        IntOffset(
+                                            ((cw - ws * userScale) / 2f + clampedX).toInt(),
+                                            ((ch - hs * userScale) / 2f + clampedY).toInt(),
+                                        ),
+                                    dstSize =
+                                        IntSize(
+                                            (ws * userScale).toInt(),
+                                            (hs * userScale).toInt(),
+                                        ),
+                                    colorFilter = bgImageDimFilter,
+                                )
+                            }
+
+                            BackgroundScaleMode.FILL -> {
+                                val userScale = layout.bgImageScale
+                                val ox = layout.bgImageOffsetX
+                                val oy = layout.bgImageOffsetY
+
+                                val scaleBase = ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                                val ws = iw * scaleBase
+                                val hs = ih * scaleBase
+
+                                val maxTx = ((ws * userScale - cw) / 2f).coerceAtLeast(0f)
+                                val maxTy = ((hs * userScale - ch) / 2f).coerceAtLeast(0f)
+                                val clampedX = (ox * cw).coerceIn(-maxTx, maxTx)
+                                val clampedY = (oy * ch).coerceIn(-maxTy, maxTy)
+
+                                drawImage(
+                                    image = bgBitmap!!,
+                                    dstOffset =
+                                        IntOffset(
+                                            ((cw - ws * userScale) / 2f + clampedX).toInt(),
+                                            ((ch - hs * userScale) / 2f + clampedY).toInt(),
+                                        ),
+                                    dstSize =
+                                        IntSize(
+                                            (ws * userScale).toInt(),
+                                            (hs * userScale).toInt(),
+                                        ),
+                                    colorFilter = bgImageDimFilter,
+                                )
+                            }
+                        }
                     }
                 }
             }

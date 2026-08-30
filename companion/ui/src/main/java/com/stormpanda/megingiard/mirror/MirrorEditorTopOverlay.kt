@@ -116,6 +116,7 @@ import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.LocalFirstContentRequester
 import com.stormpanda.megingiard.ui.PrimaryOverlayInputBridge
 import com.stormpanda.megingiard.ui.firstDeckItem
+import com.stormpanda.megingiard.ui.handleAdjustmentKeyEvent
 import com.stormpanda.megingiard.ui.rememberBezelBrush
 import com.stormpanda.megingiard.ui.rememberGamepadBringIntoViewSpec
 import kotlinx.coroutines.Job
@@ -174,6 +175,10 @@ private const val METO_MOVE_MIN_DELAY_MS = 16L
 private const val METO_MOVE_ACCEL_FACTOR = 0.88f
 private const val METO_INITIAL_FOCUS_DELAY_MS = 100L
 private val METO_SCROLL_EXTRA_PADDING = 0.dp
+
+private const val METO_NORMAL_STEP_PX = 10
+private const val METO_FINE_STEP_PX = 1
+private const val METO_ADJUST_TOAST_DURATION_MS = 5000L
 
 private const val METO_FALLBACK_SRC_WIDTH = 1920f
 private const val METO_FALLBACK_SRC_HEIGHT = 1080f
@@ -333,10 +338,10 @@ fun MirrorEditorTopOverlay(
 
         if (cur.aspectRatioMode == AspectRatioMode.BOTTOM) {
             val stepDelta =
-                if (dx > 0 || dy < 0) {
-                    1
-                } else if (dx < 0 || dy > 0) {
-                    -1
+                if (dx != 0) {
+                    dx
+                } else if (dy != 0) {
+                    -dy
                 } else {
                     0
                 }
@@ -450,10 +455,10 @@ fun MirrorEditorTopOverlay(
 
         if (cur.aspectRatioMode == AspectRatioMode.TOP) {
             val stepDelta =
-                if (dx > 0 || dy < 0) {
-                    1
-                } else if (dx < 0 || dy > 0) {
-                    -1
+                if (dx != 0) {
+                    dx
+                } else if (dy != 0) {
+                    -dy
                 } else {
                     0
                 }
@@ -1180,8 +1185,15 @@ private fun TargetCutoutCarouselCard(
     onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
     val colors = LocalAppColors.current
+    var isAdjusting by remember { mutableStateOf(false) }
     val currentIdx = if (selectedCutout != null) cutouts.indexOfFirst { it.id == selectedCutout.id } else -1
     val hasCutouts = cutouts.isNotEmpty()
+
+    LaunchedEffect(hasCutouts) {
+        if (!hasCutouts && isAdjusting) {
+            isAdjusting = false
+        }
+    }
 
     val titleText =
         if (!hasCutouts) {
@@ -1205,20 +1217,39 @@ private fun TargetCutoutCarouselCard(
     }
 
     ToolboxCard(
-        onClick = { selectNext() },
-        onLeftKey = { selectPrevious() },
-        onRightKey = { selectNext() },
-        onFocusChanged = onFocusChanged,
+        onClick = {
+            if (hasCutouts) {
+                val nextState = !isAdjusting
+                AppLog.d(TAG, "TargetCutoutCarouselCard: adjustment mode=$nextState")
+                isAdjusting = nextState
+            }
+        },
+        isFocusedOverride = isAdjusting,
+        onCustomKeyEvent = { keyEvent ->
+            handleAdjustmentKeyEvent(
+                keyEvent = keyEvent,
+                isAdjusting = isAdjusting,
+                onAdjustLeft = { selectPrevious() },
+                onAdjustRight = { selectNext() },
+                onDismissAdjustment = { isAdjusting = false },
+            )
+        },
+        onFocusChanged = { focused ->
+            if (!focused) {
+                isAdjusting = false
+            }
+            onFocusChanged?.invoke(focused)
+        },
         cardFocusRequester = cardFocusRequester,
         enabled = hasCutouts,
         icon = Icons.Rounded.FilterCenterFocus,
         title = titleText,
         modifier = modifier,
     ) { isFocused ->
-        val capsuleBorderColor = if (isFocused) colors.accent else colors.subduedBorder
-        val capsuleBorderWidth = if (isFocused) 1.5.dp else 1.dp
-        val capsuleBg = if (isFocused) colors.accent.copy(alpha = 0.15f) else colors.surfaceVariant
-        val arrowTint = if (isFocused) colors.accent else colors.onSurfaceSecondary
+        val capsuleBorderColor = if (isAdjusting) colors.accent else colors.subduedBorder
+        val capsuleBorderWidth = if (isAdjusting) 1.5.dp else 1.dp
+        val capsuleBg = if (isAdjusting) colors.accent.copy(alpha = 0.15f) else colors.surfaceVariant
+        val arrowTint = if (isAdjusting || isFocused) colors.accent else colors.onSurfaceSecondary
 
         Row(
             modifier =
@@ -1228,28 +1259,46 @@ private fun TargetCutoutCarouselCard(
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                contentDescription = null,
-                tint = arrowTint,
-                modifier = Modifier.size(14.dp),
-            )
+            Box(
+                modifier =
+                    Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .clickable(enabled = hasCutouts) { selectPrevious() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                    contentDescription = stringResource(R.string.gamepad_previous),
+                    tint = arrowTint,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
 
             Text(
                 text = readoutText,
-                color = if (isFocused) colors.accent else colors.onSurface,
+                color = if (isAdjusting) colors.accent else colors.onSurface,
                 fontSize = METO_TEXT_SIZE_PILL,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = arrowTint,
-                modifier = Modifier.size(14.dp),
-            )
+            Box(
+                modifier =
+                    Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .clickable(enabled = hasCutouts) { selectNext() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = stringResource(R.string.gamepad_next),
+                    tint = arrowTint,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
     }
 }
@@ -1402,7 +1451,9 @@ private fun AdjustCoordinatesCard(
     val currentOnResize by rememberUpdatedState(onResize)
     var isAdjusting by remember { mutableStateOf(false) }
     var isR2Held by remember { mutableStateOf(false) }
+    var isL2Held by remember { mutableStateOf(false) }
     val isR2HeldState = rememberUpdatedState(isR2Held)
+    val isL2HeldState = rememberUpdatedState(isL2Held)
     val enabled = selectedCutout != null
 
     var activeDirectionKey by remember { mutableIntStateOf(0) }
@@ -1413,12 +1464,16 @@ private fun AdjustCoordinatesCard(
         activeRepeatJob = null
         activeDirectionKey = 0
         isR2Held = false
+        isL2Held = false
     }
 
     fun dispatchAction(
-        dx: Int,
-        dy: Int,
+        dirX: Int,
+        dirY: Int,
     ) {
+        val stepSize = if (isL2HeldState.value) METO_FINE_STEP_PX else METO_NORMAL_STEP_PX
+        val dx = dirX * stepSize
+        val dy = dirY * stepSize
         if (isR2HeldState.value) {
             currentOnResize(dx, dy)
         } else {
@@ -1428,21 +1483,21 @@ private fun AdjustCoordinatesCard(
 
     fun startAdjusting(
         keyCode: Int,
-        dx: Int,
-        dy: Int,
+        dirX: Int,
+        dirY: Int,
     ) {
         if (activeDirectionKey == keyCode && activeRepeatJob?.isActive == true) {
             return
         }
         activeRepeatJob?.cancel()
         activeDirectionKey = keyCode
-        dispatchAction(dx, dy)
+        dispatchAction(dirX, dirY)
         activeRepeatJob =
             coroutineScope.launch {
                 delay(METO_MOVE_INITIAL_DELAY_MS)
                 var delayMs = METO_MOVE_START_DELAY_MS
                 while (isActive && activeDirectionKey == keyCode) {
-                    dispatchAction(dx, dy)
+                    dispatchAction(dirX, dirY)
                     delay(delayMs)
                     delayMs = max(METO_MOVE_MIN_DELAY_MS, (delayMs * METO_MOVE_ACCEL_FACTOR).toLong())
                 }
@@ -1478,8 +1533,10 @@ private fun AdjustCoordinatesCard(
             } else {
                 isAdjusting = true
                 isR2Held = false
+                isL2Held = false
                 DialogToastManager.show(
                     message = context.getString(R.string.mirror_editor_adjust_toast),
+                    durationMs = METO_ADJUST_TOAST_DURATION_MS,
                     icon = icon,
                 )
             }
@@ -1497,28 +1554,16 @@ private fun AdjustCoordinatesCard(
         cardBgColor = if (isAdjusting) colors.accent.copy(alpha = 0.25f) else null,
         icon = icon,
         title = title,
-        trailingContent =
-            if (isAdjusting) {
-                { isFocused ->
-                    ToolboxPill(
-                        text =
-                            if (isR2Held) {
-                                stringResource(R.string.mirror_editor_resize_badge)
-                            } else {
-                                stringResource(R.string.mirror_editor_move_badge)
-                            },
-                        isAccent = isR2Held,
-                        isHighlighted = isFocused || isR2Held,
-                    )
-                }
-            } else {
-                null
-            },
         onCustomKeyEvent = { event ->
             if (!isAdjusting) return@ToolboxCard false
             val keyCode = event.nativeKeyEvent.keyCode
             if (event.type == KeyEventType.KeyDown) {
                 when (keyCode) {
+                    KeyEvent.KEYCODE_BUTTON_L2 -> {
+                        isL2Held = true
+                        true
+                    }
+
                     KeyEvent.KEYCODE_BUTTON_R2 -> {
                         isR2Held = true
                         true
@@ -1558,6 +1603,11 @@ private fun AdjustCoordinatesCard(
                 }
             } else if (event.type == KeyEventType.KeyUp) {
                 when (keyCode) {
+                    KeyEvent.KEYCODE_BUTTON_L2 -> {
+                        isL2Held = false
+                        true
+                    }
+
                     KeyEvent.KEYCODE_BUTTON_R2 -> {
                         isR2Held = false
                         true
@@ -1789,7 +1839,7 @@ private fun ToolboxSaveExitRow(
             ToolboxActionCard(
                 title = effectiveTitle,
                 icon = Icons.Rounded.Save,
-                actionBadge = if (!isPromptActive && !hasChanges) "SAVED" else null,
+                actionBadge = if (!isPromptActive && !hasChanges) stringResource(R.string.mirror_editor_saved_badge) else null,
                 isAccent = true,
                 cardBgColor = if (hasChanges) colors.accent.copy(alpha = 0.20f) else null,
                 cardFocusRequester = saveFocusRequester,

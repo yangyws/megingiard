@@ -147,6 +147,10 @@ internal fun MacroTimelineSubPageContent(
     }
 
     fun requestTouchTapRecording() {
+        if (!physicalRecordingAvailable) {
+            DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+            return
+        }
         syncDraftToNavState(currentMacro)
         if (savedMacro != null) {
             MacroPadState.updateMacro(currentMacro)
@@ -156,6 +160,10 @@ internal fun MacroTimelineSubPageContent(
     }
 
     fun requestTouchGestureRecording() {
+        if (!physicalRecordingAvailable) {
+            DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+            return
+        }
         syncDraftToNavState(currentMacro)
         if (savedMacro != null) {
             MacroPadState.updateMacro(currentMacro)
@@ -219,13 +227,20 @@ internal fun MacroTimelineSubPageContent(
         }
     }
 
+    if (!physicalRecordingAvailable) {
+        GamepadInfoBox(
+            text = stringResource(R.string.macropad_macro_privd_required_banner),
+            modifier = Modifier.firstDeckItem(),
+        )
+    }
+
     GamepadTextFieldCard(
         title = stringResource(R.string.help_timeline_name_label),
         description = stringResource(R.string.help_timeline_name_desc),
         value = localName,
         onValueChange = { localName = it },
         placeholder = stringResource(R.string.macropad_macro_default_name),
-        modifier = Modifier.firstDeckItem(),
+        modifier = if (physicalRecordingAvailable) Modifier.firstDeckItem() else Modifier,
     )
 
     GamepadActionCard(
@@ -241,10 +256,13 @@ internal fun MacroTimelineSubPageContent(
         itemKey = "macro_test_run",
         enabled = steps.isNotEmpty(),
         onClick = {
+            if (!physicalRecordingAvailable) {
+                DialogToastManager.show(context.getString(R.string.privd_error_daemon_unreachable))
+                return@GamepadActionCard
+            }
             syncDraftToNavState(currentMacro)
             MacroExecutor.runTest(
                 macro = currentMacro,
-                context = context,
                 onComplete = { success ->
                     if (success) {
                         DialogToastManager.show(
@@ -322,6 +340,7 @@ internal fun MacroTimelineSubPageContent(
             value = loopPauseMs.toFloat(),
             valueRange = 0f..10000f,
             step = 100f,
+            fineStep = 1f,
             valueLabel = "$loopPauseMs ms",
             icon = Icons.Rounded.HourglassEmpty,
             onValueChange = { loopPauseMs = it.toInt() },
@@ -343,6 +362,7 @@ internal fun MacroTimelineSubPageContent(
             value = randomizeTimingRangeMs.toFloat(),
             valueRange = 5f..100f,
             step = 5f,
+            fineStep = 1f,
             valueLabel = "±$randomizeTimingRangeMs ms",
             icon = Icons.Rounded.Tune,
             onValueChange = { randomizeTimingRangeMs = it.toInt() },

@@ -67,12 +67,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.stormpanda.megingiard.catalog.DisplayDetector
+import com.stormpanda.megingiard.catalog.SystemRoleClassifier
 import com.stormpanda.megingiard.config.ConfigManager
 import com.stormpanda.megingiard.config.MGRD_MIME_TYPE
 import com.stormpanda.megingiard.log.LogReportManager
 import com.stormpanda.megingiard.macropad.AppLauncherManager
 import com.stormpanda.megingiard.macropad.BackgroundPickerManager
-import com.stormpanda.megingiard.macropad.MacroExecutor
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadLayout
 import com.stormpanda.megingiard.macropad.PadProfile
@@ -234,6 +234,9 @@ class MainActivity : ComponentActivity() {
         // just the log level synchronously from DataStore then continues async.
         SettingsManager.init(this)
 
+        // Initialize canonical home launcher and system role classifier
+        SystemRoleClassifier.init(this)
+
         // Trigger session background update check on app launch
         UpdateManager.checkForUpdates(
             force = false,
@@ -270,9 +273,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Provide a stable applicationContext to MacroExecutor so that TouchTap macro
-        // steps can start TouchInjector without needing the caller to supply a Context.
-        MacroExecutor.init(this)
         PrimaryOverlayManager.init(application)
 
         SettingsManager.onThemeChangedListener = {

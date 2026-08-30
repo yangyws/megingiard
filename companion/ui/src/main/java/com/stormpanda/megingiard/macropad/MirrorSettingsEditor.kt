@@ -2,7 +2,6 @@ package com.stormpanda.megingiard.macropad
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -61,7 +60,6 @@ internal fun MirrorDeck(
     accentColor: Color,
     onArrangeCutouts: () -> Unit,
     onOpenAdvancedSettings: () -> Unit,
-    onAddCutout: () -> Unit,
     onEditCutout: (ScreenCutout) -> Unit,
 ) {
     AppLog.d(TAG, "MirrorDeck composition for profile=${profile.id}, layout=${layout.id}")
@@ -89,14 +87,6 @@ internal fun MirrorDeck(
     GamepadSectionHeader(
         text = stringResource(R.string.settings_mirror_cutouts_header),
         color = accentColor,
-    )
-
-    // First item in cutouts list: Add Cutout action card
-    GamepadActionCard(
-        title = stringResource(R.string.mirror_editor_add_cutout),
-        description = stringResource(R.string.mirror_editor_add_cutout_desc),
-        icon = Icons.Rounded.Add,
-        onClick = onAddCutout,
     )
 
     if (layout.mirrorCutouts.isEmpty()) {
@@ -326,6 +316,7 @@ internal fun MirrorAdvancedSettingsSubPageContent(
         value = layout.ambientDim,
         valueRange = 0f..MSE_DIM_MAX,
         step = MSE_DIM_STEP,
+        fineStep = 0.01f,
         icon = Icons.Rounded.Opacity,
         valueLabel = "${(layout.ambientDim * MSE_PERCENT_DIVISOR).roundToInt()}%",
         onValueChange = { newVal ->
@@ -347,6 +338,7 @@ internal fun MirrorAdvancedSettingsSubPageContent(
         value = layout.mirrorEdgeBlendWidth,
         valueRange = MSE_EDGE_BLEND_MIN..MSE_EDGE_BLEND_MAX,
         step = MSE_EDGE_BLEND_STEP,
+        fineStep = 1f,
         icon = Icons.Rounded.Grain,
         valueLabel = edgeBlendLabel,
         onValueChange = { newVal ->

@@ -49,6 +49,8 @@ private const val DTM_PADDING_V_DP = 5
 private const val DTM_SPACING_DP = 6
 private const val DTM_ICON_SIZE_DP = 14
 private const val DTM_FONT_SIZE_SP = 13
+private const val DTM_MAX_LINES = 3
+private const val DTM_LINE_HEIGHT_SP = 17
 
 /**
  * Data model for a toast message displayed inside an overlay dialog header.
@@ -84,6 +86,16 @@ object DialogToastManager {
                 delay(durationMs)
                 _currentToast.value = null
             }
+    }
+
+    fun showPersistent(
+        message: String,
+        icon: ImageVector? = Icons.Rounded.CheckCircle,
+        isError: Boolean = false,
+    ) {
+        AppLog.d(TAG, "showPersistent: '$message' (isError=$isError)")
+        toastJob?.cancel()
+        _currentToast.value = DialogToast(message, icon, isError)
     }
 
     fun clear() {
@@ -144,8 +156,10 @@ fun DialogToastPill(
                     color = colors.onSurface,
                     fontSize = DTM_FONT_SIZE_SP.sp,
                     fontWeight = FontWeight.Medium,
-                    maxLines = 1,
+                    lineHeight = DTM_LINE_HEIGHT_SP.sp,
+                    maxLines = DTM_MAX_LINES,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }

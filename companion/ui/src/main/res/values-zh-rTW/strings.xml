@@ -109,6 +109,8 @@
     <!-- Keyboard trackpoint mouse button position setting -->
     <string name="macropad_device_disabled_mouse">此配置已禁用滑鼠</string>
     <string name="macropad_device_disabled_touch">此配置已禁用觸控</string>
+    <string name="macropad_device_disabled_macro_privd">巨集需要特權模式。請在設定中啟用特權模式。</string>
+    <string name="macropad_macro_privd_required_banner">建立、編輯、測試及執行巨集需要特權模式。請在設定中啟用特權模式。</string>
     <string name="macropad_editor_delete_profile">刪除設定檔</string>
     <string name="macropad_editor_delete_layout">刪除配置</string>
     <string name="macropad_editor_cancel">取消</string>
@@ -391,6 +393,12 @@
     <string name="layout_settings_bg_image_use_as_mask_desc">將背景圖片繪製在螢幕投影區塊上方。適用於具有透明度的 PNG。</string>
     <string name="layout_settings_bg_image_crop">裁切</string>
     <string name="layout_settings_bg_image_crop_desc">在下螢幕雙指縮放與拖曳移動背景圖片。</string>
+    <string name="layout_settings_bg_image_crop_disabled_stretch">當啟用拉伸縮放時，裁切與調整位置功能將會停用。</string>
+    <string name="layout_settings_bg_scale_mode">縮放模式</string>
+    <string name="layout_settings_bg_scale_mode_desc">選擇背景圖片適應螢幕長寬比的方式。</string>
+    <string name="bg_scale_mode_fill">填滿</string>
+    <string name="bg_scale_mode_fit">符合</string>
+    <string name="bg_scale_mode_stretch">拉伸</string>
     <string name="layout_settings_bg_image_adjustments">圖片調整與遮罩</string>
     <string name="layout_settings_bg_section_title">背景</string>
     <string name="layout_settings_bg_image_dimming_title">調暗</string>
@@ -582,7 +590,6 @@
 
     <!-- Cutout Layout Editor -->
     <string name="mirror_editor_add_cutout">新增區塊</string>
-    <string name="mirror_editor_add_cutout_desc">建立新的螢幕鏡像區塊</string>
     <string name="mirror_editor_done">完成</string>
     <string name="mirror_editor_aspect_ratio_mode">長寬比模式</string>
     <string name="mirror_editor_aspect_ratio_free">自由</string>
@@ -596,9 +603,8 @@
     <string name="mirror_editor_cutout_name_hint">區塊名稱</string>
     <string name="mirror_editor_adjust_top_cutout">調整頂部區塊</string>
     <string name="mirror_editor_adjust_bottom_cutout">調整底部區塊</string>
-    <string name="mirror_editor_move_badge">移動</string>
-    <string name="mirror_editor_resize_badge">縮放</string>
-    <string name="mirror_editor_adjust_toast">使用方向鍵移動。按住 R2 縮放。</string>
+    <string name="mirror_editor_saved_badge">已儲存</string>
+    <string name="mirror_editor_adjust_toast">使用方向鍵移動。按住 R2 縮放。按住 L2 進行微調。</string>
     <string name="mirror_editor_no_cutouts">無區塊</string>
     <string name="mirror_editor_save_changes">儲存變更</string>
     <string name="mirror_editor_saved_toast">已儲存版面變更</string>
@@ -939,6 +945,7 @@
     <string name="gamepad_action_enable">啟用</string>
     <string name="gamepad_action_custom_color">自訂顏色</string>
     <string name="gamepad_action_select">選取</string>
+    <string name="gamepad_slider_fine_adjustment_toast">按住 L2 進行微調</string>
     <string name="macropad_picker_visual_keyboard_title">選取鍵盤按鍵</string>
     <string name="macropad_picker_keyboard_nav_title">導覽與擴充</string>
     <string name="macropad_picker_visual_gamepad_title">選取手把按鈕</string>
@@ -1144,7 +1151,9 @@
     <string name="macropad_profile_deleted_toast">已刪除設定檔「%1$s」</string>
     <string name="macropad_profile_duplicated_toast">已複製並選取設定檔「%1$s」</string>
     <string name="macropad_layout_deleted_toast">已刪除版面配置「%1$s」</string>
+    <string name="macropad_layout_cannot_delete_last_toast">無法刪除最後一個版面配置</string>
     <string name="macropad_layout_duplicated_toast">已複製並選取版面配置「%1$s」</string>
+    <string name="macropad_layout_copied_toast">版面配置已成功複製！</string>
     <string name="macropad_button_deleted_toast">已刪除按鈕</string>
     <string name="macropad_buttons_shifted_toast">%1$d 個按鈕已移至空白位置</string>
     <string name="macropad_buttons_replaced_toast">%1$d 個重疊按鈕已被取代移除</string>
@@ -1164,6 +1173,7 @@
     <string name="macropad_editor_save_layout_desc">套用並儲存配置外觀設定</string>
     <string name="macropad_editor_new_layout_default_name">新配置</string>
     <string name="macropad_editor_new_button_default_label">新按鈕</string>
+    <string name="macropad_editor_button_preview_text">文字</string>
     <string name="gamepad_action_save_and_exit">儲存並結束</string>
     <string name="gamepad_action_save_and_exit_desc">套用並儲存變更</string>
     <string name="gamepad_action_discard_and_exit">放棄並結束</string>
