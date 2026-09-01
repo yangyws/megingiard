@@ -619,17 +619,18 @@ internal fun PadSurface(
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val cw = size.width
                     val ch = size.height
-                    val iw = bgBitmap!!.width.toFloat()
-                    val ih = bgBitmap!!.height.toFloat()
+                    val bitmap = bgBitmap ?: return@Canvas
+                    val iw = bitmap.width.toFloat()
+                    val ih = bitmap.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
                         val (dstOffset, dstSize) =
                             when (layout.bgScaleMode) {
                                 BackgroundScaleMode.STRETCH -> {
-                                    IntOffset.Zero to IntSize(cw.toInt(), ch.toInt())
+                                    IntOffset.Zero to IntSize(cw.toInt().coerceAtLeast(1), ch.toInt().coerceAtLeast(1))
                                 }
 
                                 BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
-                                    val userScale = layout.bgImageScale
+                                    val userScale = layout.bgImageScale.coerceAtLeast(0.01f)
                                     val scaleBase =
                                         if (layout.bgScaleMode == BackgroundScaleMode.FIT) {
                                             ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
@@ -638,22 +639,26 @@ internal fun PadSurface(
                                         }
                                     val ws = iw * scaleBase
                                     val hs = ih * scaleBase
-                                    val maxTx = ((ws * userScale - cw) / 2f).coerceAtLeast(0f)
-                                    val maxTy = ((hs * userScale - ch) / 2f).coerceAtLeast(0f)
-                                    val clampedX = (layout.bgImageOffsetX * cw).coerceIn(-maxTx, maxTx)
-                                    val clampedY = (layout.bgImageOffsetY * ch).coerceIn(-maxTy, maxTy)
+                                    val targetW = (ws * userScale).toInt().coerceAtLeast(1)
+                                    val targetH = (hs * userScale).toInt().coerceAtLeast(1)
+                                    val maxTx = ((targetW - cw) / 2f).coerceAtLeast(0f)
+                                    val maxTy = ((targetH - ch) / 2f).coerceAtLeast(0f)
+                                    val clampedX = if (maxTx > 0f) (layout.bgImageOffsetX * cw).coerceIn(-maxTx, maxTx) else 0f
+                                    val clampedY = if (maxTy > 0f) (layout.bgImageOffsetY * ch).coerceIn(-maxTy, maxTy) else 0f
                                     IntOffset(
-                                        ((cw - ws * userScale) / 2f + clampedX).toInt(),
-                                        ((ch - hs * userScale) / 2f + clampedY).toInt(),
-                                    ) to IntSize((ws * userScale).toInt(), (hs * userScale).toInt())
+                                        ((cw - targetW) / 2f + clampedX).toInt(),
+                                        ((ch - targetH) / 2f + clampedY).toInt(),
+                                    ) to IntSize(targetW, targetH)
                                 }
                             }
-                        drawImage(
-                            image = bgBitmap!!,
-                            dstOffset = dstOffset,
-                            dstSize = dstSize,
-                            colorFilter = bgImageDimFilter,
-                        )
+                        if (dstSize.width > 0 && dstSize.height > 0) {
+                            drawImage(
+                                image = bitmap,
+                                dstOffset = dstOffset,
+                                dstSize = dstSize,
+                                colorFilter = bgImageDimFilter,
+                            )
+                        }
                     }
                 }
             }

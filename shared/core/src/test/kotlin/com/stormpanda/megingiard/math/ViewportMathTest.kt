@@ -59,4 +59,20 @@ class ViewportMathTest {
         assertEquals("X", emptyList.prevItem("X"))
         assertEquals("X", emptyList.nextItem("X"))
     }
+
+    @Test
+    fun `calculateAspectFitScale with zero or negative dimensions returns one`() {
+        assertEquals(1.0f, ViewportMath.calculateAspectFitScale(0f, 1080f, 1920f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFitScale(1920f, 0f, 1920f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFitScale(1920f, 1080f, 0f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFitScale(1920f, 1080f, 1920f, 0f), 0.001f)
+    }
+
+    @Test
+    fun `calculateAspectFillScale with zero or negative dimensions returns one`() {
+        assertEquals(1.0f, ViewportMath.calculateAspectFillScale(0f, 1080f, 1920f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFillScale(1920f, 0f, 1920f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFillScale(1920f, 1080f, 0f, 1080f), 0.001f)
+        assertEquals(1.0f, ViewportMath.calculateAspectFillScale(1920f, 1080f, 1920f, 0f), 0.001f)
+    }
 }

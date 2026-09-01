@@ -163,9 +163,12 @@ internal fun PadCanvas(
     val context = LocalContext.current
     val gridStepPx = with(density) { PC_GRID_STEP_DP.toPx() }
 
-    var bgBitmap by remember(layout?.backgroundImagePath, layout?.backgroundImageVersion) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(layout?.backgroundImagePath, layout?.backgroundImageVersion) {
-        val path = layout?.backgroundImagePath
+    val previewLayout by MacroPadState.previewLayout.collectAsState()
+    val effectiveLayout = previewLayout ?: layout
+
+    var bgBitmap by remember(effectiveLayout?.backgroundImagePath, effectiveLayout?.backgroundImageVersion) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(effectiveLayout?.backgroundImagePath, effectiveLayout?.backgroundImageVersion) {
+        val path = effectiveLayout?.backgroundImagePath
         if (path != null) {
             try {
                 val decoded = MacroPadMediaRepository.loadScaledBitmap(context, path)
@@ -180,8 +183,8 @@ internal fun PadCanvas(
     }
 
     val bgImageDimFilter =
-        remember(layout?.backgroundImageDim) {
-            dimColorFilter(layout?.backgroundImageDim ?: 0f)
+        remember(effectiveLayout?.backgroundImageDim) {
+            dimColorFilter(effectiveLayout?.backgroundImageDim ?: 0f)
         }
 
     var lockSymbolVisible by remember { mutableStateOf(false) }
@@ -226,10 +229,10 @@ internal fun PadCanvas(
                     val iw = bitmap.width.toFloat()
                     val ih = bitmap.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                        val currentLayout = MacroPadState.previewLayout.value ?: layout
-                        val mode = currentLayout?.bgScaleMode ?: BackgroundScaleMode.FILL
+                        val currentLayout = effectiveLayout ?: return@detectTransformGestures
+                        val mode = currentLayout.bgScaleMode
                         if (mode != BackgroundScaleMode.STRETCH) {
-                            val currentScale = currentLayout?.bgImageScale ?: 1f
+                            val currentScale = currentLayout.bgImageScale.coerceAtLeast(0.01f)
                             val newScale = (currentScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
 
                             val scaleBase =
@@ -242,10 +245,10 @@ internal fun PadCanvas(
                             val hs = ih * scaleBase
 
                             val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
-                            val currentPixelX = (currentLayout?.bgImageOffsetX ?: 0f) * cw
-                            val currentPixelY = (currentLayout?.bgImageOffsetY ?: 0f) * ch
-                            val clampedX = (currentPixelX + pan.x).coerceIn(-maxTx, maxTx)
-                            val clampedY = (currentPixelY + pan.y).coerceIn(-maxTy, maxTy)
+                            val currentPixelX = currentLayout.bgImageOffsetX * cw
+                            val currentPixelY = currentLayout.bgImageOffsetY * ch
+                            val clampedX = if (maxTx > 0f) (currentPixelX + pan.x).coerceIn(-maxTx, maxTx) else 0f
+                            val clampedY = if (maxTy > 0f) (currentPixelY + pan.y).coerceIn(-maxTy, maxTy) else 0f
 
                             val normX = if (cw > 0f) clampedX / cw else 0f
                             val normY = if (ch > 0f) clampedY / ch else 0f
@@ -264,19 +267,19 @@ internal fun PadCanvas(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cw = size.width
                 val ch = size.height
-                val iw = bgBitmap!!.width.toFloat()
-                val ih = bgBitmap!!.height.toFloat()
+                val bitmap = bgBitmap ?: return@Canvas
+                val iw = bitmap.width.toFloat()
+                val ih = bitmap.height.toFloat()
                 if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                    val currentLayout = MacroPadState.previewLayout.value ?: layout
-                    val mode = currentLayout?.bgScaleMode ?: layout?.bgScaleMode ?: BackgroundScaleMode.FILL
+                    val mode = effectiveLayout?.bgScaleMode ?: BackgroundScaleMode.FILL
                     val (dstOffset, dstSize) =
                         when (mode) {
                             BackgroundScaleMode.STRETCH -> {
-                                IntOffset.Zero to IntSize(cw.toInt(), ch.toInt())
+                                IntOffset.Zero to IntSize(cw.toInt().coerceAtLeast(1), ch.toInt().coerceAtLeast(1))
                             }
 
                             BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
-                                val scale = layout?.bgImageScale ?: 1f
+                                val scale = (effectiveLayout?.bgImageScale ?: 1f).coerceAtLeast(0.01f)
                                 val scaleBase =
                                     if (mode == BackgroundScaleMode.FIT) {
                                         ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
@@ -286,23 +289,28 @@ internal fun PadCanvas(
                                 val ws = iw * scaleBase
                                 val hs = ih * scaleBase
 
-                                val maxTx = ((ws * scale - cw) / 2f).coerceAtLeast(0f)
-                                val maxTy = ((hs * scale - ch) / 2f).coerceAtLeast(0f)
-                                val clampedX = ((layout?.bgImageOffsetX ?: 0f) * cw).coerceIn(-maxTx, maxTx)
-                                val clampedY = ((layout?.bgImageOffsetY ?: 0f) * ch).coerceIn(-maxTy, maxTy)
+                                val targetW = (ws * scale).toInt().coerceAtLeast(1)
+                                val targetH = (hs * scale).toInt().coerceAtLeast(1)
+
+                                val maxTx = ((targetW - cw) / 2f).coerceAtLeast(0f)
+                                val maxTy = ((targetH - ch) / 2f).coerceAtLeast(0f)
+                                val clampedX = if (maxTx > 0f) ((effectiveLayout?.bgImageOffsetX ?: 0f) * cw).coerceIn(-maxTx, maxTx) else 0f
+                                val clampedY = if (maxTy > 0f) ((effectiveLayout?.bgImageOffsetY ?: 0f) * ch).coerceIn(-maxTy, maxTy) else 0f
 
                                 IntOffset(
-                                    ((cw - ws * scale) / 2f + clampedX).toInt(),
-                                    ((ch - hs * scale) / 2f + clampedY).toInt(),
-                                ) to IntSize((ws * scale).toInt(), (hs * scale).toInt())
+                                    ((cw - targetW) / 2f + clampedX).toInt(),
+                                    ((ch - targetH) / 2f + clampedY).toInt(),
+                                ) to IntSize(targetW, targetH)
                             }
                         }
-                    drawImage(
-                        image = bgBitmap!!,
-                        dstOffset = dstOffset,
-                        dstSize = dstSize,
-                        colorFilter = bgImageDimFilter,
-                    )
+                    if (dstSize.width > 0 && dstSize.height > 0) {
+                        drawImage(
+                            image = bitmap,
+                            dstOffset = dstOffset,
+                            dstSize = dstSize,
+                            colorFilter = bgImageDimFilter,
+                        )
+                    }
                 }
             }
         }

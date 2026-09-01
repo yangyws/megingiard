@@ -150,11 +150,6 @@ internal fun LayoutBackgroundSubPageContent(
         }
     }
 
-    LaunchedEffect(bgScaleMode) {
-        val pl = MacroPadState.previewLayout.value ?: layout
-        MacroPadState.setPreviewLayout(pl.copy(bgScaleMode = bgScaleMode))
-    }
-
     val previewLayout by MacroPadState.previewLayout.collectAsState()
     LaunchedEffect(previewLayout?.bgImageScale, previewLayout?.bgImageOffsetX, previewLayout?.bgImageOffsetY) {
         val pl = previewLayout ?: return@LaunchedEffect
@@ -247,10 +242,11 @@ internal fun LayoutBackgroundSubPageContent(
                                 val (dstOffset, dstSize) =
                                     when (bgScaleMode) {
                                         BackgroundScaleMode.STRETCH -> {
-                                            IntOffset.Zero to IntSize(cw.toInt(), ch.toInt())
+                                            IntOffset.Zero to IntSize(cw.toInt().coerceAtLeast(1), ch.toInt().coerceAtLeast(1))
                                         }
 
                                         BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
+                                            val safeScale = bgScale.coerceAtLeast(0.01f)
                                             val scaleBase =
                                                 if (bgScaleMode == BackgroundScaleMode.FIT) {
                                                     ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
@@ -259,22 +255,26 @@ internal fun LayoutBackgroundSubPageContent(
                                                 }
                                             val ws = iw * scaleBase
                                             val hs = ih * scaleBase
-                                            val maxTx = ((ws * bgScale - cw) / 2f).coerceAtLeast(0f)
-                                            val maxTy = ((hs * bgScale - ch) / 2f).coerceAtLeast(0f)
-                                            val clampedX = (bgOffsetX * cw).coerceIn(-maxTx, maxTx)
-                                            val clampedY = (bgOffsetY * ch).coerceIn(-maxTy, maxTy)
+                                            val targetW = (ws * safeScale).toInt().coerceAtLeast(1)
+                                            val targetH = (hs * safeScale).toInt().coerceAtLeast(1)
+                                            val maxTx = ((targetW - cw) / 2f).coerceAtLeast(0f)
+                                            val maxTy = ((targetH - ch) / 2f).coerceAtLeast(0f)
+                                            val clampedX = if (maxTx > 0f) (bgOffsetX * cw).coerceIn(-maxTx, maxTx) else 0f
+                                            val clampedY = if (maxTy > 0f) (bgOffsetY * ch).coerceIn(-maxTy, maxTy) else 0f
                                             IntOffset(
-                                                ((cw - ws * bgScale) / 2f + clampedX).toInt(),
-                                                ((ch - hs * bgScale) / 2f + clampedY).toInt(),
-                                            ) to IntSize((ws * bgScale).toInt(), (hs * bgScale).toInt())
+                                                ((cw - targetW) / 2f + clampedX).toInt(),
+                                                ((ch - targetH) / 2f + clampedY).toInt(),
+                                            ) to IntSize(targetW, targetH)
                                         }
                                     }
-                                drawImage(
-                                    image = bitmap,
-                                    dstOffset = dstOffset,
-                                    dstSize = dstSize,
-                                    colorFilter = bgImageDimFilter,
-                                )
+                                if (dstSize.width > 0 && dstSize.height > 0) {
+                                    drawImage(
+                                        image = bitmap,
+                                        dstOffset = dstOffset,
+                                        dstSize = dstSize,
+                                        colorFilter = bgImageDimFilter,
+                                    )
+                                }
                             }
                         }
                     } else {
