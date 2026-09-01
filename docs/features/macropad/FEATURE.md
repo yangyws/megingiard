@@ -313,7 +313,7 @@ Each button supports one of the following actions:
   - **Enlarge Icon (`enlargeIcon`) vs Full Bleed Icon (`fullBleedIcon`)**: Available under Button Settings when a Material Symbol icon is configured (mutually exclusive).
     - **Enlarge Icon**: Scales the glyph up to fill ~82% of the button face bounds (`PadGlyphRules.ENLARGED_EM_FRACTION = 0.82f`) without clipping.
     - **Full Bleed Icon**: Scales the glyph to 130% em size (`PadGlyphRules.FULL_BLEED_EM_FRACTION = 1.30f`), accounting for the font's internal 24x24 optical margins so the glyph visually reaches the face perimeter edge-to-edge.
-  - **Enlarge Text (`enlargeText`)**: Available under Button Settings when text label is displayed without an icon (or on custom images with label overlay enabled), rendering large prominent bold text.
+  - **Enlarge Text (`enlargeText`)**: Available under Button Settings specifically when a custom image with label overlay is enabled (`imageAssetId != null && showLabel == true`), allowing users to toggle larger bold typography for the bottom overlay label. Standard text-only buttons render prominent, dynamically scaled bold typography by default.
   - **Optical Center Alignment**: Material Symbol vector glyphs are rendered with `PlatformTextStyle(includeFontPadding = false)`, `LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)`, and a baseline offset compensation (`MS_OPTICAL_Y_OFFSET_FRACTION = -0.125f`) to counteract the font's asymmetric baseline ascent/descent ratio, ensuring all glyphs scale outward from the exact mathematical center.
 - **Choose Icon Picker**:
   - **Filled Variant (`iconFilled`)**: Toggle filled vs outline Material Symbol ligature.

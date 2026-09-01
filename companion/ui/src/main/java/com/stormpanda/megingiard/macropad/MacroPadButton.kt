@@ -334,23 +334,12 @@ internal fun PadButtonContent(
             height = height,
             fallback = {
                 val dynamicFontSize =
-                    if (btn.enlargeText) {
-                        if (faceSize != null) (faceSize.value * 0.36f).coerceIn(16f, 36f).sp else 18.sp
-                    } else {
-                        if (faceSize != null) (faceSize.value * 0.22f).coerceIn(11f, 22f).sp else 14.sp
-                    }
+                    if (faceSize != null) (faceSize.value * 0.28f).coerceIn(14f, 28f).sp else 16.sp
                 val textStyle =
-                    if (btn.enlargeText) {
-                        MaterialTheme.typography.titleMedium.copy(
-                            fontSize = dynamicFontSize,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    } else {
-                        MaterialTheme.typography.labelMedium.copy(
-                            fontSize = dynamicFontSize,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontSize = dynamicFontSize,
+                        fontWeight = FontWeight.Bold,
+                    )
                 Text(
                     text = btn.label,
                     color = effectiveTextTint,

@@ -571,13 +571,6 @@ internal fun EditButtonSubPageContent(
                     if (fullBleed) enlargeIcon = false
                 },
             )
-        } else {
-            GamepadToggleCard(
-                title = stringResource(R.string.button_settings_enlarge_text),
-                description = stringResource(R.string.button_settings_enlarge_text_desc),
-                checked = enlargeText,
-                onCheckedChange = { enlargeText = it },
-            )
         }
     }
 
@@ -841,16 +834,11 @@ internal fun EditButtonSubPageContent(
                                 modifier = stretchModifier,
                             )
                         } else {
-                            val dynamicFontSize =
-                                if (enlargeText) {
-                                    (previewFaceSize.value * 0.36f).coerceIn(14f, 28f).sp
-                                } else {
-                                    (previewFaceSize.value * 0.22f).coerceIn(10f, 16f).sp
-                                }
+                            val dynamicFontSize = (previewFaceSize.value * 0.28f).coerceIn(12f, 22f).sp
                             Text(
                                 text = previewLabel,
                                 color = tColor,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = dynamicFontSize),
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = dynamicFontSize),
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 softWrap = false,
