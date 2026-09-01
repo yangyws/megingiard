@@ -132,7 +132,7 @@ object PrimaryOverlayManager {
         val app = application ?: return
         val isDual = DisplayDetector.findSecondaryDisplay(app) != null
         if (!isDual) {
-            // Single-screen devices handle modals in-tree in MainAppScreen
+            AppLog.w(TAG, "No secondary display found; Megingiard requires a dual-screen device.")
             return
         }
 
@@ -327,36 +327,31 @@ object PrimaryOverlayManager {
                                 ) {
                                     when {
                                         isViewportEditActive -> {
+                                            val closeViewportEdit = {
+                                                AppStateManager.setViewportEditActive(false)
+                                                AppStateManager.openPrimaryModal(
+                                                    PrimaryModalConfig(
+                                                        type = PrimaryModalType.MACROPAD_EDITOR,
+                                                        payload = PrimaryModalPayload.MacroPad(section = EditorSection.MIRROR),
+                                                    ),
+                                                )
+                                            }
                                             MirrorEditorTopOverlay(
-                                                onDone = {
-                                                    AppStateManager.setViewportEditActive(false)
-                                                    AppStateManager.openPrimaryModal(
-                                                        PrimaryModalConfig(
-                                                            type = PrimaryModalType.MACROPAD_EDITOR,
-                                                            payload = PrimaryModalPayload.MacroPad(section = EditorSection.MIRROR),
-                                                        ),
-                                                    )
-                                                },
-                                                onCancel = {
-                                                    AppStateManager.setViewportEditActive(false)
-                                                    AppStateManager.openPrimaryModal(
-                                                        PrimaryModalConfig(
-                                                            type = PrimaryModalType.MACROPAD_EDITOR,
-                                                            payload = PrimaryModalPayload.MacroPad(section = EditorSection.MIRROR),
-                                                        ),
-                                                    )
-                                                },
+                                                onDone = closeViewportEdit,
+                                                onCancel = closeViewportEdit,
                                             )
                                         }
 
-                                        activeModal != null -> {
-                                            PrimaryModalHost(
-                                                config = activeModal!!,
-                                                onDismiss = {
-                                                    AppLog.d(TAG, "Dismissing primary modal: ${activeModal?.type}")
-                                                    AppStateManager.closePrimaryModal()
-                                                },
-                                            )
+                                        else -> {
+                                            activeModal?.let { modal ->
+                                                PrimaryModalHost(
+                                                    config = modal,
+                                                    onDismiss = {
+                                                        AppLog.d(TAG, "Dismissing primary modal: ${modal.type}")
+                                                        AppStateManager.closePrimaryModal()
+                                                    },
+                                                )
+                                            }
                                         }
                                     }
                                 }

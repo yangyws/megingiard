@@ -1,10 +1,22 @@
 package com.stormpanda.megingiard.input
 
+import com.stormpanda.megingiard.privd.PrivdClient
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class InjectorBackendRouterTest {
+    @Before
+    fun setUp() {
+        PrivdClient.setStateForTesting(null)
+    }
+
+    @After
+    fun tearDown() {
+        PrivdClient.setStateForTesting(null)
+    }
     @Test
     fun testResolveBackendWhenDisconnectedReturnsFalse() {
         val router = InjectorBackendRouter("TestTag")
@@ -35,14 +47,31 @@ class InjectorBackendRouterTest {
         router.resolveBackend()
         router.markStopped()
 
-        // When stopped, fallback check should still work without error
+        // When stopped, isRunning returns false immediately without checking fallback
         var fallbackChecked = false
         val isRunning =
             router.isRunning {
                 fallbackChecked = true
-                false
+                true
             }
-        assertTrue(fallbackChecked)
+        assertFalse(fallbackChecked)
         assertFalse(isRunning)
+    }
+
+    @Test
+    fun testDispatchExecutesCorrectBranch() {
+        val router = InjectorBackendRouter("TestTag")
+        router.resolveBackend()
+
+        var privdRan = false
+        var shellRan = false
+
+        router.dispatch(
+            privdAction = { privdRan = true },
+            shellAction = { shellRan = true },
+        )
+
+        assertFalse(privdRan)
+        assertTrue(shellRan)
     }
 }

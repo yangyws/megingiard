@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.BatteryManager
-import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -79,7 +78,6 @@ import com.stormpanda.megingiard.catalog.InstalledAppsManager
 import com.stormpanda.megingiard.ipc.MegingiardIpcContract
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.MaterialSymbol
-import com.stormpanda.megingiard.macropad.PadLayout
 import com.stormpanda.megingiard.macropad.PadProfile
 import com.stormpanda.megingiard.macropad.ProfileAssociation
 import com.stormpanda.megingiard.session.ActiveGameSession
@@ -89,7 +87,6 @@ import kotlinx.coroutines.delay
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 private const val TAG = "IntegrationHomeScreen"
 
@@ -122,6 +119,7 @@ private const val IH_BATTERY_MAX = 100
 
 private val IH_BORDER_WIDTH = 1.dp
 private val IH_BUTTON_CORNER_RADIUS = 10.dp
+private val IH_BUTTON_SHAPE = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS)
 private val IH_BUTTON_ICON_SIZE = 16.dp
 private val IH_BUTTON_ICON_SPACING = 6.dp
 private const val IH_HIGHLIGHT_ALPHA = 0.15f
@@ -595,7 +593,7 @@ private fun HeroCompanionCard(
                                         containerColor = colors.accent,
                                         contentColor = colors.onAccent,
                                     ),
-                                shape = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS),
+                                shape = IH_BUTTON_SHAPE,
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -625,7 +623,7 @@ private fun HeroCompanionCard(
                                     ButtonDefaults.outlinedButtonColors(
                                         contentColor = colors.onSurface,
                                     ),
-                                shape = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS),
+                                shape = IH_BUTTON_SHAPE,
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -647,31 +645,23 @@ private fun HeroCompanionCard(
                         Row(horizontalArrangement = Arrangement.spacedBy(IH_BUTTON_SPACING)) {
                             Button(
                                 onClick = {
-                                    val newProfileId = UUID.randomUUID().toString()
-                                    val defaultLayoutId = UUID.randomUUID().toString()
                                     val assoc =
                                         ProfileAssociation(
                                             packageName = targetPackage,
                                             systemId = targetSystemId,
                                             romFileName = targetRomPath?.substringAfterLast('/'),
                                         )
-                                    val newProfile =
-                                        PadProfile(
-                                            id = newProfileId,
-                                            name = targetLabel ?: context.getString(R.string.integration_home_new_profile),
-                                            association = assoc,
-                                            layouts =
-                                                listOf(
-                                                    PadLayout(
-                                                        id = defaultLayoutId,
-                                                        name = context.getString(R.string.integration_home_default_layout),
-                                                    ),
+                                    AppStateManager.openPrimaryModal(
+                                        PrimaryModalConfig(
+                                            type = PrimaryModalType.PROFILE_SETTINGS,
+                                            payload =
+                                                PrimaryModalPayload.ProfileSettings(
+                                                    isNewProfile = true,
+                                                    presetName = targetLabel,
+                                                    association = assoc,
                                                 ),
-                                            activeLayoutId = defaultLayoutId,
-                                        )
-                                    MacroPadState.addProfile(newProfile)
-                                    MacroPadState.setActiveProfileId(newProfileId)
-                                    AppStateManager.setEditorActive(true)
+                                        ),
+                                    )
                                 },
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                                 colors =
@@ -679,7 +669,7 @@ private fun HeroCompanionCard(
                                         containerColor = colors.accent,
                                         contentColor = colors.onAccent,
                                     ),
-                                shape = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS),
+                                shape = IH_BUTTON_SHAPE,
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -707,7 +697,7 @@ private fun HeroCompanionCard(
                                         ButtonDefaults.outlinedButtonColors(
                                             contentColor = colors.onSurface,
                                         ),
-                                    shape = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS),
+                                    shape = IH_BUTTON_SHAPE,
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -795,7 +785,7 @@ private fun HeroCompanionCard(
                                 containerColor = colors.accent,
                                 contentColor = colors.onAccent,
                             ),
-                        shape = RoundedCornerShape(IH_BUTTON_CORNER_RADIUS),
+                        shape = IH_BUTTON_SHAPE,
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -981,35 +971,30 @@ private fun rememberBatteryState(): BatteryState {
     var batteryState by remember { mutableStateOf(BatteryState(IH_BATTERY_MAX, false)) }
 
     DisposableEffect(context) {
+        fun extractBatteryState(intent: Intent?): BatteryState {
+            if (intent == null) return BatteryState(IH_BATTERY_MAX, false)
+            val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            val isCharging =
+                status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == BatteryManager.BATTERY_STATUS_FULL
+            val pct = if (level >= 0 && scale > 0) (level * IH_BATTERY_MAX / scale) else IH_BATTERY_MAX
+            return BatteryState(pct, isCharging)
+        }
+
         val receiver =
             object : BroadcastReceiver() {
                 override fun onReceive(
                     context: Context,
                     intent: Intent,
                 ) {
-                    val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                    val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                    val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                    val isCharging =
-                        status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                            status == BatteryManager.BATTERY_STATUS_FULL
-
-                    val pct = if (level >= 0 && scale > 0) (level * IH_BATTERY_MAX / scale) else IH_BATTERY_MAX
-                    batteryState = BatteryState(pct, isCharging)
+                    batteryState = extractBatteryState(intent)
                 }
             }
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
         val stickyIntent = context.registerReceiver(receiver, filter)
-        if (stickyIntent != null) {
-            val level = stickyIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-            val scale = stickyIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-            val status = stickyIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-            val isCharging =
-                status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                    status == BatteryManager.BATTERY_STATUS_FULL
-            val pct = if (level >= 0 && scale > 0) (level * IH_BATTERY_MAX / scale) else IH_BATTERY_MAX
-            batteryState = BatteryState(pct, isCharging)
-        }
+        batteryState = extractBatteryState(stickyIntent)
         onDispose {
             context.unregisterReceiver(receiver)
         }
@@ -1108,12 +1093,7 @@ private fun resolveAppLabel(
     if (packageName == null) return null
     return try {
         val pm = context.packageManager
-        val appInfo =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0L))
-            } else {
-                pm.getApplicationInfo(packageName, 0)
-            }
+        val appInfo = pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0L))
         pm.getApplicationLabel(appInfo).toString()
     } catch (e: Exception) {
         packageName

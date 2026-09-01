@@ -9,6 +9,7 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import com.stormpanda.megingiard.macropad.MouseButton as MouseBtnEnum
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shape enums
@@ -47,7 +48,16 @@ enum class TrackpointSize(
 // Mouse button enum — used by PadAction.MouseButton
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum class MouseButton { LEFT, RIGHT, MIDDLE, MOUSE4, MOUSE5 }
+enum class MouseButton(
+    val code: Char,
+    val displayLabel: String,
+) {
+    LEFT('L', "Left"),
+    RIGHT('R', "Right"),
+    MIDDLE('M', "Middle"),
+    MOUSE4('4', "Mouse 4"),
+    MOUSE5('5', "Mouse 5"),
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -168,7 +178,7 @@ sealed class PadAction {
     @Serializable
     @SerialName("mouse_button")
     data class MouseButton(
-        val button: com.stormpanda.megingiard.macropad.MouseButton,
+        val button: MouseBtnEnum,
     ) : PadAction()
 
     /**
@@ -616,5 +626,23 @@ object PadProfileSerializer : KSerializer<PadProfile> {
             isDefault = surrogate.isDefault,
             association = finalAssoc,
         )
+    }
+}
+
+/**
+ * Returns a unique name derived from [baseName], appending " (2)", " (3)", etc. if [baseName]
+ * already exists (case-insensitive) in this collection.
+ */
+fun Collection<String>.nextUniqueName(
+    baseName: String,
+    fallback: String = baseName,
+): String {
+    val normalizedBase = baseName.trim().ifBlank { fallback }
+    if (none { it.equals(normalizedBase, ignoreCase = true) }) return normalizedBase
+    var index = 2
+    while (true) {
+        val candidate = "$normalizedBase ($index)"
+        if (none { it.equals(candidate, ignoreCase = true) }) return candidate
+        index += 1
     }
 }

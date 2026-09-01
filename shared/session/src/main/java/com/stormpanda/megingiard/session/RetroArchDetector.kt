@@ -1,7 +1,7 @@
 package com.stormpanda.megingiard.session
 
 import com.stormpanda.megingiard.AppLog
-import com.stormpanda.megingiard.session.ProcessCmdlineProvider
+import com.stormpanda.megingiard.catalog.SafPathResolver
 
 private const val TAG = "RetroArchDetector"
 
@@ -22,21 +22,17 @@ object RetroArchDetector : EmulatorDetector {
 
     override val systemId: String = "retroarch"
 
-    private fun getCandidatePaths(packageName: String): List<String> =
-        listOf(
-            "/storage/emulated/0/RetroArch/playlists/builtin/content_history.lpl",
-            "/storage/emulated/0/RetroArch/playlists/content_history.lpl",
-            "/sdcard/RetroArch/playlists/builtin/content_history.lpl",
-            "/sdcard/RetroArch/playlists/content_history.lpl",
-            "/storage/emulated/0/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
-            "/storage/emulated/0/Android/data/$packageName/files/playlists/content_history.lpl",
-            "/sdcard/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
-            "/sdcard/Android/data/$packageName/files/playlists/content_history.lpl",
-            "/storage/6914-318F/RetroArch/playlists/builtin/content_history.lpl",
-            "/storage/6914-318F/RetroArch/playlists/content_history.lpl",
-            "/storage/6914-318F/Android/data/$packageName/files/playlists/builtin/content_history.lpl",
-            "/storage/6914-318F/Android/data/$packageName/files/playlists/content_history.lpl",
-        )
+    private fun getCandidatePaths(packageName: String): List<String> {
+        val relativeSubPaths =
+            listOf(
+                "RetroArch/playlists/content_history.lpl",
+                "RetroArch/playlists/builtin/content_history.lpl",
+                "Android/data/$packageName/files/playlists/content_history.lpl",
+            )
+        return SafPathResolver.getStorageVolumeRoots().flatMap { root ->
+            relativeSubPaths.map { subPath -> "$root/$subPath" }
+        }
+    }
 
     override suspend fun detectActiveSession(packageName: String): ActiveGameSession? {
         if (!supportedPackages.contains(packageName)) return null

@@ -97,6 +97,7 @@ class TouchProjectionController(
             val isTrans = cutout.isTranslationEnabled
             val isShot = cutout.isScreenshotEnabled
             val isTouch = cutout.isTouchProjectionActive
+            if (!isTrans && !isShot && !isTouch) continue
             AppLog.d(TAG, "Checking cutout '${cutout.name}' (id=${cutout.id}, isTrans=$isTrans, isShot=$isShot, isTouch=$isTouch, dest=[${cutout.destX}, ${cutout.destY}, ${cutout.destWidth}, ${cutout.destHeight}])")
 
             val destLeft = cutout.destX * boxW

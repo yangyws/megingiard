@@ -77,77 +77,61 @@ class AppStateManagerTest {
         Dispatchers.resetMain()
     }
 
+    private fun testLayout(
+        id: String = UUID.randomUUID().toString(),
+        name: String = "Layout 1",
+    ) = PadLayout(id = id, name = name)
+
+    private fun testProfile(
+        id: String = UUID.randomUUID().toString(),
+        name: String = "Test Profile",
+        layouts: List<PadLayout> = listOf(testLayout()),
+        activeLayoutId: String = layouts.firstOrNull()?.id ?: "",
+        association: ProfileAssociation? = null,
+    ) = PadProfile(
+        id = id,
+        name = name,
+        layouts = layouts,
+        activeLayoutId = activeLayoutId,
+        association = association,
+    )
+
     @Test
     fun `changing active layout closes active modals in AppStateManager`() {
-        // Set up initial profile with two layouts
-        val layout1Id = UUID.randomUUID().toString()
-        val layout2Id = UUID.randomUUID().toString()
-        val profileId = UUID.randomUUID().toString()
-        val testProfile =
-            PadProfile(
-                id = profileId,
-                name = "Test Profile",
-                layouts =
-                    listOf(
-                        PadLayout(id = layout1Id, name = "Layout 1"),
-                        PadLayout(id = layout2Id, name = "Layout 2"),
-                    ),
-                activeLayoutId = layout1Id,
-            )
+        val l1Id = UUID.randomUUID().toString()
+        val l2Id = UUID.randomUUID().toString()
+        val p1Id = UUID.randomUUID().toString()
+        val p = testProfile(id = p1Id, layouts = listOf(testLayout(id = l1Id), testLayout(id = l2Id)), activeLayoutId = l1Id)
+        MacroPadState.loadFrom(listOf(p), p1Id)
 
-        // Load into MacroPadState
-        MacroPadState.loadFrom(listOf(testProfile), profileId)
+        assertTrue(MacroPadState.activeLayout.value?.id == l1Id)
 
-        // Verify active layout is Layout 1
-        assertTrue(MacroPadState.activeLayout.value?.id == layout1Id)
-
-        // Activate viewport edit mode in AppStateManager
         AppStateManager.setViewportEditActive(true)
         assertTrue(AppStateManager.isViewportEditActive.value)
 
-        // Switch layout to Layout 2
-        MacroPadState.setActiveLayoutId(layout2Id)
-        assertTrue(MacroPadState.activeLayout.value?.id == layout2Id)
-
-        // Verify that AppStateManager has closed the viewport edit active modal
+        MacroPadState.setActiveLayoutId(l2Id)
+        assertTrue(MacroPadState.activeLayout.value?.id == l2Id)
         assertFalse(AppStateManager.isViewportEditActive.value)
     }
 
     @Test
     fun `changing active layout preserves layout editor and background settings modes`() {
-        val layout1Id = UUID.randomUUID().toString()
-        val layout2Id = UUID.randomUUID().toString()
-        val profileId = UUID.randomUUID().toString()
-        val testProfile =
-            PadProfile(
-                id = profileId,
-                name = "Test Profile",
-                layouts =
-                    listOf(
-                        PadLayout(id = layout1Id, name = "Layout 1"),
-                        PadLayout(id = layout2Id, name = "Layout 2"),
-                    ),
-                activeLayoutId = layout1Id,
-            )
+        val l1Id = UUID.randomUUID().toString()
+        val l2Id = UUID.randomUUID().toString()
+        val p1Id = UUID.randomUUID().toString()
+        val p = testProfile(id = p1Id, layouts = listOf(testLayout(id = l1Id), testLayout(id = l2Id)), activeLayoutId = l1Id)
+        MacroPadState.loadFrom(listOf(p), p1Id)
 
-        MacroPadState.loadFrom(listOf(testProfile), profileId)
-
-        // LAYOUT_EDITOR mode
         AppStateManager.setEditorActive(true)
         assertTrue(AppStateManager.isEditorActive.value)
-
-        MacroPadState.setActiveLayoutId(layout2Id)
+        MacroPadState.setActiveLayoutId(l2Id)
         assertTrue(AppStateManager.isEditorActive.value)
-
         AppStateManager.setEditorActive(false)
 
-        // BACKGROUND_SETTINGS mode
         AppStateManager.setBackgroundSettingsActive(true)
         assertTrue(AppStateManager.isBackgroundSettingsActive.value)
-
-        MacroPadState.setActiveLayoutId(layout1Id)
+        MacroPadState.setActiveLayoutId(l1Id)
         assertTrue(AppStateManager.isBackgroundSettingsActive.value)
-
         AppStateManager.setBackgroundSettingsActive(false)
     }
 
@@ -238,15 +222,35 @@ class AppStateManagerTest {
         }
 
     @Test
-    fun `requestShutOff sets flag and consumeShutOffRequest resets it`() =
+    fun `request flags set and consume resets`() =
         runTest {
-            assertFalse(AppStateManager.shutOffRequested.value)
+            fun assertRequestConsume(
+                isRequested: () -> Boolean,
+                request: () -> Unit,
+                consume: () -> Unit,
+            ) {
+                assertFalse(isRequested())
+                request()
+                assertTrue(isRequested())
+                consume()
+                assertFalse(isRequested())
+            }
 
-            AppStateManager.requestShutOff()
-            assertTrue(AppStateManager.shutOffRequested.value)
-
-            AppStateManager.consumeShutOffRequest()
-            assertFalse(AppStateManager.shutOffRequested.value)
+            assertRequestConsume(
+                { AppStateManager.shutOffRequested.value },
+                { AppStateManager.requestShutOff() },
+                { AppStateManager.consumeShutOffRequest() },
+            )
+            assertRequestConsume(
+                { AppStateManager.mirrorStartRequested.value },
+                { AppStateManager.requestMirrorStart() },
+                { AppStateManager.consumeMirrorStartRequest() },
+            )
+            assertRequestConsume(
+                { AppStateManager.mirrorStopRequested.value },
+                { AppStateManager.requestMirrorStop() },
+                { AppStateManager.consumeMirrorStopRequest() },
+            )
         }
 
     @Test
@@ -503,12 +507,11 @@ class AppStateManagerTest {
     @Test
     fun `shouldShowIntegrationHome returns expected values across view modes`() {
         val associatedProfile =
-            PadProfile(
+            testProfile(
                 id = "2",
                 name = "Game",
                 layouts = emptyList(),
-                association =
-                    ProfileAssociation(packageName = "com.test.game"),
+                association = ProfileAssociation(packageName = "com.test.game"),
             )
 
         assertFalse(CompanionViewMode.MACROPAD.shouldShowIntegrationHome("com.test.game", null, associatedProfile))
@@ -527,7 +530,7 @@ class AppStateManagerTest {
     @Test
     fun `shouldShowIntegrationHome in AUTO handles GameNative ROM active profiles`() {
         val gameNativeProfile =
-            PadProfile(
+            testProfile(
                 id = "gn-1",
                 name = "Ball x Pit",
                 layouts = emptyList(),
@@ -553,16 +556,13 @@ class AppStateManagerTest {
     fun `tapping active profile button preserves AUTO mode when active package matches profile`() =
         runTest {
             val gameProfile =
-                PadProfile(
+                testProfile(
                     id = "p-1",
                     name = "AetherSX2 Profile",
-                    association =
-                        ProfileAssociation(packageName = "com.emulator.aethersx2"),
+                    association = ProfileAssociation(packageName = "com.emulator.aethersx2"),
                 )
-            MacroPadState
-                .addProfile(gameProfile)
-            MacroPadState
-                .setActiveProfileId(gameProfile.id)
+            MacroPadState.addProfile(gameProfile)
+            MacroPadState.setActiveProfileId(gameProfile.id)
             AppStateManager.setCompanionViewMode(CompanionViewMode.AUTO)
             AppStateManager.setStandaloneForegroundState("com.emulator.aethersx2", null)
 
@@ -624,21 +624,16 @@ class AppStateManagerTest {
             AppStateManager.closeActiveModal()
             assertFalse(AppStateManager.isAnyModalActive.value)
 
-            AppStateManager.setGlobalSettingsOpen(true)
-            assertTrue(AppStateManager.isAnyModalActive.value)
-            AppStateManager.closeActiveModal()
-
-            AppStateManager.setFullscreenKeyboardActive(true)
-            assertTrue(AppStateManager.isAnyModalActive.value)
-            AppStateManager.closeActiveModal()
-
-            AppStateManager.setFullscreenMouseActive(true)
-            assertTrue(AppStateManager.isAnyModalActive.value)
-            AppStateManager.closeActiveModal()
-
-            AppStateManager.setViewportEditActive(true)
-            assertTrue(AppStateManager.isAnyModalActive.value)
-            AppStateManager.closeActiveModal()
+            listOf(
+                { AppStateManager.setGlobalSettingsOpen(true) },
+                { AppStateManager.setFullscreenKeyboardActive(true) },
+                { AppStateManager.setFullscreenMouseActive(true) },
+                { AppStateManager.setViewportEditActive(true) },
+            ).forEach { openModal ->
+                openModal()
+                assertTrue(AppStateManager.isAnyModalActive.value)
+                AppStateManager.closeActiveModal()
+            }
 
             assertFalse(AppStateManager.isAnyModalActive.value)
         }
@@ -697,14 +692,10 @@ class AppStateManagerTest {
             assertTrue(AppStateManager.isQuickMenuOpen.value)
 
             val profile =
-                PadProfile(
+                testProfile(
                     id = "p_test_qm",
                     name = "Test Profile",
-                    layouts =
-                        listOf(
-                            PadLayout(id = "l_test_qm_1", name = "Layout 1"),
-                            PadLayout(id = "l_test_qm_2", name = "Layout 2"),
-                        ),
+                    layouts = listOf(testLayout(id = "l_test_qm_1"), testLayout(id = "l_test_qm_2")),
                     activeLayoutId = "l_test_qm_1",
                 )
             MacroPadState.addProfile(profile)
@@ -735,56 +726,15 @@ class AppStateManagerTest {
         runTest {
             val autoMode = CompanionViewMode.AUTO
 
-            // GameFocus package -> should show Companion Hub
-            assertTrue(
-                autoMode.shouldShowIntegrationHome(
-                    focusedAppPackageName = "com.stormpanda.megingiard.gamefocus.debug",
-                    focusedRomPath = null,
-                    activeProfile = null,
-                ),
-            )
-
-            // System UI / Android Launcher -> should show Companion Hub
-            assertTrue(
-                autoMode.shouldShowIntegrationHome(
-                    focusedAppPackageName = "com.android.launcher3",
-                    focusedRomPath = null,
-                    activeProfile = null,
-                ),
-            )
-
-            // Null package -> should show Companion Hub
-            assertTrue(
-                autoMode.shouldShowIntegrationHome(
-                    focusedAppPackageName = null,
-                    focusedRomPath = null,
-                    activeProfile = null,
-                ),
-            )
-        }
-
-    @Test
-    fun `requestMirrorStart sets flag and consumeMirrorStartRequest resets it`() =
-        runTest {
-            assertFalse(AppStateManager.mirrorStartRequested.value)
-
-            AppStateManager.requestMirrorStart()
-            assertTrue(AppStateManager.mirrorStartRequested.value)
-
-            AppStateManager.consumeMirrorStartRequest()
-            assertFalse(AppStateManager.mirrorStartRequested.value)
-        }
-
-    @Test
-    fun `requestMirrorStop sets flag and consumeMirrorStopRequest resets it`() =
-        runTest {
-            assertFalse(AppStateManager.mirrorStopRequested.value)
-
-            AppStateManager.requestMirrorStop()
-            assertTrue(AppStateManager.mirrorStopRequested.value)
-
-            AppStateManager.consumeMirrorStopRequest()
-            assertFalse(AppStateManager.mirrorStopRequested.value)
+            listOf("com.stormpanda.megingiard.gamefocus.debug", "com.android.launcher3", null).forEach { pkg ->
+                assertTrue(
+                    autoMode.shouldShowIntegrationHome(
+                        focusedAppPackageName = pkg,
+                        focusedRomPath = null,
+                        activeProfile = null,
+                    ),
+                )
+            }
         }
 
     @Test
@@ -806,19 +756,19 @@ class AppStateManagerTest {
 
             AppStateManager.openPrimaryModal(PrimaryModalType.GLOBAL_SETTINGS)
             assertEquals(PrimaryModalType.GLOBAL_SETTINGS, AppStateManager.activePrimaryModal.value?.type)
-            assertEquals(UiMode.GLOBAL_SETTINGS, AppStateManager.uiMode.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
             assertTrue(AppStateManager.isAnyModalActive.value)
             assertTrue(AppStateManager.isAnyMenuOpen.value)
 
             AppStateManager.closePrimaryModal()
             assertEquals(null, AppStateManager.activePrimaryModal.value)
-            assertEquals(UiMode.MACROPAD_USE, AppStateManager.uiMode.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
             assertFalse(AppStateManager.isAnyModalActive.value)
             assertFalse(AppStateManager.isAnyMenuOpen.value)
         }
 
     @Test
-    fun `closePrimaryModal resets isEditorActive and uiMode when closing editor`() =
+    fun `closePrimaryModal resets isEditorActive when closing editor without changing companion surface`() =
         runTest {
             AppStateManager.closeActiveModal()
             assertFalse(AppStateManager.isEditorActive.value)
@@ -826,19 +776,19 @@ class AppStateManagerTest {
             AppStateManager.setEditorActive(true)
             assertTrue(AppStateManager.isEditorActive.value)
             assertEquals(PrimaryModalType.MACROPAD_EDITOR, AppStateManager.activePrimaryModal.value?.type)
-            assertEquals(UiMode.LAYOUT_EDITOR, AppStateManager.uiMode.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
             assertTrue(AppStateManager.isAnyMenuOpen.value)
 
             AppStateManager.closePrimaryModal()
             assertEquals(null, AppStateManager.activePrimaryModal.value)
-            assertEquals(UiMode.MACROPAD_USE, AppStateManager.uiMode.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
             assertFalse(AppStateManager.isEditorActive.value)
             assertFalse(AppStateManager.isAnyMenuOpen.value)
             assertFalse(AppStateManager.isAnyModalActive.value)
         }
 
     @Test
-    fun `closeActiveModal resets activePrimaryModal and selectedButtonId`() =
+    fun `closeActiveModal resets activePrimaryModal and companion surface`() =
         runTest {
             AppStateManager.openPrimaryModal(PrimaryModalType.MACROPAD_INSPECTOR)
             assertEquals(PrimaryModalType.MACROPAD_INSPECTOR, AppStateManager.activePrimaryModal.value?.type)
@@ -846,8 +796,94 @@ class AppStateManagerTest {
 
             AppStateManager.closeActiveModal()
             assertEquals(null, AppStateManager.activePrimaryModal.value)
-            assertEquals(UiMode.MACROPAD_USE, AppStateManager.uiMode.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
             assertFalse(AppStateManager.isEditorActive.value)
+        }
+
+    private fun assertSettingsOverlayPreservesInputSurface(
+        setSurfaceActive: (Boolean) -> Unit,
+        isSurfaceActive: () -> Boolean,
+        surfaceMode: CompanionSurfaceMode,
+        setSettingsOpen: (Boolean) -> Unit,
+        isSettingsOpen: () -> Boolean,
+    ) {
+        AppStateManager.closeActiveModal()
+        setSurfaceActive(true)
+        assertTrue(isSurfaceActive())
+        assertEquals(surfaceMode, AppStateManager.companionSurfaceMode.value)
+        assertFalse(isSettingsOpen())
+
+        setSettingsOpen(true)
+        assertTrue(isSurfaceActive())
+        assertEquals(surfaceMode, AppStateManager.companionSurfaceMode.value)
+        assertTrue(isSettingsOpen())
+
+        setSettingsOpen(false)
+        assertTrue(isSurfaceActive())
+        assertEquals(surfaceMode, AppStateManager.companionSurfaceMode.value)
+        assertFalse(isSettingsOpen())
+
+        setSettingsOpen(true)
+        assertTrue(isSurfaceActive())
+        assertTrue(isSettingsOpen())
+
+        AppStateManager.closePrimaryModal()
+        assertTrue(isSurfaceActive())
+        assertEquals(surfaceMode, AppStateManager.companionSurfaceMode.value)
+        assertFalse(isSettingsOpen())
+
+        setSurfaceActive(false)
+        assertFalse(isSurfaceActive())
+        assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
+    }
+
+    @Test
+    fun `opening and closing keyboard settings preserves active fullscreen keyboard`() =
+        runTest {
+            assertSettingsOverlayPreservesInputSurface(
+                setSurfaceActive = { AppStateManager.setFullscreenKeyboardActive(it) },
+                isSurfaceActive = { AppStateManager.isFullscreenKeyboardActive.value },
+                surfaceMode = CompanionSurfaceMode.KEYBOARD,
+                setSettingsOpen = { AppStateManager.setKeyboardSettingsOpen(it) },
+                isSettingsOpen = { AppStateManager.isKeyboardSettingsOpen.value },
+            )
+        }
+
+    @Test
+    fun `opening and closing touchpad settings preserves active fullscreen mouse`() =
+        runTest {
+            assertSettingsOverlayPreservesInputSurface(
+                setSurfaceActive = { AppStateManager.setFullscreenMouseActive(it) },
+                isSurfaceActive = { AppStateManager.isFullscreenMouseActive.value },
+                surfaceMode = CompanionSurfaceMode.TOUCHPAD,
+                setSettingsOpen = { AppStateManager.setTouchpadSettingsOpen(it) },
+                isSettingsOpen = { AppStateManager.isTouchpadSettingsOpen.value },
+            )
+        }
+
+    @Test
+    fun `opening and closing settings from macropad use preserves macropad use and does not activate keyboard or mouse`() =
+        runTest {
+            AppStateManager.closeActiveModal()
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
+            assertFalse(AppStateManager.isFullscreenKeyboardActive.value)
+            assertFalse(AppStateManager.isFullscreenMouseActive.value)
+
+            fun assertSettingsModal(
+                setOpen: (Boolean) -> Unit,
+                isOpen: () -> Boolean,
+            ) {
+                setOpen(true)
+                assertTrue(isOpen())
+                assertFalse(AppStateManager.isFullscreenKeyboardActive.value)
+                assertFalse(AppStateManager.isFullscreenMouseActive.value)
+                setOpen(false)
+                assertFalse(isOpen())
+                assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
+            }
+
+            assertSettingsModal({ AppStateManager.setKeyboardSettingsOpen(it) }, { AppStateManager.isKeyboardSettingsOpen.value })
+            assertSettingsModal({ AppStateManager.setTouchpadSettingsOpen(it) }, { AppStateManager.isTouchpadSettingsOpen.value })
         }
 
     @Test
@@ -1017,5 +1053,56 @@ class AppStateManagerTest {
             assertTrue(AppStateManager.isMirrorEditorBackgroundHidden.value)
             AppStateManager.closePrimaryModal()
             assertFalse(AppStateManager.isMirrorEditorBackgroundHidden.value)
+        }
+
+    @Test
+    fun `requestAppLaunch and consumeAppLaunchRequest`() =
+        runTest {
+            AppStateManager.requestAppLaunch("com.test.app", 100f, 200f)
+            val req = AppStateManager.pendingAppLaunchRequest.value
+            assertEquals("com.test.app", req?.packageName)
+            assertEquals(100f, req?.touchX)
+            assertEquals(200f, req?.touchY)
+
+            AppStateManager.consumeAppLaunchRequest()
+            assertEquals(null, AppStateManager.pendingAppLaunchRequest.value)
+        }
+
+    @Test
+    fun `requestMirrorStart and requestMirrorStop and requestShutOff`() =
+        runTest {
+            AppStateManager.requestMirrorStart()
+            assertTrue(AppStateManager.mirrorStartRequested.value)
+            AppStateManager.consumeMirrorStartRequest()
+            assertFalse(AppStateManager.mirrorStartRequested.value)
+
+            AppStateManager.requestMirrorStop()
+            assertTrue(AppStateManager.mirrorStopRequested.value)
+            AppStateManager.consumeMirrorStopRequest()
+            assertFalse(AppStateManager.mirrorStopRequested.value)
+
+            AppStateManager.requestShutOff()
+            assertTrue(AppStateManager.shutOffRequested.value)
+            AppStateManager.consumeShutOffRequest()
+            assertFalse(AppStateManager.shutOffRequested.value)
+        }
+
+    @Test
+    fun `activity lifecycle and screen state setters`() =
+        runTest {
+            AppStateManager.setActivityResumed(false)
+            assertFalse(AppStateManager.isActivityResumed.value)
+            AppStateManager.setActivityResumed(true)
+            assertTrue(AppStateManager.isActivityResumed.value)
+
+            AppStateManager.setOnValidScreen(false)
+            assertFalse(AppStateManager.isOnValidScreen.value)
+            AppStateManager.setOnValidScreen(true)
+            assertTrue(AppStateManager.isOnValidScreen.value)
+
+            AppStateManager.setPromptInFlight(true)
+            assertTrue(AppStateManager.promptInFlight.value)
+            AppStateManager.setPromptInFlight(false)
+            assertFalse(AppStateManager.promptInFlight.value)
         }
 }

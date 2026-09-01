@@ -31,7 +31,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.longOrNull
+import java.time.LocalDate
 
 private val backupsJson =
     Json {
@@ -66,7 +66,7 @@ object SettingsManager {
 
     // App-lifetime scope: intentionally never cancelled — this singleton lives for the
     // duration of the process. Cancellation is handled by process termination.
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    internal var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var dataStore: DataStore<Preferences>
     private var initialized = false
 
@@ -122,6 +122,33 @@ object SettingsManager {
     // Logging
     private val _logLevel = MutableStateFlow(AppLog.Level.WARN)
     val logLevel: StateFlow<AppLog.Level> = _logLevel.asStateFlow()
+
+    internal fun resetForTesting(context: Context? = null) {
+        initialized = false
+        _themeMode.value = ThemeMode.DARK
+        _accentColor.value = DEFAULT_ACCENT_COLOR
+        _customAccentColor.value = DEFAULT_ACCENT_COLOR
+        _overlayAtBottom.value = false
+        _overlayFadeOut.value = false
+        _excludeFromRecents.value = false
+        _steamGridDbApiToken.value = ""
+        _appLanguage.value = AppLanguage.SYSTEM
+        _logLevel.value = AppLog.Level.WARN
+        _welcomeTourCompletedVersion.value = 0
+        _showMacroEditorTutorial.value = true
+        _internalBackups.value = emptyList()
+        if (::dataStore.isInitialized) {
+            runBlocking {
+                try {
+                    dataStore.edit { it.clear() }
+                } catch (_: Exception) {
+                }
+            }
+        }
+        if (context != null) {
+            init(context)
+        }
+    }
 
     fun init(context: Context) {
         if (initialized) return
@@ -198,20 +225,7 @@ object SettingsManager {
                     val backupsJsonStr = prefs[KEY_INTERNAL_BACKUPS]
                     if (backupsJsonStr != lastBackupsJsonStr) {
                         lastBackupsJsonStr = backupsJsonStr
-                        _internalBackups.value =
-                            if (backupsJsonStr != null) {
-                                runCatching {
-                                    backupsJson.decodeFromString<List<InternalBackup>>(backupsJsonStr)
-                                }.getOrElse { e ->
-                                    AppLog.w(
-                                        TAG,
-                                        "Failed to decode internal backups list: invalid JSON: ${e.javaClass.simpleName} - ${e.message}",
-                                    )
-                                    emptyList()
-                                }
-                            } else {
-                                emptyList()
-                            }
+                        _internalBackups.value = decodeBackups(backupsJsonStr)
                     }
 
                     if (!autoBackupTriggered) {
@@ -281,10 +295,16 @@ object SettingsManager {
     }
 
     fun setThemeMode(value: ThemeMode) {
-        AppLog.d(TAG, "setThemeMode($value)")
-        _themeMode.value = value
-        scope.launch { optionalDataStore?.edit { prefs -> prefs[KEY_THEME_MODE] = value.name } }
-        onThemeChangedListener?.invoke()
+        updateEnumSettingPref(
+            KEY_THEME_MODE,
+            value,
+            _themeMode,
+            scope,
+            optionalDataStore,
+            TAG,
+            "setThemeMode",
+            onChanged = { onThemeChangedListener?.invoke() },
+        )
     }
 
     fun setOverlayAtBottom(value: Boolean) {
@@ -300,31 +320,35 @@ object SettingsManager {
     }
 
     fun setSteamGridDbApiToken(value: String) {
-        AppLog.d(TAG, "setSteamGridDbApiToken(redacted)")
-        _steamGridDbApiToken.value = value
-        onSettingsChangedListener?.invoke()
-        scope.launch {
-            if (::dataStore.isInitialized) {
-                dataStore.edit { prefs ->
-                    prefs[KEY_STEAMGRIDDB_API_TOKEN] = value
-                }
-            }
-        }
+        updateSettingPref(
+            KEY_STEAMGRIDDB_API_TOKEN,
+            value,
+            _steamGridDbApiToken,
+            scope,
+            optionalDataStore,
+            TAG,
+            "setSteamGridDbApiToken(redacted)",
+            onChanged = { onSettingsChangedListener?.invoke() },
+        )
     }
 
     // Mirror setters + session save/restore live in [MirrorSettings].
 
     fun setAppLanguage(value: AppLanguage) {
-        AppLog.d(TAG, "setAppLanguage($value)")
-        _appLanguage.value = value
-        scope.launch { dataStore.edit { prefs -> prefs[KEY_APP_LANGUAGE] = value.name } }
+        updateEnumSettingPref(KEY_APP_LANGUAGE, value, _appLanguage, scope, optionalDataStore, TAG, "setAppLanguage")
     }
 
     fun setLogLevel(value: AppLog.Level) {
-        AppLog.i(TAG, "setLogLevel($value)")
-        _logLevel.value = value
-        AppLog.level = value
-        scope.launch { dataStore.edit { prefs -> prefs[KEY_LOG_LEVEL] = value.name } }
+        updateEnumSettingPref(
+            KEY_LOG_LEVEL,
+            value,
+            _logLevel,
+            scope,
+            optionalDataStore,
+            TAG,
+            "setLogLevel",
+            onChanged = { AppLog.level = value },
+        )
     }
 
     // Keyboard setters live in [KeyboardSettings]; touchpad setters in [TouchpadSettings].
@@ -421,24 +445,20 @@ object SettingsManager {
         }
     }
 
+    private fun decodeBackups(jsonStr: String?): List<InternalBackup> {
+        if (jsonStr == null) return emptyList()
+        return runCatching {
+            backupsJson.decodeFromString<List<InternalBackup>>(jsonStr)
+        }.getOrElse { e ->
+            AppLog.w(TAG, "Failed to decode internal backups list: ${e.javaClass.simpleName} - ${e.message}")
+            emptyList()
+        }
+    }
+
     suspend fun saveBackup(backup: InternalBackup) {
         AppLog.d(TAG, "saveBackup: date=${backup.dateString}")
         dataStore.edit { prefs ->
-            val currentJson = prefs[KEY_INTERNAL_BACKUPS]
-            val currentList =
-                if (currentJson != null) {
-                    runCatching {
-                        backupsJson.decodeFromString<List<InternalBackup>>(currentJson)
-                    }.getOrElse { e ->
-                        AppLog.w(
-                            TAG,
-                            "Failed to decode existing internal backups JSON during save: ${e.javaClass.simpleName} - ${e.message}",
-                        )
-                        emptyList()
-                    }
-                } else {
-                    emptyList()
-                }
+            val currentList = decodeBackups(prefs[KEY_INTERNAL_BACKUPS])
             val newList =
                 (currentList.filter { it.dateString != backup.dateString } + backup)
                     .sortedByDescending { it.timestampMs }
@@ -451,7 +471,7 @@ object SettingsManager {
         scope.launch {
             try {
                 val currentDateStr =
-                    java.time.LocalDate
+                    LocalDate
                         .now()
                         .toString()
                 val alreadyHasBackup = _internalBackups.value.any { it.dateString == currentDateStr }

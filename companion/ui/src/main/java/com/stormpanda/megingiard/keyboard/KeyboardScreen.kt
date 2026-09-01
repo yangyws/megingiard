@@ -33,8 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -210,12 +208,12 @@ fun KeyboardScreen(
                             Modifier
                                 .fillMaxSize()
                                 .padding(KB_TOUCHPAD_PADDING)
-                                .clip(RoundedCornerShape(KB_TOUCHPAD_CORNER_RADIUS))
+                                .clip(KB_TOUCHPAD_SHAPE)
                                 .background(colors.appBackground)
                                 .border(
                                     width = KB_TOUCHPAD_BORDER_WIDTH,
                                     brush = insetBezelBrush,
-                                    shape = RoundedCornerShape(KB_TOUCHPAD_CORNER_RADIUS),
+                                    shape = KB_TOUCHPAD_SHAPE,
                                 ).onGloballyPositioned { touchpadCoords = it }
                                 .pointerInput(processor) {
                                     try {
@@ -384,7 +382,6 @@ fun KeyboardScreen(
 
             KeyboardBottomToolbar(
                 keyboardMode = keyboardMode,
-                accentColor = accentColor,
                 onModeToggle = { nextMode ->
                     viewModel.setKeyboardMode(nextMode)
                     KeyboardState.reset()

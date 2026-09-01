@@ -45,29 +45,24 @@ import com.stormpanda.megingiard.ui.rememberSaveExitPromptState
 private const val TAG = "EditorInlineOverlays"
 private val EIO_APP_ICON_SIZE = 36.dp
 private val EIO_APP_ICON_CORNER = 8.dp
+private val EIO_APP_ICON_SHAPE = RoundedCornerShape(EIO_APP_ICON_CORNER)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun NewProfileSubPageContent(
     existingNames: List<String>,
     accentColor: Color,
+    presetName: String? = null,
     onDiscard: () -> Unit = {},
     onCreate: (name: String) -> Unit,
 ) {
     val defaultName = stringResource(R.string.integration_home_new_profile)
     val initialName =
-        remember(existingNames) {
-            if (existingNames.none { it.equals(defaultName, ignoreCase = true) }) {
-                defaultName
-            } else {
-                var index = 2
-                while (existingNames.any { it.equals("$defaultName ($index)", ignoreCase = true) }) {
-                    index++
-                }
-                "$defaultName ($index)"
-            }
+        remember(existingNames, presetName) {
+            val baseName = presetName?.trim()?.takeIf { it.isNotBlank() } ?: defaultName
+            existingNames.nextUniqueName(baseName, defaultName)
         }
-    var nameText by remember { mutableStateOf(initialName) }
+    var nameText by remember(initialName) { mutableStateOf(initialName) }
     val normalizedName = nameText.trim()
     val isDuplicate = existingNames.any { it.equals(normalizedName, ignoreCase = true) }
     val hasError = normalizedName.isEmpty() || isDuplicate
@@ -278,7 +273,7 @@ internal fun AppPickerSubPageContent(
                                 modifier =
                                     Modifier
                                         .size(EIO_APP_ICON_SIZE)
-                                        .clip(RoundedCornerShape(EIO_APP_ICON_CORNER))
+                                        .clip(EIO_APP_ICON_SHAPE)
                                         .alpha(if (isAssigned) 0.38f else 1f),
                             )
                         },

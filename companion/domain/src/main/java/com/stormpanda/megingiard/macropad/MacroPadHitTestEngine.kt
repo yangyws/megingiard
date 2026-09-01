@@ -73,6 +73,39 @@ class MacroPadHitTestEngine(
     private var lastDxSign = 0f
     private var lastDySign = 0f
 
+    private fun isPointInsideButton(
+        btn: PadButton,
+        px: Float,
+        py: Float,
+        canvasW: Float,
+        canvasH: Float,
+    ): Boolean {
+        val isTrackpoint = btn.action is PadAction.TrackpointMove
+        val mult = if (isTrackpoint) (btn.action as PadAction.TrackpointMove).size.multiplier else null
+        val chipWidthPx = buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (mult ?: btn.buttonSize.cols.toFloat()))
+        val chipHeightPx = buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (mult ?: btn.buttonSize.rows.toFloat()))
+        val bx = btn.posX * canvasW
+        val by = btn.posY * canvasH
+        return px >= bx - chipWidthPx / 2f && px <= bx + chipWidthPx / 2f &&
+            py >= by - chipHeightPx / 2f && py <= by + chipHeightPx / 2f
+    }
+
+    private fun triggerHaptic(
+        btn: PadButton,
+        magnitude: Float = 0f,
+    ) {
+        if (btn.hapticStrength != HapticStrength.OFF) {
+            AppLog.d(TAG, "haptic on press: button=${btn.id} strength=${btn.hapticStrength}")
+            onHapticFeedback?.invoke(
+                btn.id,
+                btn.hapticStrength,
+                btn.hapticCustomDurationMs,
+                btn.hapticCustomAmplitude,
+                magnitude,
+            )
+        }
+    }
+
     /**
      * Handle a Press event.
      *
@@ -198,31 +231,13 @@ class MacroPadHitTestEngine(
                     AppLog.d(TAG, "AppLauncher button center at ($bx, $by)")
                     AppStateManager.requestAppLaunch(act.packageName, bx, by)
                 }
-                if (hitButton.hapticStrength != HapticStrength.OFF) {
-                    AppLog.d(TAG, "haptic on press: button=${hitButton.id} strength=${hitButton.hapticStrength}")
-                    onHapticFeedback?.invoke(
-                        hitButton.id,
-                        hitButton.hapticStrength,
-                        hitButton.hapticCustomDurationMs,
-                        hitButton.hapticCustomAmplitude,
-                        0f,
-                    )
-                }
+                triggerHaptic(hitButton)
             }
 
             else -> {
                 _pressedIds.value = _pressedIds.value + hitButton.id
                 injectActionDown(hitButton.action)
-                if (hitButton.hapticStrength != HapticStrength.OFF) {
-                    AppLog.d(TAG, "haptic on press: button=${hitButton.id} strength=${hitButton.hapticStrength}")
-                    onHapticFeedback?.invoke(
-                        hitButton.id,
-                        hitButton.hapticStrength,
-                        hitButton.hapticCustomDurationMs,
-                        hitButton.hapticCustomAmplitude,
-                        0f,
-                    )
-                }
+                triggerHaptic(hitButton)
             }
         }
         return null // null = no toast needed
@@ -324,20 +339,10 @@ class MacroPadHitTestEngine(
                         virtualCursorX = (virtualCursorX + dxNormalized).coerceIn(0f, 1f)
                         virtualCursorY = (virtualCursorY + dyNormalized).coerceIn(0f, 1f)
                         TouchInjector.injectTouch(TouchAction.MOVE, unclampedCursorX, unclampedCursorY)
-                        if (mappedBtn.hapticStrength != HapticStrength.OFF) {
-                            val dx = (deltaX * MP_TRACKPOINT_SENSITIVITY).roundToInt()
-                            val dy = (deltaY * MP_TRACKPOINT_SENSITIVITY).roundToInt()
-                            val mag = sqrt((dx * dx + dy * dy).toFloat())
-                            if (mag > 0f) {
-                                onHapticFeedback?.invoke(
-                                    mappedBtn.id,
-                                    mappedBtn.hapticStrength,
-                                    mappedBtn.hapticCustomDurationMs,
-                                    mappedBtn.hapticCustomAmplitude,
-                                    mag,
-                                )
-                            }
-                        }
+                        val dx = (deltaX * MP_TRACKPOINT_SENSITIVITY).roundToInt()
+                        val dy = (deltaY * MP_TRACKPOINT_SENSITIVITY).roundToInt()
+                        val mag = sqrt((dx * dx + dy * dy).toFloat())
+                        if (mag > 0f) triggerHaptic(mappedBtn, mag)
                     }
                 } else {
                     if (lastTpPos != null) {
@@ -345,16 +350,8 @@ class MacroPadHitTestEngine(
                         val dy = (deltaY * MP_TRACKPOINT_SENSITIVITY).roundToInt()
                         if (dx != 0 || dy != 0) {
                             MouseInjector.moveMouse(dx, dy)
-                            if (mappedBtn.hapticStrength != HapticStrength.OFF) {
-                                val mag = sqrt((dx * dx + dy * dy).toFloat())
-                                onHapticFeedback?.invoke(
-                                    mappedBtn.id,
-                                    mappedBtn.hapticStrength,
-                                    mappedBtn.hapticCustomDurationMs,
-                                    mappedBtn.hapticCustomAmplitude,
-                                    mag,
-                                )
-                            }
+                            val mag = sqrt((dx * dx + dy * dy).toFloat())
+                            triggerHaptic(mappedBtn, mag)
                         }
                     }
                 }
@@ -368,15 +365,7 @@ class MacroPadHitTestEngine(
                 if (units != 0) {
                     MouseInjector.scrollWheel(units)
                     scrollStartY[pointerId] = py
-                    if (mappedBtn.hapticStrength != HapticStrength.OFF) {
-                        onHapticFeedback?.invoke(
-                            mappedBtn.id,
-                            mappedBtn.hapticStrength,
-                            mappedBtn.hapticCustomDurationMs,
-                            mappedBtn.hapticCustomAmplitude,
-                            0f, // discrete batch → fire immediately, no speed-adaptive throttle
-                        )
-                    }
+                    triggerHaptic(mappedBtn, 0f)
                 }
             }
         }
@@ -480,61 +469,10 @@ class MacroPadHitTestEngine(
         /** Raw dp value of MP_BUTTON_UNIT_DP (keep in sync with MacroPadButton). */
         const val MP_BUTTON_UNIT_DP_VALUE = 60f
 
-        /** Check whether the device needed for a given action is disabled. */
         fun isDeviceDisabled(
             action: PadAction,
             profile: PadProfile,
-        ): Boolean =
-            when (action) {
-                is PadAction.KeyboardKey -> {
-                    !profile.enableKeyboard
-                }
-
-                is PadAction.GamepadButton -> {
-                    !profile.enableGamepad
-                }
-
-                is PadAction.MouseButton,
-                is PadAction.ScrollWheel,
-                -> {
-                    !profile.enableMouse
-                }
-
-                is PadAction.TrackpointMove -> {
-                    if (action.mode == TrackpointMode.VIRTUAL_TOUCH) !profile.enableTouch else !profile.enableMouse
-                }
-
-                is PadAction.Macro -> {
-                    !PrivdClient.isConnected
-                }
-
-                is PadAction.BackgroundPeek -> {
-                    false
-                }
-
-                is PadAction.LayoutNext,
-                is PadAction.LayoutPrevious,
-                is PadAction.ProfileSwitcher,
-                is PadAction.MirrorPlayStop,
-                is PadAction.MirrorFreeze,
-                is PadAction.MirrorViewportEdit,
-                is PadAction.MirrorTouchProjection,
-                -> {
-                    false
-                }
-
-                is PadAction.FullScreenMouse -> {
-                    !profile.enableMouse
-                }
-
-                is PadAction.FullScreenKeyboard -> {
-                    !profile.enableKeyboard
-                }
-
-                is PadAction.AppLauncher -> {
-                    false
-                }
-            }
+        ): Boolean = deviceDisabledReason(action, profile) != null
 
         /**
          * Returns the [DisabledReason] for a blocked button tap, or null if the device is enabled.
@@ -545,7 +483,9 @@ class MacroPadHitTestEngine(
             profile: PadProfile,
         ): DisabledReason? =
             when (action) {
-                is PadAction.KeyboardKey -> {
+                is PadAction.KeyboardKey,
+                is PadAction.FullScreenKeyboard,
+                -> {
                     if (!profile.enableKeyboard) DisabledReason.KEYBOARD else null
                 }
 
@@ -555,6 +495,7 @@ class MacroPadHitTestEngine(
 
                 is PadAction.MouseButton,
                 is PadAction.ScrollWheel,
+                is PadAction.FullScreenMouse,
                 -> {
                     if (!profile.enableMouse) DisabledReason.MOUSE else null
                 }
@@ -571,25 +512,7 @@ class MacroPadHitTestEngine(
                     if (!PrivdClient.isConnected) DisabledReason.MACRO_PRIVD else null
                 }
 
-                is PadAction.BackgroundPeek -> {
-                    null
-                }
-
-                is PadAction.LayoutNext,
-                is PadAction.LayoutPrevious,
-                is PadAction.ProfileSwitcher,
-                is PadAction.MirrorPlayStop,
-                is PadAction.MirrorFreeze,
-                is PadAction.MirrorViewportEdit,
-                is PadAction.MirrorTouchProjection,
-                -> {
-                    null
-                }
-
-                is PadAction.FullScreenMouse,
-                is PadAction.FullScreenKeyboard,
-                is PadAction.AppLauncher,
-                -> {
+                else -> {
                     null
                 }
             }
