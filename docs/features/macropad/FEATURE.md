@@ -302,7 +302,7 @@ Each button supports one of the following actions:
 
 - **Mutual Exclusivity**: Each button face supports either a **Material Symbol icon** or a **Custom Image** from local storage. Selecting a Material Symbol automatically clears any custom image, and selecting/cropping a custom image automatically clears any Material Symbol (`iconName = null` vs `imageAssetId = null`).
 - **Gamepad-First Image Picker Subpage**: Selecting "Custom Image" launches `MacroPadSubPage.ChooseButtonImage` (`LocalImagePickerSubPageContent`), providing a 4-column 2D gamepad navigable grid of device photos (MediaStore and standard image directories), plus quick action shortcuts to SteamGridDB search and the system file picker.
-- **Dedicated Crop Subpage**: Picking an image launches the dedicated `MacroPadSubPage.CropButtonImage` subpage (`ImageCropSubPageContent`), allowing users to pan (touch drag or D-pad), zoom (pinch or L1/R1 bumpers), and switch between Fill/Whole aspect modes tailored to the button's exact aspect ratio.
+- **Dedicated Crop Subpage**: Picking an image launches the dedicated `MacroPadSubPage.CropButtonImage` subpage (`ImageCropSubPageContent`), allowing users to pan (touch drag or D-pad), zoom (pinch or L1/R1 bumpers), adjust crop selection, and switch between 3 Scale Modes (**Fill** / **Fit** / **Stretch**, matching background settings) tailored to the button's exact aspect ratio.
 - **Content-Addressed Cache**: Cropped images are downscaled (max 256px) and stored in content-addressed WebP cache (`padicons/<sha256>.webp`) via `PadIconStore`.
 - **Custom Image Controls** (under Button Settings):
   - **Show Label (`showLabel`)**: Toggle button text label overlay.

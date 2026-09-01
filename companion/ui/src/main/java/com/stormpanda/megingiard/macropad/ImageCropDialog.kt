@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,6 +73,7 @@ import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.ui.AppModalDialog
 import com.stormpanda.megingiard.ui.DragResizeHandle
 import com.stormpanda.megingiard.ui.GamepadActionCard
+import com.stormpanda.megingiard.ui.GamepadChoiceCard
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.firstDeckItem
 import kotlinx.coroutines.delay
@@ -98,8 +100,9 @@ private val CROP_SELECTION_BORDER = 2.dp
 private const val CROP_SCRIM_ALPHA = 0.55f
 
 internal enum class CropFitMode {
-    FIT,
     FILL,
+    FIT,
+    STRETCH,
 }
 
 private fun cropOutputSize(aspectRatio: Float): IntSize {
@@ -117,6 +120,7 @@ internal fun renderCroppedBitmap(
     selection: CropSelection,
     widthFraction: Float,
     heightFraction: Float,
+    fitMode: CropFitMode = CropFitMode.FILL,
 ): Bitmap? {
     if (source.width <= 0 || source.height <= 0) {
         AppLog.w(TAG, "Cannot crop a ${source.width}x${source.height} source")
@@ -132,7 +136,9 @@ internal fun renderCroppedBitmap(
                 isFilterBitmap = true
                 isDither = true
             }
-        val rect = CropSelectionMath.imageRectInOutput(selection, widthFraction, heightFraction)
+        val effW = if (fitMode == CropFitMode.STRETCH) 1f else widthFraction
+        val effH = if (fitMode == CropFitMode.STRETCH) 1f else heightFraction
+        val rect = CropSelectionMath.imageRectInOutput(selection, effW, effH)
         val left = rect[0] * out.width
         val top = rect[1] * out.height
         canvas.drawBitmap(
@@ -172,13 +178,15 @@ internal fun ImageCropDialog(
 
     var fitMode by remember { mutableStateOf(initialFit) }
     val allowMargins = fitMode == CropFitMode.FIT || !showFitToggle
+    val effW = if (fitMode == CropFitMode.STRETCH) 1f else widthFraction
+    val effH = if (fitMode == CropFitMode.STRETCH) 1f else heightFraction
 
     var selection by remember {
         mutableStateOf(
             if (initialTransform != null) {
-                CropSelectionMath.fromTransform(initialTransform, widthFraction, heightFraction, allowMargins)
+                CropSelectionMath.fromTransform(initialTransform, effW, effH, allowMargins)
             } else {
-                CropSelectionMath.maxSelection(widthFraction, heightFraction, allowMargins)
+                CropSelectionMath.maxSelection(effW, effH, allowMargins)
             },
         )
     }
@@ -189,8 +197,9 @@ internal fun ImageCropDialog(
     val cancelRequester = remember { FocusRequester() }
     val doneRequester = remember { FocusRequester() }
     val stageRequester = remember { FocusRequester() }
-    val fitRequester = remember { FocusRequester() }
     val fillRequester = remember { FocusRequester() }
+    val fitRequester = remember { FocusRequester() }
+    val stretchRequester = remember { FocusRequester() }
 
     val cancelInteractionSource = remember { MutableInteractionSource() }
     val isCancelFocused by cancelInteractionSource.collectIsFocusedAsState()
@@ -263,7 +272,7 @@ internal fun ImageCropDialog(
 
             TextButton(
                 onClick = {
-                    val transform = CropSelectionMath.toTransform(selection, widthFraction, heightFraction)
+                    val transform = CropSelectionMath.toTransform(selection, effW, effH)
                     onConfirmCrop?.invoke(transform.scale, transform.offsetX, transform.offsetY)
 
                     if (onConfirmBitmap != null) {
@@ -275,6 +284,7 @@ internal fun ImageCropDialog(
                                     selection = selection,
                                     widthFraction = widthFraction,
                                     heightFraction = heightFraction,
+                                    fitMode = fitMode,
                                 )
                             }.onFailure { AppLog.e(TAG, "Crop source is not an Android bitmap", it) }
                                 .getOrNull()
@@ -328,7 +338,7 @@ internal fun ImageCropDialog(
                     )
                     .focusProperties {
                         up = cancelRequester
-                        down = if (showFitToggle) fitRequester else cancelRequester
+                        down = if (showFitToggle) fillRequester else cancelRequester
                     }
                     .onKeyEvent { keyEvent ->
                         if (keyEvent.type == KeyEventType.KeyDown) {
@@ -336,29 +346,29 @@ internal fun ImageCropDialog(
                             val zoomStep = 0.05f
                             when (keyEvent.nativeKeyEvent.keyCode) {
                                 AndroidKeyEvent.KEYCODE_DPAD_UP -> {
-                                    selection = CropSelectionMath.move(selection, 0f, -step, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, 0f, -step, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_DOWN -> {
-                                    selection = CropSelectionMath.move(selection, 0f, step, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, 0f, step, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_LEFT -> {
-                                    selection = CropSelectionMath.move(selection, -step, 0f, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, -step, 0f, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_RIGHT -> {
-                                    selection = CropSelectionMath.move(selection, step, 0f, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, step, 0f, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_BUTTON_L1 -> {
-                                    val newSize = (selection.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(widthFraction, heightFraction))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), widthFraction, heightFraction, allowMargins)
+                                    val newSize = (selection.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(effW, effH))
+                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_BUTTON_R1 -> {
-                                    val newSize = (selection.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(widthFraction, heightFraction, allowMargins))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), widthFraction, heightFraction, allowMargins)
+                                    val newSize = (selection.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(effW, effH, allowMargins))
+                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
                                     true
                                 }
                                 else -> false
@@ -368,7 +378,7 @@ internal fun ImageCropDialog(
                         }
                     }
                     .onSizeChanged { stageSize = it }
-                    .pointerInput(bitmap, widthFraction, heightFraction, allowMargins) {
+                    .pointerInput(bitmap, effW, effH, allowMargins) {
                         var travelX = 0f
                         var travelY = 0f
                         detectDragGestures(
@@ -389,8 +399,8 @@ internal fun ImageCropDialog(
                                         dragOrigin,
                                         travelX / w,
                                         travelY / h,
-                                        widthFraction,
-                                        heightFraction,
+                                        effW,
+                                        effH,
                                         allowMargins,
                                     )
                             },
@@ -402,8 +412,8 @@ internal fun ImageCropDialog(
 
             if (stageW > 0f && stageH > 0f) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val drawnW = widthFraction * stageW
-                    val drawnH = heightFraction * stageH
+                    val drawnW = effW * stageW
+                    val drawnH = effH * stageH
                     drawImage(
                         image = bitmap,
                         dstOffset =
@@ -466,8 +476,8 @@ internal fun ImageCropDialog(
                                     corner,
                                     totalX / stageW,
                                     totalY / stageH,
-                                    widthFraction,
-                                    heightFraction,
+                                    effW,
+                                    effH,
                                     allowMargins,
                                 )
                         },
@@ -483,13 +493,31 @@ internal fun ImageCropDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CropFitModeChip(
-                    label = stringResource(R.string.crop_image_fit_whole),
+                    label = stringResource(R.string.bg_scale_mode_fill),
+                    selected = fitMode == CropFitMode.FILL,
+                    modifier =
+                        Modifier
+                            .focusRequester(fillRequester)
+                            .focusProperties {
+                                right = fitRequester
+                                up = stageRequester
+                            },
+                    onClick = {
+                        if (fitMode != CropFitMode.FILL) {
+                            fitMode = CropFitMode.FILL
+                            selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                        }
+                    },
+                )
+                CropFitModeChip(
+                    label = stringResource(R.string.bg_scale_mode_fit),
                     selected = fitMode == CropFitMode.FIT,
                     modifier =
                         Modifier
                             .focusRequester(fitRequester)
                             .focusProperties {
-                                right = fillRequester
+                                left = fillRequester
+                                right = stretchRequester
                                 up = stageRequester
                             },
                     onClick = {
@@ -500,19 +528,19 @@ internal fun ImageCropDialog(
                     },
                 )
                 CropFitModeChip(
-                    label = stringResource(R.string.crop_image_fit_fill),
-                    selected = fitMode == CropFitMode.FILL,
+                    label = stringResource(R.string.bg_scale_mode_stretch),
+                    selected = fitMode == CropFitMode.STRETCH,
                     modifier =
                         Modifier
-                            .focusRequester(fillRequester)
+                            .focusRequester(stretchRequester)
                             .focusProperties {
                                 left = fitRequester
                                 up = stageRequester
                             },
                     onClick = {
-                        if (fitMode != CropFitMode.FILL) {
-                            fitMode = CropFitMode.FILL
-                            selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                        if (fitMode != CropFitMode.STRETCH) {
+                            fitMode = CropFitMode.STRETCH
+                            selection = CropSelectionMath.maxSelection(1f, 1f, false)
                         }
                     },
                 )
@@ -598,13 +626,15 @@ internal fun ImageCropSubPageContent(
 
     var fitMode by remember { mutableStateOf(initialFit) }
     val allowMargins = fitMode == CropFitMode.FIT || !showFitToggle
+    val effW = if (fitMode == CropFitMode.STRETCH) 1f else widthFraction
+    val effH = if (fitMode == CropFitMode.STRETCH) 1f else heightFraction
 
     var selection by remember {
         mutableStateOf(
             if (initialTransform != null) {
-                CropSelectionMath.fromTransform(initialTransform, widthFraction, heightFraction, allowMargins)
+                CropSelectionMath.fromTransform(initialTransform, effW, effH, allowMargins)
             } else {
-                CropSelectionMath.maxSelection(widthFraction, heightFraction, allowMargins)
+                CropSelectionMath.maxSelection(effW, effH, allowMargins)
             },
         )
     }
@@ -642,29 +672,29 @@ internal fun ImageCropSubPageContent(
                             val zoomStep = 0.05f
                             when (keyEvent.nativeKeyEvent.keyCode) {
                                 AndroidKeyEvent.KEYCODE_DPAD_UP -> {
-                                    selection = CropSelectionMath.move(selection, 0f, -step, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, 0f, -step, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_DOWN -> {
-                                    selection = CropSelectionMath.move(selection, 0f, step, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, 0f, step, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_LEFT -> {
-                                    selection = CropSelectionMath.move(selection, -step, 0f, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, -step, 0f, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_DPAD_RIGHT -> {
-                                    selection = CropSelectionMath.move(selection, step, 0f, widthFraction, heightFraction, allowMargins)
+                                    selection = CropSelectionMath.move(selection, step, 0f, effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_BUTTON_L1 -> {
-                                    val newSize = (selection.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(widthFraction, heightFraction))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), widthFraction, heightFraction, allowMargins)
+                                    val newSize = (selection.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(effW, effH))
+                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
                                     true
                                 }
                                 AndroidKeyEvent.KEYCODE_BUTTON_R1 -> {
-                                    val newSize = (selection.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(widthFraction, heightFraction, allowMargins))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), widthFraction, heightFraction, allowMargins)
+                                    val newSize = (selection.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(effW, effH, allowMargins))
+                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
                                     true
                                 }
                                 else -> false
@@ -674,7 +704,7 @@ internal fun ImageCropSubPageContent(
                         }
                     }
                     .onSizeChanged { stageSize = it }
-                    .pointerInput(bitmap, widthFraction, heightFraction, allowMargins) {
+                    .pointerInput(bitmap, effW, effH, allowMargins) {
                         var travelX = 0f
                         var travelY = 0f
                         detectDragGestures(
@@ -695,8 +725,8 @@ internal fun ImageCropSubPageContent(
                                         dragOrigin,
                                         travelX / w,
                                         travelY / h,
-                                        widthFraction,
-                                        heightFraction,
+                                        effW,
+                                        effH,
                                         allowMargins,
                                     )
                             },
@@ -708,8 +738,8 @@ internal fun ImageCropSubPageContent(
 
             if (stageW > 0f && stageH > 0f) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val drawnW = widthFraction * stageW
-                    val drawnH = heightFraction * stageH
+                    val drawnW = effW * stageW
+                    val drawnH = effH * stageH
                     drawImage(
                         image = bitmap,
                         dstOffset =
@@ -772,8 +802,8 @@ internal fun ImageCropSubPageContent(
                                     corner,
                                     totalX / stageW,
                                     totalY / stageH,
-                                    widthFraction,
-                                    heightFraction,
+                                    effW,
+                                    effH,
                                     allowMargins,
                                 )
                         },
@@ -784,13 +814,63 @@ internal fun ImageCropSubPageContent(
     }
 
     if (showFitToggle) {
+        GamepadChoiceCard(
+            title = stringResource(R.string.layout_settings_bg_scale_mode),
+            description = stringResource(R.string.button_settings_crop_scale_mode_desc),
+            selectedText =
+                when (fitMode) {
+                    CropFitMode.FILL -> stringResource(R.string.bg_scale_mode_fill)
+                    CropFitMode.FIT -> stringResource(R.string.bg_scale_mode_fit)
+                    CropFitMode.STRETCH -> stringResource(R.string.bg_scale_mode_stretch)
+                },
+            icon = Icons.Rounded.AspectRatio,
+            onPrevious = {
+                fitMode =
+                    when (fitMode) {
+                        CropFitMode.FILL -> CropFitMode.STRETCH
+                        CropFitMode.FIT -> CropFitMode.FILL
+                        CropFitMode.STRETCH -> CropFitMode.FIT
+                    }
+                selection =
+                    when (fitMode) {
+                        CropFitMode.FILL -> CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                        CropFitMode.FIT -> CropSelectionMath.maxSelection(widthFraction, heightFraction, true)
+                        CropFitMode.STRETCH -> CropSelectionMath.maxSelection(1f, 1f, false)
+                    }
+            },
+            onNext = {
+                fitMode =
+                    when (fitMode) {
+                        CropFitMode.FILL -> CropFitMode.FIT
+                        CropFitMode.FIT -> CropFitMode.STRETCH
+                        CropFitMode.STRETCH -> CropFitMode.FILL
+                    }
+                selection =
+                    when (fitMode) {
+                        CropFitMode.FILL -> CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                        CropFitMode.FIT -> CropSelectionMath.maxSelection(widthFraction, heightFraction, true)
+                        CropFitMode.STRETCH -> CropSelectionMath.maxSelection(1f, 1f, false)
+                    }
+            },
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = CROP_SPACING_8),
             horizontalArrangement = Arrangement.spacedBy(CROP_SPACING_8, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CropFitModeChip(
-                label = stringResource(R.string.crop_image_fit_whole),
+                label = stringResource(R.string.bg_scale_mode_fill),
+                selected = fitMode == CropFitMode.FILL,
+                onClick = {
+                    if (fitMode != CropFitMode.FILL) {
+                        fitMode = CropFitMode.FILL
+                        selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                    }
+                },
+            )
+            CropFitModeChip(
+                label = stringResource(R.string.bg_scale_mode_fit),
                 selected = fitMode == CropFitMode.FIT,
                 onClick = {
                     if (fitMode != CropFitMode.FIT) {
@@ -800,12 +880,12 @@ internal fun ImageCropSubPageContent(
                 },
             )
             CropFitModeChip(
-                label = stringResource(R.string.crop_image_fit_fill),
-                selected = fitMode == CropFitMode.FILL,
+                label = stringResource(R.string.bg_scale_mode_stretch),
+                selected = fitMode == CropFitMode.STRETCH,
                 onClick = {
-                    if (fitMode != CropFitMode.FILL) {
-                        fitMode = CropFitMode.FILL
-                        selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
+                    if (fitMode != CropFitMode.STRETCH) {
+                        fitMode = CropFitMode.STRETCH
+                        selection = CropSelectionMath.maxSelection(1f, 1f, false)
                     }
                 },
             )
@@ -833,6 +913,7 @@ internal fun ImageCropSubPageContent(
                         selection = selection,
                         widthFraction = widthFraction,
                         heightFraction = heightFraction,
+                        fitMode = fitMode,
                     )
                 }.onFailure { AppLog.e(TAG, "Crop source is not an Android bitmap", it) }
                     .getOrNull()

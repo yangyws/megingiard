@@ -1208,8 +1208,9 @@ Open Settings to create a layout.</string>
     <string name="button_settings_enlarge_text">Text vergrößern</string>
     <string name="button_settings_enlarge_text_desc">Textbeschriftung auf der Schaltfläche vergrößern</string>
     <string name="layout_settings_crop_image_instructions">Ziehen zum Verschieben • Auf-/Zuziehen zum Zoomen</string>
-    <string name="crop_image_fit_whole">Ganzes</string>
-    <string name="crop_image_fit_fill">Füllen</string>
+    <string name="button_settings_crop_scale_mode_desc">Wähle, wie das Bild an das Seitenverhältnis der Taste angepasst wird</string>
+    <string name="crop_image_fit_whole">Einpassen</string>
+    <string name="crop_image_fit_fill">Ausfüllen</string>
     <string name="macropad_crop_apply">Zuschnitt anwenden</string>
     <string name="macropad_crop_apply_desc">Zuschnitt speichern und für diese Taste übernehmen</string>
     <string name="macropad_crop_cancel_desc">Zuschnitt verwerfen und zurückkehren</string>

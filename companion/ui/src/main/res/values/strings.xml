@@ -1211,8 +1211,9 @@ Open Settings to create a layout.</string>
     <string name="button_settings_enlarge_text">Enlarge text</string>
     <string name="button_settings_enlarge_text_desc">Scale the text label up on the button face</string>
     <string name="layout_settings_crop_image_instructions">Drag to pan • Pinch to zoom</string>
-    <string name="crop_image_fit_whole">Fit whole</string>
-    <string name="crop_image_fit_fill">Fit fill</string>
+    <string name="button_settings_crop_scale_mode_desc">Choose how the image adapts to the button face aspect ratio</string>
+    <string name="crop_image_fit_whole">Fit</string>
+    <string name="crop_image_fit_fill">Fill</string>
     <string name="macropad_crop_apply">Apply Crop</string>
     <string name="macropad_crop_apply_desc">Save and set cropped image for this button</string>
     <string name="macropad_crop_cancel_desc">Discard crop changes and return</string>
