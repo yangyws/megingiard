@@ -1216,5 +1216,14 @@ Open Settings to create a layout.</string>
     <string name="macropad_crop_apply">Apply Crop</string>
     <string name="macropad_crop_apply_desc">Save and set cropped image for this button</string>
     <string name="macropad_crop_cancel_desc">Discard crop changes and return</string>
+    <!-- Local Image Picker -->
+    <string name="button_image_picker_title">Choose Image</string>
+    <string name="button_image_picker_desc">Select a picture from your device</string>
+    <string name="button_image_picker_open_steamgriddb">Search on SteamGridDB</string>
+    <string name="button_image_picker_open_steamgriddb_desc">Search and download game cover art online</string>
+    <string name="button_image_picker_open_system">Open System File Picker</string>
+    <string name="button_image_picker_open_system_desc">Browse files or external storage with system file picker</string>
+    <string name="button_image_picker_empty">No images found on device</string>
+    <string name="button_image_picker_empty_desc">Images in Pictures, Screenshots, and Downloads will appear here</string>
 </resources>
 

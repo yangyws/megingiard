@@ -1213,4 +1213,13 @@ Open Settings to create a layout.</string>
     <string name="macropad_crop_apply">Zuschnitt anwenden</string>
     <string name="macropad_crop_apply_desc">Zuschnitt speichern und für diese Taste übernehmen</string>
     <string name="macropad_crop_cancel_desc">Zuschnitt verwerfen und zurückkehren</string>
+    <!-- Local Image Picker -->
+    <string name="button_image_picker_title">Bild auswählen</string>
+    <string name="button_image_picker_desc">Ein Bild vom Gerät auswählen</string>
+    <string name="button_image_picker_open_steamgriddb">Auf SteamGridDB suchen</string>
+    <string name="button_image_picker_open_steamgriddb_desc">Spielcover online suchen und herunterladen</string>
+    <string name="button_image_picker_open_system">System-Dateiauswahl öffnen</string>
+    <string name="button_image_picker_open_system_desc">Dateien oder externen Speicher mit Systemauswahl durchsuchen</string>
+    <string name="button_image_picker_empty">Keine Bilder auf dem Gerät gefunden</string>
+    <string name="button_image_picker_empty_desc">Bilder in Bildern, Screenshots und Downloads werden hier angezeigt</string>
 </resources>

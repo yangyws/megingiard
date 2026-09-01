@@ -91,7 +91,7 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "PadButtonEditDialog"
 
-private const val BTN_IMAGE_DECODE_PX = 1024
+internal const val BTN_IMAGE_DECODE_PX = 1024
 private val PBD_COLOR_PREVIEW_SIZE = 36.dp
 private val PBD_CORNER_RADIUS_DP = 6.dp
 private val PBD_CORNER_SHAPE = RoundedCornerShape(PBD_CORNER_RADIUS_DP)

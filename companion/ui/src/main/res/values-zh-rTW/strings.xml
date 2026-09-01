@@ -1213,4 +1213,13 @@
     <string name="macropad_crop_apply">確認裁切並套用</string>
     <string name="macropad_crop_apply_desc">儲存並套用裁切後的圖片至此按鈕</string>
     <string name="macropad_crop_cancel_desc">捨棄裁切變更並返回按鈕設定</string>
+    <!-- Local Image Picker -->
+    <string name="button_image_picker_title">選擇圖片</string>
+    <string name="button_image_picker_desc">從裝置內選取相片或圖片</string>
+    <string name="button_image_picker_open_steamgriddb">前往 SteamGridDB 搜尋圖庫</string>
+    <string name="button_image_picker_open_steamgriddb_desc">在線搜尋並下載高品質遊戲封面與圖示</string>
+    <string name="button_image_picker_open_system">開啟系統檔案選擇器</string>
+    <string name="button_image_picker_open_system_desc">使用系統選擇器瀏覽深層檔案或外接儲存裝置</string>
+    <string name="button_image_picker_empty">裝置內未找到相片</string>
+    <string name="button_image_picker_empty_desc">放置於相簿、截圖或下載資料夾的相片將顯示於此</string>
 </resources>

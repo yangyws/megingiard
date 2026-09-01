@@ -252,6 +252,14 @@ internal sealed interface MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }
 
+    data class ChooseButtonImage(
+        val button: PadButton?,
+        val draftButton: PadButton,
+        val aspectRatio: Float,
+    ) : MacroPadSubPage {
+        override val parentSection = EditorSection.BUTTONS
+    }
+
     data class CropButtonImage(
         val button: PadButton?,
         val draftButton: PadButton,

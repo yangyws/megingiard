@@ -265,6 +265,29 @@ class MacroPadNavStateTest {
     }
 
     @Test
+    fun `ChooseButtonImage has correct parentSection BUTTONS and preserves stack`() {
+        val dummyButton = PadButton(id = "btn-1", label = "Test", posX = 0.5f, posY = 0.5f, action = PadAction.ScrollWheel)
+        val chooseImageSubPage =
+            MacroPadSubPage.ChooseButtonImage(
+                button = dummyButton,
+                draftButton = dummyButton,
+                aspectRatio = 1.0f,
+            )
+        assertEquals(EditorSection.BUTTONS, chooseImageSubPage.parentSection)
+
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(MacroPadSubPage.EditButton(button = dummyButton))
+        MacroPadNavState.push(chooseImageSubPage)
+
+        assertEquals(2, MacroPadNavState.subPageStack.value.size)
+        assertEquals(chooseImageSubPage, MacroPadNavState.subPageStack.value.last())
+
+        assertTrue(MacroPadNavState.pop())
+        assertEquals(1, MacroPadNavState.subPageStack.value.size)
+        assertTrue(MacroPadNavState.subPageStack.value.first() is MacroPadSubPage.EditButton)
+    }
+
+    @Test
     fun `navigating to EditButton when adding a new button sets correct section and stack`() {
         MacroPadNavState.reset()
         val newBtn =
