@@ -1198,6 +1198,8 @@ Open Settings to create a layout.</string>
     <string name="button_settings_custom_image">Custom Image</string>
     <string name="button_settings_custom_image_desc">Choose an image for the button face</string>
     <string name="button_settings_custom_image_desc_selected">Custom image set (tap to change)</string>
+    <string name="button_settings_crop_image">Crop image</string>
+    <string name="button_settings_crop_image_desc">Adjust the position, zoom, and scale mode of this image</string>
     <string name="button_settings_clear_image">Remove image</string>
     <string name="button_settings_clear_icon">Remove icon</string>
     <string name="button_settings_show_label">Show label</string>

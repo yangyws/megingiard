@@ -1195,6 +1195,8 @@ Open Settings to create a layout.</string>
     <string name="button_settings_custom_image">Eigenes Bild</string>
     <string name="button_settings_custom_image_desc">Ein Bild für die Tastenoberfläche wählen</string>
     <string name="button_settings_custom_image_desc_selected">Eigenes Bild festgelegt (tippen zum Ändern)</string>
+    <string name="button_settings_crop_image">Bild zuschneiden</string>
+    <string name="button_settings_crop_image_desc">Position, Zoom und Skalierungsmodus für dieses Bild anpassen</string>
     <string name="button_settings_clear_image">Bild entfernen</string>
     <string name="button_settings_clear_icon">Symbol entfernen</string>
     <string name="button_settings_show_label">Beschriftung anzeigen</string>

@@ -1195,6 +1195,8 @@
     <string name="button_settings_custom_image">自訂圖片</string>
     <string name="button_settings_custom_image_desc">選擇按鈕表面的圖片</string>
     <string name="button_settings_custom_image_desc_selected">已設定自訂圖片（點擊更換）</string>
+    <string name="button_settings_crop_image">裁切圖片</string>
+    <string name="button_settings_crop_image_desc">調整此圖片的位置、縮放與適應模式</string>
     <string name="button_settings_clear_image">移除圖片</string>
     <string name="button_settings_clear_icon">移除圖示</string>
     <string name="button_settings_show_label">顯示標籤</string>

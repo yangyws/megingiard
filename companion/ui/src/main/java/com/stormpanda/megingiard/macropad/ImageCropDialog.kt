@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -546,14 +548,6 @@ internal fun ImageCropDialog(
                 )
             }
         }
-
-        Text(
-            text = stringResource(R.string.layout_settings_crop_image_instructions),
-            color = colors.onSurfaceSecondary,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = CROP_SPACING_12),
-        )
     }
 }
 
@@ -640,174 +634,152 @@ internal fun ImageCropSubPageContent(
     }
     var stageSize by remember { mutableStateOf(IntSize.Zero) }
     var dragOrigin by remember { mutableStateOf(selection) }
-    var isStageFocused by remember { mutableStateOf(false) }
+    val currentSelection = rememberUpdatedState(selection)
+    val zoomStep = 0.05f
 
-    // 1. Crop Preview Stage Card
+    BackHandler(onBack = onCancel)
+
+    // Global bumper controls for zooming
     Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        val stageAspect = if (aspectRatio.isFinite() && aspectRatio > 0f) aspectRatio else 1f
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth(CROP_MODAL_WIDTH_FRACTION)
-                    .aspectRatio(stageAspect.coerceIn(0.5f, 2f))
-                    .clip(RoundedCornerShape(CROP_IMAGE_ROUNDING))
-                    .clipToBounds()
-                    .background(Color.Black)
-                    .firstDeckItem()
-                    .onFocusChanged { isStageFocused = it.isFocused }
-                    .focusable()
-                    .then(
-                        if (isStageFocused) {
-                            Modifier.border(2.dp, colors.accent, RoundedCornerShape(CROP_IMAGE_ROUNDING))
-                        } else {
-                            Modifier.border(1.dp, colors.surfaceVariant, RoundedCornerShape(CROP_IMAGE_ROUNDING))
-                        },
-                    )
-                    .onKeyEvent { keyEvent ->
-                        if (keyEvent.type == KeyEventType.KeyDown) {
-                            val step = 0.03f
-                            val zoomStep = 0.05f
-                            when (keyEvent.nativeKeyEvent.keyCode) {
-                                AndroidKeyEvent.KEYCODE_DPAD_UP -> {
-                                    selection = CropSelectionMath.move(selection, 0f, -step, effW, effH, allowMargins)
-                                    true
-                                }
-                                AndroidKeyEvent.KEYCODE_DPAD_DOWN -> {
-                                    selection = CropSelectionMath.move(selection, 0f, step, effW, effH, allowMargins)
-                                    true
-                                }
-                                AndroidKeyEvent.KEYCODE_DPAD_LEFT -> {
-                                    selection = CropSelectionMath.move(selection, -step, 0f, effW, effH, allowMargins)
-                                    true
-                                }
-                                AndroidKeyEvent.KEYCODE_DPAD_RIGHT -> {
-                                    selection = CropSelectionMath.move(selection, step, 0f, effW, effH, allowMargins)
-                                    true
-                                }
-                                AndroidKeyEvent.KEYCODE_BUTTON_L1 -> {
-                                    val newSize = (selection.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(effW, effH))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
-                                    true
-                                }
-                                AndroidKeyEvent.KEYCODE_BUTTON_R1 -> {
-                                    val newSize = (selection.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(effW, effH, allowMargins))
-                                    selection = CropSelectionMath.clamp(selection.copy(size = newSize), effW, effH, allowMargins)
-                                    true
-                                }
-                                else -> false
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .onKeyEvent { keyEvent ->
+                    if (keyEvent.type == KeyEventType.KeyDown) {
+                        when (keyEvent.nativeKeyEvent.keyCode) {
+                            AndroidKeyEvent.KEYCODE_BUTTON_L1 -> {
+                                val sel = currentSelection.value
+                                val newSize = (sel.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(effW, effH))
+                                selection = CropSelectionMath.clamp(sel.copy(size = newSize), effW, effH, allowMargins)
+                                true
                             }
-                        } else {
-                            false
+                            AndroidKeyEvent.KEYCODE_BUTTON_R1 -> {
+                                val sel = currentSelection.value
+                                val newSize = (sel.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(effW, effH, allowMargins))
+                                selection = CropSelectionMath.clamp(sel.copy(size = newSize), effW, effH, allowMargins)
+                                true
+                            }
+                            else -> false
                         }
+                    } else {
+                        false
                     }
-                    .onSizeChanged { stageSize = it }
-                    .pointerInput(bitmap, effW, effH, allowMargins) {
-                        var travelX = 0f
-                        var travelY = 0f
-                        detectDragGestures(
-                            onDragStart = {
-                                dragOrigin = selection
-                                travelX = 0f
-                                travelY = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
+                },
+    ) {
+        // 1. Crop Preview Stage Card
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            val stageAspect = if (aspectRatio.isFinite() && aspectRatio > 0f) aspectRatio else 1f
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth(CROP_MODAL_WIDTH_FRACTION)
+                        .aspectRatio(stageAspect.coerceIn(0.5f, 2f))
+                        .clip(RoundedCornerShape(CROP_IMAGE_ROUNDING))
+                        .clipToBounds()
+                        .background(Color.Black)
+                        .border(1.dp, colors.surfaceVariant, RoundedCornerShape(CROP_IMAGE_ROUNDING))
+                        .onSizeChanged { stageSize = it }
+                        .pointerInput(bitmap, effW, effH, allowMargins) {
+                            detectTransformGestures { _, pan, zoom, _ ->
                                 val w = size.width.toFloat()
                                 val h = size.height.toFloat()
-                                if (w <= 0f || h <= 0f) return@detectDragGestures
-                                travelX += dragAmount.x
-                                travelY += dragAmount.y
+                                if (w <= 0f || h <= 0f) return@detectTransformGestures
+                                var cur = currentSelection.value
+                                if (zoom != 1f) {
+                                    val currentSize = cur.size
+                                    val targetSize =
+                                        (currentSize / zoom).coerceIn(
+                                            CropSelectionMath.minSize(effW, effH),
+                                            CropSelectionMath.maxSize(effW, effH, allowMargins),
+                                        )
+                                    cur = CropSelectionMath.clamp(cur.copy(size = targetSize), effW, effH, allowMargins)
+                                }
+                                if (pan != Offset.Zero) {
+                                    cur = CropSelectionMath.move(cur, pan.x / w, pan.y / h, effW, effH, allowMargins)
+                                }
+                                selection = cur
+                            }
+                        },
+            ) {
+                val stageW = stageSize.width.toFloat()
+                val stageH = stageSize.height.toFloat()
+
+                if (stageW > 0f && stageH > 0f) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val drawnW = effW * stageW
+                        val drawnH = effH * stageH
+                        drawImage(
+                            image = bitmap,
+                            dstOffset =
+                                IntOffset(
+                                    ((stageW - drawnW) / 2f).roundToInt(),
+                                    ((stageH - drawnH) / 2f).roundToInt(),
+                                ),
+                            dstSize = IntSize(drawnW.roundToInt(), drawnH.roundToInt()),
+                        )
+
+                        val boxLeft = selection.left * stageW
+                        val boxTop = selection.top * stageH
+                        val boxW = selection.size * stageW
+                        val boxH = selection.size * stageH
+
+                        val scrim = Color.Black.copy(alpha = CROP_SCRIM_ALPHA)
+                        drawRect(scrim, Offset(0f, 0f), Size(stageW, boxTop.coerceAtLeast(0f)))
+                        drawRect(scrim, Offset(0f, boxTop + boxH), Size(stageW, (stageH - boxTop - boxH).coerceAtLeast(0f)))
+                        drawRect(scrim, Offset(0f, boxTop), Size(boxLeft.coerceAtLeast(0f), boxH))
+                        drawRect(
+                            scrim,
+                            Offset(boxLeft + boxW, boxTop),
+                            Size((stageW - boxLeft - boxW).coerceAtLeast(0f), boxH),
+                        )
+
+                        drawRect(
+                            color = colors.accent,
+                            topLeft = Offset(boxLeft, boxTop),
+                            size = Size(boxW, boxH),
+                            style = Stroke(width = CROP_SELECTION_BORDER.toPx()),
+                        )
+                    }
+
+                    val touchPx = with(density) { CROP_HANDLE_TOUCH_SIZE.toPx() }
+                    val gripPx = with(density) { CROP_HANDLE_INDICATOR_SIZE.toPx() }
+                    val boxLeft = selection.left * stageW
+                    val boxTop = selection.top * stageH
+                    val boxRight = boxLeft + selection.size * stageW
+                    val boxBottom = boxTop + selection.size * stageH
+
+                    CropCorner.entries.forEach { corner ->
+                        val cornerX = if (corner.isLeft) boxLeft + gripPx / 2f else boxRight - gripPx / 2f
+                        val cornerY = if (corner.isTop) boxTop + gripPx / 2f else boxBottom - gripPx / 2f
+                        DragResizeHandle(
+                            offset =
+                                IntOffset(
+                                    (cornerX - touchPx / 2f).roundToInt(),
+                                    (cornerY - touchPx / 2f).roundToInt(),
+                                ),
+                            touchWidth = CROP_HANDLE_TOUCH_SIZE,
+                            touchHeight = CROP_HANDLE_TOUCH_SIZE,
+                            indicatorSize = CROP_HANDLE_INDICATOR_SIZE,
+                            indicatorCorner = CROP_HANDLE_CORNER,
+                            color = colors.accent,
+                            onDragStart = { dragOrigin = selection },
+                            onDrag = { totalX, totalY ->
                                 selection =
-                                    CropSelectionMath.move(
+                                    CropSelectionMath.resize(
                                         dragOrigin,
-                                        travelX / w,
-                                        travelY / h,
+                                        corner,
+                                        totalX / stageW,
+                                        totalY / stageH,
                                         effW,
                                         effH,
                                         allowMargins,
                                     )
                             },
                         )
-                    },
-        ) {
-            val stageW = stageSize.width.toFloat()
-            val stageH = stageSize.height.toFloat()
-
-            if (stageW > 0f && stageH > 0f) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val drawnW = effW * stageW
-                    val drawnH = effH * stageH
-                    drawImage(
-                        image = bitmap,
-                        dstOffset =
-                            IntOffset(
-                                ((stageW - drawnW) / 2f).roundToInt(),
-                                ((stageH - drawnH) / 2f).roundToInt(),
-                            ),
-                        dstSize = IntSize(drawnW.roundToInt(), drawnH.roundToInt()),
-                    )
-
-                    val boxLeft = selection.left * stageW
-                    val boxTop = selection.top * stageH
-                    val boxW = selection.size * stageW
-                    val boxH = selection.size * stageH
-
-                    val scrim = Color.Black.copy(alpha = CROP_SCRIM_ALPHA)
-                    drawRect(scrim, Offset(0f, 0f), Size(stageW, boxTop.coerceAtLeast(0f)))
-                    drawRect(scrim, Offset(0f, boxTop + boxH), Size(stageW, (stageH - boxTop - boxH).coerceAtLeast(0f)))
-                    drawRect(scrim, Offset(0f, boxTop), Size(boxLeft.coerceAtLeast(0f), boxH))
-                    drawRect(
-                        scrim,
-                        Offset(boxLeft + boxW, boxTop),
-                        Size((stageW - boxLeft - boxW).coerceAtLeast(0f), boxH),
-                    )
-
-                    drawRect(
-                        color = colors.accent,
-                        topLeft = Offset(boxLeft, boxTop),
-                        size = Size(boxW, boxH),
-                        style = Stroke(width = CROP_SELECTION_BORDER.toPx()),
-                    )
-                }
-
-                val touchPx = with(density) { CROP_HANDLE_TOUCH_SIZE.toPx() }
-                val gripPx = with(density) { CROP_HANDLE_INDICATOR_SIZE.toPx() }
-                val boxLeft = selection.left * stageW
-                val boxTop = selection.top * stageH
-                val boxRight = boxLeft + selection.size * stageW
-                val boxBottom = boxTop + selection.size * stageH
-
-                CropCorner.entries.forEach { corner ->
-                    val cornerX = if (corner.isLeft) boxLeft + gripPx / 2f else boxRight - gripPx / 2f
-                    val cornerY = if (corner.isTop) boxTop + gripPx / 2f else boxBottom - gripPx / 2f
-                    DragResizeHandle(
-                        offset =
-                            IntOffset(
-                                (cornerX - touchPx / 2f).roundToInt(),
-                                (cornerY - touchPx / 2f).roundToInt(),
-                            ),
-                        touchWidth = CROP_HANDLE_TOUCH_SIZE,
-                        touchHeight = CROP_HANDLE_TOUCH_SIZE,
-                        indicatorSize = CROP_HANDLE_INDICATOR_SIZE,
-                        indicatorCorner = CROP_HANDLE_CORNER,
-                        color = colors.accent,
-                        onDragStart = { dragOrigin = selection },
-                        onDrag = { totalX, totalY ->
-                            selection =
-                                CropSelectionMath.resize(
-                                    dragOrigin,
-                                    corner,
-                                    totalX / stageW,
-                                    totalY / stageH,
-                                    effW,
-                                    effH,
-                                    allowMargins,
-                                )
-                        },
-                    )
+                    }
                 }
             }
         }
@@ -852,53 +824,9 @@ internal fun ImageCropSubPageContent(
                         CropFitMode.STRETCH -> CropSelectionMath.maxSelection(1f, 1f, false)
                     }
             },
+            modifier = Modifier.firstDeckItem(),
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = CROP_SPACING_8),
-            horizontalArrangement = Arrangement.spacedBy(CROP_SPACING_8, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CropFitModeChip(
-                label = stringResource(R.string.bg_scale_mode_fill),
-                selected = fitMode == CropFitMode.FILL,
-                onClick = {
-                    if (fitMode != CropFitMode.FILL) {
-                        fitMode = CropFitMode.FILL
-                        selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
-                    }
-                },
-            )
-            CropFitModeChip(
-                label = stringResource(R.string.bg_scale_mode_fit),
-                selected = fitMode == CropFitMode.FIT,
-                onClick = {
-                    if (fitMode != CropFitMode.FIT) {
-                        fitMode = CropFitMode.FIT
-                        selection = CropSelectionMath.maxSelection(widthFraction, heightFraction, true)
-                    }
-                },
-            )
-            CropFitModeChip(
-                label = stringResource(R.string.bg_scale_mode_stretch),
-                selected = fitMode == CropFitMode.STRETCH,
-                onClick = {
-                    if (fitMode != CropFitMode.STRETCH) {
-                        fitMode = CropFitMode.STRETCH
-                        selection = CropSelectionMath.maxSelection(1f, 1f, false)
-                    }
-                },
-            )
-        }
     }
-
-    Text(
-        text = stringResource(R.string.layout_settings_crop_image_instructions),
-        color = colors.onSurfaceSecondary,
-        style = MaterialTheme.typography.bodySmall,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(bottom = CROP_SPACING_12),
-    )
 
     GamepadActionCard(
         title = stringResource(R.string.macropad_crop_apply),

@@ -1235,6 +1235,36 @@ fun MacroPadEditor(
                                                         ),
                                                     )
                                                 },
+                                                onCropCustomImage = { currentDraft ->
+                                                    buttonDraft = currentDraft
+                                                    val assetId = currentDraft.imageAssetId
+                                                    if (assetId != null) {
+                                                        scope.launch {
+                                                            val loaded =
+                                                                withContext(Dispatchers.IO) {
+                                                                    PadIconStore.load(context, assetId)
+                                                                }
+                                                            if (loaded != null) {
+                                                                val isGrid = activeLayout?.isGridMode == true
+                                                                val aspect =
+                                                                    if (isGrid) {
+                                                                        (currentDraft.colSpan.toFloat() / currentDraft.rowSpan.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
+                                                                    } else {
+                                                                        (currentDraft.buttonSize.cols.toFloat() / currentDraft.buttonSize.rows.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
+                                                                    }
+                                                                pushSubPageFromEdit(
+                                                                    currentDraft,
+                                                                    MacroPadSubPage.CropButtonImage(
+                                                                        button = currentSubPage.button,
+                                                                        draftButton = currentDraft,
+                                                                        bitmap = loaded.asImageBitmap(),
+                                                                        aspectRatio = aspect,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                },
                                                 onClearCustomImage = { currentDraft ->
                                                     buttonDraft = currentDraft
                                                     MacroPadState.setPreviewButton(currentDraft)

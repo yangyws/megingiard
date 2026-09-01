@@ -305,6 +305,7 @@ Each button supports one of the following actions:
 - **Dedicated Crop Subpage**: Picking an image launches the dedicated `MacroPadSubPage.CropButtonImage` subpage (`ImageCropSubPageContent`), allowing users to pan (touch drag or D-pad), zoom (pinch or L1/R1 bumpers), adjust crop selection, and switch between 3 Scale Modes (**Fill** / **Fit** / **Stretch**, matching background settings) tailored to the button's exact aspect ratio.
 - **Content-Addressed Cache**: Cropped images are downscaled (max 256px) and stored in content-addressed WebP cache (`padicons/<sha256>.webp`) via `PadIconStore`.
 - **Custom Image Controls** (under Button Settings):
+  - **Crop Image (`onCropCustomImage`)**: Re-opens `MacroPadSubPage.CropButtonImage` to adjust position, zoom, and scale mode for the existing custom image at any time.
   - **Show Label (`showLabel`)**: Toggle button text label overlay.
   - **Label Background Scrim (`showLabelBg`)**: Toggle dark translucent background scrim behind text for high contrast.
   - **Enlarge Text (`enlargeText`)**: When label is shown, toggle enlarged bold typography overlay.

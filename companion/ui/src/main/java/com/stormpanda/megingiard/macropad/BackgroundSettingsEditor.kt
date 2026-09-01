@@ -192,7 +192,8 @@ internal fun LayoutBackgroundSubPageContent(
     }
 
     // Stream in-flight background settings to bottom-screen preview in real-time
-    LaunchedEffect(pendingImageUri, currentBgPath, useAsMask, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode) {
+    LaunchedEffect(pendingImageUri, currentBgPath, useAsMask, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode, isCropActive) {
+        if (isCropActive) return@LaunchedEffect
         val effectivePath = pendingImageUri?.toString() ?: currentBgPath
         val inFlightLayout =
             layout.copy(

@@ -219,6 +219,20 @@ internal fun PadCanvas(
                 },
             ).onSizeChanged { canvasSize = it }
 
+    val currentEffectiveLayout = rememberUpdatedState(effectiveLayout)
+    var accumScale by remember { mutableFloatStateOf(1f) }
+    var accumOffsetX by remember { mutableFloatStateOf(0f) }
+    var accumOffsetY by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(isCropping, effectiveLayout?.id) {
+        if (isCropping) {
+            val cur = currentEffectiveLayout.value
+            accumScale = cur?.bgImageScale?.coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE) ?: 1f
+            accumOffsetX = cur?.bgImageOffsetX ?: 0f
+            accumOffsetY = cur?.bgImageOffsetY ?: 0f
+        }
+    }
+
     val cropModifier =
         if (isCropping && bgBitmap != null && canvasSize.width > 0 && canvasSize.height > 0) {
             Modifier.pointerInput(canvasSize, isCropping, bgBitmap != null) {
@@ -229,11 +243,11 @@ internal fun PadCanvas(
                     val iw = bitmap.width.toFloat()
                     val ih = bitmap.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                        val currentLayout = effectiveLayout ?: return@detectTransformGestures
+                        val currentLayout = currentEffectiveLayout.value ?: return@detectTransformGestures
                         val mode = currentLayout.bgScaleMode
                         if (mode != BackgroundScaleMode.STRETCH) {
-                            val currentScale = currentLayout.bgImageScale.coerceAtLeast(0.01f)
-                            val newScale = (currentScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
+                            val newScale = (accumScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
+                            accumScale = newScale
 
                             val scaleBase =
                                 if (mode == BackgroundScaleMode.FIT) {
@@ -245,13 +259,16 @@ internal fun PadCanvas(
                             val hs = ih * scaleBase
 
                             val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
-                            val currentPixelX = currentLayout.bgImageOffsetX * cw
-                            val currentPixelY = currentLayout.bgImageOffsetY * ch
-                            val clampedX = if (maxTx > 0f) (currentPixelX + pan.x).coerceIn(-maxTx, maxTx) else 0f
-                            val clampedY = if (maxTy > 0f) (currentPixelY + pan.y).coerceIn(-maxTy, maxTy) else 0f
+                            val currentPixelX = accumOffsetX * cw + pan.x
+                            val currentPixelY = accumOffsetY * ch + pan.y
+                            val clampedX = if (maxTx > 0f) currentPixelX.coerceIn(-maxTx, maxTx) else 0f
+                            val clampedY = if (maxTy > 0f) currentPixelY.coerceIn(-maxTy, maxTy) else 0f
 
                             val normX = if (cw > 0f) clampedX / cw else 0f
                             val normY = if (ch > 0f) clampedY / ch else 0f
+
+                            accumOffsetX = normX
+                            accumOffsetY = normY
 
                             MacroPadState.updatePreviewBackgroundCrop(newScale, normX, normY)
                         }
@@ -324,88 +341,107 @@ internal fun PadCanvas(
         }
 
         if (layout?.isGridMode == true) {
-            PadTableGrid(
-                layout = layout,
-                accentColor = accentColor,
-                onCellTap = { col, row ->
-                    val existing = GridLayoutMath.buttonAt(layout, col, row)
-                    if (existing != null) {
-                        MacroPadState.setSelectedButtonId(existing.id)
+            Box(
+                modifier =
+                    if (isCropping) {
+                        Modifier.graphicsLayer { alpha = 0.35f }
                     } else {
-                        val newBtn =
-                            PadButton(
-                                id = UUID.randomUUID().toString(),
-                                label = context.getString(R.string.macropad_editor_new_button_default_label),
-                                posX = 0.5f,
-                                posY = 0.5f,
-                                gridCol = col,
-                                gridRow = row,
-                                colSpan = 1,
-                                rowSpan = 1,
-                                action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
-                            )
-                        val updated = layout.copy(buttons = layout.buttons + newBtn)
-                        MacroPadState.updateLayout(updated)
-                        MacroPadState.setPreviewLayout(updated)
-                        MacroPadState.setSelectedButtonId(newBtn.id)
-                        MacroPadNavState.selectSection(EditorSection.BUTTONS)
-                        MacroPadNavState.push(
-                            MacroPadSubPage.EditButton(
-                                button = newBtn,
-                                draftButton = newBtn,
-                            ),
-                        )
-                    }
-                },
-                onCellMove = { from, to ->
-                    val moved = GridLayoutMath.swapOrMoveButton(layout, from, to)
-                    MacroPadState.updateLayout(moved)
-                    MacroPadState.setPreviewLayout(moved)
-                },
-            )
-        }
-
-        // Render each button as a draggable chip (free-placement mode only)
-        (if (layout?.isGridMode == true) emptyList() else layout?.buttons ?: emptyList()).forEach { btn ->
-            val targetLayoutId = layout?.id
-            DraggableButton(
-                btn = btn,
-                layout = layout!!,
-                canvasSize = canvasSize,
-                accentColor = accentColor,
-                enableKeyboard = profile.enableKeyboard,
-                enableGamepad = profile.enableGamepad,
-                enableMouse = profile.enableMouse,
-                enableTouch = profile.enableTouch,
-                gridMode = gridMode,
-                gridStepPx = gridStepPx,
-                isLocked = isLocked || isCropping,
-                onTouch = {
-                    MacroPadState.setSelectedButtonId(btn.id)
-                },
-                onPositionChanged = { nx, ny ->
-                    val layoutId = targetLayoutId
-                    val activeProfile = MacroPadState.activeProfile.value
-                    if (layoutId != null && activeProfile != null) {
-                        val currentLayout = activeProfile.layouts.firstOrNull { it.id == layoutId }
-                        if (currentLayout != null) {
-                            MacroPadState.updateLayout(
-                                currentLayout.copy(
-                                    buttons =
-                                        currentLayout.buttons.map { b ->
-                                            if (b.id == btn.id) b.copy(posX = nx, posY = ny) else b
-                                        },
+                        Modifier
+                    },
+            ) {
+                PadTableGrid(
+                    layout = layout,
+                    accentColor = accentColor,
+                    isInteractive = !isCropping,
+                    onCellTap = { col, row ->
+                        val existing = GridLayoutMath.buttonAt(layout, col, row)
+                        if (existing != null) {
+                            MacroPadState.setSelectedButtonId(existing.id)
+                        } else {
+                            val newBtn =
+                                PadButton(
+                                    id = UUID.randomUUID().toString(),
+                                    label = context.getString(R.string.macropad_editor_new_button_default_label),
+                                    posX = 0.5f,
+                                    posY = 0.5f,
+                                    gridCol = col,
+                                    gridRow = row,
+                                    colSpan = 1,
+                                    rowSpan = 1,
+                                    action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
+                                )
+                            val updated = layout.copy(buttons = layout.buttons + newBtn)
+                            MacroPadState.updateLayout(updated)
+                            MacroPadState.setPreviewLayout(updated)
+                            MacroPadState.setSelectedButtonId(newBtn.id)
+                            MacroPadNavState.selectSection(EditorSection.BUTTONS)
+                            MacroPadNavState.push(
+                                MacroPadSubPage.EditButton(
+                                    button = newBtn,
+                                    draftButton = newBtn,
                                 ),
                             )
                         }
-                    }
+                    },
+                    onCellMove = { from, to ->
+                        val moved = GridLayoutMath.swapOrMoveButton(layout, from, to)
+                        MacroPadState.updateLayout(moved)
+                        MacroPadState.setPreviewLayout(moved)
+                    },
+                )
+            }
+        }
+
+        // Render each button as a draggable chip (free-placement mode only)
+        Box(
+            modifier =
+                if (isCropping) {
+                    Modifier.graphicsLayer { alpha = 0.35f }
+                } else {
+                    Modifier
                 },
-            )
+        ) {
+            (if (layout?.isGridMode == true) emptyList() else layout?.buttons ?: emptyList()).forEach { btn ->
+                val targetLayoutId = layout?.id
+                DraggableButton(
+                    btn = btn,
+                    layout = layout!!,
+                    canvasSize = canvasSize,
+                    accentColor = accentColor,
+                    enableKeyboard = profile.enableKeyboard,
+                    enableGamepad = profile.enableGamepad,
+                    enableMouse = profile.enableMouse,
+                    enableTouch = profile.enableTouch,
+                    gridMode = gridMode,
+                    gridStepPx = gridStepPx,
+                    isLocked = isLocked || isCropping,
+                    onTouch = {
+                        MacroPadState.setSelectedButtonId(btn.id)
+                    },
+                    onPositionChanged = { nx, ny ->
+                        val layoutId = targetLayoutId
+                        val activeProfile = MacroPadState.activeProfile.value
+                        if (layoutId != null && activeProfile != null) {
+                            val currentLayout = activeProfile.layouts.firstOrNull { it.id == layoutId }
+                            if (currentLayout != null) {
+                                MacroPadState.updateLayout(
+                                    currentLayout.copy(
+                                        buttons =
+                                            currentLayout.buttons.map { b ->
+                                                if (b.id == btn.id) b.copy(posX = nx, posY = ny) else b
+                                            },
+                                    ),
+                                )
+                            }
+                        }
+                    },
+                )
+            }
         }
 
         // Render handles or highlight pointers for the active button
         val activeBtn = (layout?.buttons ?: emptyList()).firstOrNull { it.id == selectedButtonId }
-        if (activeBtn != null) {
+        if (activeBtn != null && !isCropping) {
             val isGrid = layout?.isGridMode == true
             val cols = layout?.effectiveGridCols ?: 1
             val rows = layout?.effectiveGridRows ?: 1

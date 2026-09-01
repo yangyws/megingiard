@@ -486,6 +486,7 @@ private suspend fun AwaitPointerEventScope.awaitPressEnd(
 internal fun PadTableGrid(
     layout: PadLayout,
     accentColor: Color,
+    isInteractive: Boolean = true,
     onCellTap: ((col: Int, row: Int) -> Unit)? = null,
     onCellMove: ((from: Pair<Int, Int>, to: Pair<Int, Int>) -> Unit)? = null,
     onCellMenu: ((PadButton) -> Unit)? = null,
@@ -566,85 +567,91 @@ internal fun PadTableGrid(
                     },
                 )
                 .onSizeChanged { gridSize = it }
-                .pointerInput(layout.id, cols, rows) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        try {
-                            val startCell = cellOf(down.position)
-                            val slop = viewConfiguration.touchSlop
-                            val startHasButton =
-                                startCell != null &&
-                                    GridLayoutMath.buttonAt(layoutRef, startCell.first, startCell.second) != null
-                            var lastPosition = down.position
+                .then(
+                    if (isInteractive) {
+                        Modifier.pointerInput(layout.id, cols, rows) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                try {
+                                    val startCell = cellOf(down.position)
+                                    val slop = viewConfiguration.touchSlop
+                                    val startHasButton =
+                                        startCell != null &&
+                                            GridLayoutMath.buttonAt(layoutRef, startCell.first, startCell.second) != null
+                                    var lastPosition = down.position
 
-                            val tapEnd =
-                                awaitPressEnd(
-                                    pointerId = down.id,
-                                    origin = down.position,
-                                    slopPx = slop,
-                                    timeoutMillis = viewConfiguration.longPressTimeoutMillis,
-                                    onSample = { lastPosition = it },
-                                )
-                            if (tapEnd != null) {
-                                val outcome =
-                                    TableCellPressRules.outcomeOnRelease(
-                                        phase = TableCellPressPhase.TAP,
-                                        slidBeforeLongPress = tapEnd != PressEnd.LIFTED,
-                                        movedAfterPickUp = false,
-                                        cellHasButton = startHasButton,
-                                    )
-                                if (outcome == TableCellPressOutcome.TAP_CELL) {
-                                    startCell?.let { (col, row) -> onCellTapRef?.invoke(col, row) }
+                                    val tapEnd =
+                                        awaitPressEnd(
+                                            pointerId = down.id,
+                                            origin = down.position,
+                                            slopPx = slop,
+                                            timeoutMillis = viewConfiguration.longPressTimeoutMillis,
+                                            onSample = { lastPosition = it },
+                                        )
+                                    if (tapEnd != null) {
+                                        val outcome =
+                                            TableCellPressRules.outcomeOnRelease(
+                                                phase = TableCellPressPhase.TAP,
+                                                slidBeforeLongPress = tapEnd != PressEnd.LIFTED,
+                                                movedAfterPickUp = false,
+                                                cellHasButton = startHasButton,
+                                            )
+                                        if (outcome == TableCellPressOutcome.TAP_CELL) {
+                                            startCell?.let { (col, row) -> onCellTapRef?.invoke(col, row) }
+                                        }
+                                        return@awaitEachGesture
+                                    }
+
+                                    val held = startCell?.takeIf { startHasButton } ?: return@awaitEachGesture
+
+                                    pressCell = held
+                                    pressPhase = TableCellPressPhase.MOVE
+                                    dragOver = held
+                                    dragMoved = false
+                                    val dragOrigin = lastPosition
+                                    var lifted = false
+                                    while (true) {
+                                        val change =
+                                            awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                                        if (!change.pressed) {
+                                            lifted = true
+                                            break
+                                        }
+                                        if (!dragMoved && (change.position - dragOrigin).getDistance() > slop) {
+                                            dragMoved = true
+                                        }
+                                        if (TableCellPressRules.tracksDragTarget(TableCellPressPhase.MOVE, dragMoved)) {
+                                            val target = cellOf(change.position)
+                                            if (target != null) {
+                                                dragOver = target
+                                            }
+                                        }
+                                        change.consume()
+                                    }
+                                    if (lifted) {
+                                        val outcome =
+                                            TableCellPressRules.outcomeOnRelease(
+                                                phase = TableCellPressPhase.MOVE,
+                                                slidBeforeLongPress = false,
+                                                movedAfterPickUp = dragMoved,
+                                                cellHasButton = true,
+                                            )
+                                        if (outcome == TableCellPressOutcome.MOVE_CELL) {
+                                            val target = dragOver
+                                            if (target != null && target != held) {
+                                                onCellMoveRef?.invoke(held, target)
+                                            }
+                                        }
+                                    }
+                                } finally {
+                                    resetTablePress()
                                 }
-                                return@awaitEachGesture
                             }
-
-                            val held = startCell?.takeIf { startHasButton } ?: return@awaitEachGesture
-
-                            pressCell = held
-                            pressPhase = TableCellPressPhase.MOVE
-                            dragOver = held
-                            dragMoved = false
-                            val dragOrigin = lastPosition
-                            var lifted = false
-                            while (true) {
-                                val change =
-                                    awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) {
-                                    lifted = true
-                                    break
-                                }
-                                if (!dragMoved && (change.position - dragOrigin).getDistance() > slop) {
-                                    dragMoved = true
-                                }
-                                if (TableCellPressRules.tracksDragTarget(TableCellPressPhase.MOVE, dragMoved)) {
-                                    dragOver = cellOf(change.position)
-                                    change.consume()
-                                }
-                            }
-
-                            val outcome =
-                                if (lifted) {
-                                    TableCellPressRules.outcomeOnRelease(
-                                        phase = TableCellPressPhase.MOVE,
-                                        slidBeforeLongPress = false,
-                                        movedAfterPickUp = dragMoved,
-                                        cellHasButton = true,
-                                    )
-                                } else {
-                                    TableCellPressOutcome.IGNORE
-                                }
-                            if (outcome == TableCellPressOutcome.MOVE_CELL) {
-                                val target = dragOver
-                                if (target != null && target != held) {
-                                    onCellMoveRef?.invoke(held, target)
-                                }
-                            }
-                        } finally {
-                            resetTablePress()
                         }
-                    }
-                },
+                    } else {
+                        Modifier
+                    },
+                )
     ) {
         Layout(
             content = {

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -161,6 +162,7 @@ internal fun EditButtonSubPageContent(
     initialAction: PadAction? = null,
     onOpenIconPicker: (currentDraft: PadButton) -> Unit,
     onPickCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
+    onCropCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
     onClearCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
     onOpenAppPicker: (currentDraft: PadButton) -> Unit,
     onOpenColorSubMenu: (currentDraft: PadButton, target: ButtonColorTarget) -> Unit,
@@ -513,6 +515,15 @@ internal fun EditButtonSubPageContent(
             },
             onClick = { onPickCustomImage?.invoke(currentButton) },
         )
+
+        if (hasCustomImage && onCropCustomImage != null) {
+            GamepadActionCard(
+                title = stringResource(R.string.button_settings_crop_image),
+                description = stringResource(R.string.button_settings_crop_image_desc),
+                icon = Icons.Rounded.Crop,
+                onClick = { onCropCustomImage(currentButton) },
+            )
+        }
 
         if (hasCustomImage && onClearCustomImage != null) {
             GamepadTwoStepConfirmCard(
