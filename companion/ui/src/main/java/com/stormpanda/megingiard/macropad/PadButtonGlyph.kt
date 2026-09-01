@@ -94,7 +94,7 @@ internal fun PadButtonGlyph(
                             }
                         Text(
                             text = btn.label,
-                            color = Color.White,
+                            color = tint,
                             style = labelStyle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

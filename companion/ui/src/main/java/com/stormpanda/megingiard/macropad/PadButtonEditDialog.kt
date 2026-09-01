@@ -3,7 +3,9 @@ package com.stormpanda.megingiard.macropad
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +61,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stormpanda.megingiard.AppLog
@@ -780,7 +785,7 @@ internal fun EditButtonSubPageContent(
         val previewShape = if (buttonShape == ButtonShape.CIRCLE) CircleShape else PBD_CORNER_SHAPE
         val buttonPreviewLeading: (textColor: Color, borderColor: Color, bgColor: Color, isIconOnly: Boolean) -> @Composable () -> Unit =
             { tColor, bColor, bgCol, iconOnly ->
-                {
+                @Composable {
                     val isTable = activeLayout?.layoutMode == PadLayoutMode.GRID
                     val previewWidth = if (isTable) PBD_COLOR_PREVIEW_SIZE * colSpan else PBD_COLOR_PREVIEW_SIZE * buttonSize.cols
                     val previewHeight = if (isTable) PBD_COLOR_PREVIEW_SIZE * rowSpan else PBD_COLOR_PREVIEW_SIZE * buttonSize.rows
@@ -797,12 +802,49 @@ internal fun EditButtonSubPageContent(
                     ) {
                         val bmp = customImagePreview
                         if (bmp != null) {
-                            Image(
-                                bitmap = bmp,
-                                contentDescription = label.ifBlank { null },
-                                contentScale = if (fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
+                            Box(
                                 modifier = Modifier.fillMaxSize(),
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Image(
+                                    bitmap = bmp,
+                                    contentDescription = label.ifBlank { null },
+                                    contentScale = if (fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                if (showLabel && label.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.BottomCenter,
+                                    ) {
+                                        val labelStyle =
+                                            if (enlargeText) {
+                                                MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                            } else {
+                                                MaterialTheme.typography.labelSmall
+                                            }
+                                        Text(
+                                            text = label,
+                                            color = tColor,
+                                            style = labelStyle,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center,
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .then(
+                                                        if (showLabelBg) {
+                                                            Modifier.background(Color.Black.copy(alpha = 0.45f))
+                                                        } else {
+                                                            Modifier
+                                                        },
+                                                    )
+                                                    .padding(horizontal = 2.dp, vertical = 1.dp),
+                                        )
+                                    }
+                                }
+                            }
                         } else if (iconName != null) {
                             val previewIconSize =
                                 PadGlyphRules.glyphSizeDp(
