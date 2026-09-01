@@ -348,6 +348,13 @@ internal fun PadCanvas(
                         MacroPadState.updateLayout(updated)
                         MacroPadState.setPreviewLayout(updated)
                         MacroPadState.setSelectedButtonId(newBtn.id)
+                        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+                        MacroPadNavState.push(
+                            MacroPadSubPage.EditButton(
+                                button = newBtn,
+                                draftButton = newBtn,
+                            ),
+                        )
                     }
                 },
                 onCellMove = { from, to ->

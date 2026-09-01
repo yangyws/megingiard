@@ -263,4 +263,36 @@ class MacroPadNavStateTest {
         assertEquals(1, MacroPadNavState.subPageStack.value.size)
         assertTrue(MacroPadNavState.subPageStack.value.first() is MacroPadSubPage.EditButton)
     }
+
+    @Test
+    fun `navigating to EditButton when adding a new button sets correct section and stack`() {
+        MacroPadNavState.reset()
+        val newBtn =
+            PadButton(
+                id = "grid-btn-1",
+                label = "Button",
+                posX = 0.5f,
+                posY = 0.5f,
+                gridCol = 1,
+                gridRow = 2,
+                action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
+            )
+
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(
+            MacroPadSubPage.EditButton(
+                button = newBtn,
+                draftButton = newBtn,
+            ),
+        )
+
+        assertEquals(EditorSection.BUTTONS, MacroPadNavState.selectedSection.value)
+        assertEquals(1, MacroPadNavState.subPageStack.value.size)
+        val activeSubPage = MacroPadNavState.subPageStack.value.first()
+        assertTrue(activeSubPage is MacroPadSubPage.EditButton)
+        assertEquals("grid-btn-1", (activeSubPage as MacroPadSubPage.EditButton).button?.id)
+        assertEquals(1, activeSubPage.button?.gridCol)
+        assertEquals(2, activeSubPage.button?.gridRow)
+    }
 }
+
