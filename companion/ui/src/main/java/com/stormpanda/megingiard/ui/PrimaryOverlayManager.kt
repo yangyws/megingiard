@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.view.Display
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -367,6 +368,7 @@ object PrimaryOverlayManager {
             wm.addView(view, params)
             view.post {
                 view.requestFocus()
+                PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
             }
             overlayView = view
             AppLog.i(TAG, "Primary overlay window successfully attached to Display 0 WindowManager (non-activity)")
@@ -399,6 +401,57 @@ object PrimaryOverlayManager {
                 ScreenCaptureManager.setFrozen(false)
             }
             wasFrozenForModal = false
+        }
+    }
+
+    fun isOverlayAttached(): Boolean = overlayView != null
+
+    fun handleBack(): Boolean {
+        val owner = lifecycleOwner ?: return false
+        if (owner.onBackPressedDispatcher.hasEnabledCallbacks()) {
+            owner.onBackPressedDispatcher.onBackPressed()
+            return true
+        } else {
+            if (AppStateManager.isViewportEditActive.value) {
+                AppStateManager.setViewportEditActive(false)
+                AppStateManager.openPrimaryModal(
+                    PrimaryModalConfig(
+                        type = PrimaryModalType.MACROPAD_EDITOR,
+                        payload = PrimaryModalPayload.MacroPad(section = EditorSection.MIRROR),
+                    ),
+                )
+            } else {
+                AppStateManager.closePrimaryModal()
+                AppStateManager.setActiveCropCutoutId(null)
+                AppStateManager.setSelectedCutoutId(null)
+            }
+            return true
+        }
+    }
+
+    fun requestFocus() {
+        overlayView?.post {
+            overlayView?.requestFocus()
+        }
+    }
+
+    fun dispatchKeyEventToOverlay(event: KeyEvent): Boolean {
+        val view = overlayView ?: return false
+        val handled = view.dispatchKeyEvent(event)
+        if (!handled && event.action == KeyEvent.ACTION_DOWN) {
+            PrimaryOverlayInputBridge.sendFocusRecovery(event.keyCode)
+        }
+        return handled
+    }
+
+    fun dispatchGenericMotionEventToOverlay(event: MotionEvent): Boolean {
+        val view = overlayView ?: return false
+        return PrimaryOverlayInputBridge.processGenericMotionEvent(event) { action, dpadKeyCode ->
+            val keyEvent = KeyEvent(action, dpadKeyCode)
+            val handled = view.dispatchKeyEvent(keyEvent)
+            if (!handled && action == KeyEvent.ACTION_DOWN) {
+                PrimaryOverlayInputBridge.sendFocusRecovery(dpadKeyCode)
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.stormpanda.megingiard.macropad
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +17,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FormatPaint
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +66,7 @@ private val IP_GRID_VERTICAL_PADDING = 4.dp
 private val IP_GRID_4_ROWS_HEIGHT = (IP_ICON_CELL_SIZE * 4) + (IP_GRID_SPACING * 3) + (IP_GRID_VERTICAL_PADDING * 2)
 
 /**
- * Full-screen icon picker that lets the user choose a Material Symbol icon by name.
+ * Full-screen icon picker that lets the user choose a Material Symbol icon by name or a custom image.
  */
 @Composable
 internal fun ChooseIconSubPageContent(
@@ -68,6 +76,7 @@ internal fun ChooseIconSubPageContent(
     onFilledChange: (Boolean) -> Unit,
     onSelect: (String?) -> Unit,
 ) {
+    val context = LocalContext.current
     val colors = LocalAppColors.current
     var query by remember { mutableStateOf("") }
     var pendingIcon by remember(selectedIcon) { mutableStateOf(selectedIcon) }
@@ -93,14 +102,14 @@ internal fun ChooseIconSubPageContent(
         onCheckedChange = onFilledChange,
     )
 
-    // ── Current selection card (only visible when an icon is pending) ────────
-    val currentIcon = pendingIcon
-    if (currentIcon != null) {
+    // ── Clear Selection (shown when an icon is currently chosen) ───────────
+    if (pendingIcon != null) {
+        val currentIcon = pendingIcon!!
         GamepadTwoStepConfirmCard(
-            title = currentIcon,
-            confirmTitle = stringResource(R.string.macropad_icon_clear_confirm_title),
-            description = stringResource(R.string.gamepad_color_selected),
-            actionText = stringResource(R.string.gamepad_action_clear),
+            title = stringResource(R.string.button_settings_clear_icon),
+            confirmTitle = stringResource(R.string.gamepad_action_confirm),
+            description = currentIcon,
+            actionText = stringResource(R.string.gamepad_action_delete),
             confirmActionText = stringResource(R.string.gamepad_action_confirm),
             isDestructive = true,
             leadingContent = {
@@ -180,7 +189,7 @@ internal fun ChooseIconSubPageContent(
                             MaterialSymbol(
                                 name = name,
                                 size = IP_ICON_SIZE,
-                                tint = if (isSelected) accentColor else colors.onSurface,
+                                tint = if (isSelected) accentColor else accentColor.copy(alpha = 0.85f),
                                 filled = filled,
                             )
                             Text(

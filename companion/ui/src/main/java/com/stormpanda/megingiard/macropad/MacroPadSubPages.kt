@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -199,6 +200,15 @@ internal sealed interface MacroPadSubPage {
     }
 
     data object ChooseIcon : MacroPadSubPage {
+        override val parentSection = EditorSection.BUTTONS
+    }
+
+    data class CropButtonImage(
+        val button: PadButton?,
+        val draftButton: PadButton,
+        val bitmap: ImageBitmap,
+        val aspectRatio: Float,
+    ) : MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }
 

@@ -1192,5 +1192,28 @@ Open Settings to create a layout.</string>
     <string name="quick_action_edit_buttons_desc">Move, resize, and position MacroPad buttons visually</string>
     <string name="macropad_editor_precision_movement_title">Precision Movement</string>
     <string name="macropad_editor_precision_movement_desc">Enable 1-pixel micro-adjustments with D-Pad for pixel-perfect alignment</string>
+    <!-- Custom Button Image & Cropping -->
+    <string name="layout_settings_crop_image_title">Crop Image</string>
+    <string name="button_settings_custom_image">Custom Image</string>
+    <string name="button_settings_custom_image_desc">Choose an image for the button face</string>
+    <string name="button_settings_custom_image_desc_selected">Custom image set (tap to change)</string>
+    <string name="button_settings_clear_image">Remove image</string>
+    <string name="button_settings_clear_icon">Remove icon</string>
+    <string name="button_settings_show_label">Show label</string>
+    <string name="button_settings_show_label_desc">Display label text on button face</string>
+    <string name="button_settings_show_label_bg">Label background</string>
+    <string name="button_settings_show_label_bg_desc">Display translucent dark background behind label</string>
+    <string name="button_settings_enlarge_icon">Enlarge icon</string>
+    <string name="button_settings_enlarge_icon_desc">Scale the icon up to fill the button</string>
+    <string name="button_settings_full_bleed_icon">Full bleed icon</string>
+    <string name="button_settings_full_bleed_icon_desc">Scale icon to completely fill the button edge-to-edge</string>
+    <string name="button_settings_enlarge_text">Enlarge text</string>
+    <string name="button_settings_enlarge_text_desc">Scale the text label up on the button face</string>
+    <string name="layout_settings_crop_image_instructions">Drag to pan • Pinch to zoom</string>
+    <string name="crop_image_fit_whole">Fit whole</string>
+    <string name="crop_image_fit_fill">Fit fill</string>
+    <string name="macropad_crop_apply">Apply Crop</string>
+    <string name="macropad_crop_apply_desc">Save and set cropped image for this button</string>
+    <string name="macropad_crop_cancel_desc">Discard crop changes and return</string>
 </resources>
 

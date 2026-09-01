@@ -1,15 +1,22 @@
 package com.stormpanda.megingiard.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.stormpanda.megingiard.gamefocus.R
@@ -21,6 +28,7 @@ private const val MS_FILL_OUTLINE = 0f // 0 = outline
 private const val MS_WEIGHT = 400
 private const val MS_GRAD = 0f
 private const val MS_OPT_SIZE = 24f
+private const val MS_OPTICAL_Y_OFFSET_FACTOR = -0.06f
 
 /** [FontFamily] backed by the bundled Material Symbols Rounded variable font — filled variant (FILL=1). */
 @OptIn(ExperimentalTextApi::class)
@@ -56,6 +64,20 @@ internal val MaterialSymbolsOutlineFamily: FontFamily =
         ),
     )
 
+private val MS_CENTERED_STYLE =
+    TextStyle(
+        platformStyle =
+            @Suppress("DEPRECATION")
+            PlatformTextStyle(
+                includeFontPadding = false,
+            ),
+        lineHeightStyle =
+            LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            ),
+    )
+
 /**
  * Renders a single Material Symbol ligature by [name] (e.g. `"arrow_back"`) using
  * the bundled Material Symbols Rounded variable font at the given [size].
@@ -71,14 +93,21 @@ internal fun MaterialSymbol(
     modifier: Modifier = Modifier,
 ) {
     val fontSize = with(LocalDensity.current) { size.toSp() }
-    Text(
-        text = name,
-        fontFamily = if (filled) MaterialSymbolsFamily else MaterialSymbolsOutlineFamily,
-        fontSize = fontSize,
-        color = tint,
-        lineHeight = fontSize,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        modifier = modifier,
-    )
+    val verticalOffset = size * MS_OPTICAL_Y_OFFSET_FACTOR
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = name,
+            fontFamily = if (filled) MaterialSymbolsFamily else MaterialSymbolsOutlineFamily,
+            fontSize = fontSize,
+            color = tint,
+            lineHeight = fontSize,
+            textAlign = TextAlign.Center,
+            style = MS_CENTERED_STYLE,
+            maxLines = 1,
+            modifier = Modifier.offset(y = verticalOffset),
+        )
+    }
 }

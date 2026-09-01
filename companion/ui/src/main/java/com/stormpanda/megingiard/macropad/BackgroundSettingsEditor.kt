@@ -2,11 +2,14 @@ package com.stormpanda.megingiard.macropad
 
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -113,6 +116,15 @@ internal fun LayoutBackgroundSubPageContent(
 
     var previewBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    val cropCardFocusRequester = remember { FocusRequester() }
+
+    BackHandler(enabled = isCropActive) {
+        isCropActive = false
+        try {
+            cropCardFocusRequester.requestFocus()
+        } catch (_: IllegalStateException) {
+        }
+    }
 
     LaunchedEffect(isCropActive) {
         MacroPadState.setCroppingBackground(isCropActive)
@@ -394,6 +406,7 @@ internal fun LayoutBackgroundSubPageContent(
             checked = isCropActive && bgScaleMode != BackgroundScaleMode.STRETCH,
             enabled = bgScaleMode != BackgroundScaleMode.STRETCH,
             icon = Icons.Rounded.Crop,
+            modifier = Modifier.focusRequester(cropCardFocusRequester),
             onCheckedChange = { isCropActive = it },
         )
 

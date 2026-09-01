@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +65,7 @@ import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.stringResource
@@ -94,6 +96,7 @@ private val GS_DECK_PADDING_H = 16.dp
 private val GS_DECK_PADDING_V = 12.dp
 private val GS_DECK_SPACING = 10.dp
 private val GS_DECK_SCROLL_EXTRA_PADDING = 64.dp
+private val GS_SWIPE_BACK_THRESHOLD = 48.dp
 private const val GS_SIDEBAR_SELECTED_FOCUSED_ALPHA = 0.35f
 private const val GS_SIDEBAR_SELECTED_ALPHA = 0.2f
 private const val GS_CARD_FOCUSED_BG_ALPHA = 0.95f
@@ -688,8 +691,39 @@ fun GamepadTwoPaneScaffold(
                         }
                     },
         ) {
+            val density = LocalDensity.current
+            val swipeBackThresholdPx = with(density) { GS_SWIPE_BACK_THRESHOLD.toPx() }
+
             Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .pointerInput(isCustomBackActive) {
+                            if (!isCustomBackActive) return@pointerInput
+                            var totalDragX = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = {
+                                    totalDragX = 0f
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    totalDragX += dragAmount
+                                },
+                                onDragEnd = {
+                                    if (totalDragX >= swipeBackThresholdPx) {
+                                        AppLog.d(
+                                            TAG,
+                                            "GamepadTwoPaneScaffold: back navigated via swipe right (drag=$totalDragX)",
+                                        )
+                                        handleBackNavigation()
+                                    }
+                                    totalDragX = 0f
+                                },
+                                onDragCancel = {
+                                    totalDragX = 0f
+                                },
+                            )
+                        },
             ) {
                 // Left Category Sidebar Rail
                 Column(

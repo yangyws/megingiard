@@ -10,5 +10,6 @@ Project-specific agent skills are located in [`.agents/skills/`](./.agents/skill
 - Release orchestration: [`.agents/skills/megingiard-release/SKILL.md`](./.agents/skills/megingiard-release/SKILL.md)
 - Release changelog: [`.agents/skills/megingiard-release-changelog/SKILL.md`](./.agents/skills/megingiard-release-changelog/SKILL.md)
 - Delete daemon: [`.agents/skills/megingiard-delete-daemon/SKILL.md`](./.agents/skills/megingiard-delete-daemon/SKILL.md)
+- Dual-screen focus: [`.agents/skills/megingiard-dual-screen-focus/SKILL.md`](./.agents/skills/megingiard-dual-screen-focus/SKILL.md)
 - Clean uninstall: [`.agents/skills/megingiard-uninstall-clean/SKILL.md`](./.agents/skills/megingiard-uninstall-clean/SKILL.md)
 

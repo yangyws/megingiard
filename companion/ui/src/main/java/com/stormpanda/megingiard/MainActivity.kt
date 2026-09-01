@@ -18,6 +18,8 @@ import android.os.LocaleList
 import android.os.Looper
 import android.os.Process
 import android.view.Display
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.Window
 import android.view.WindowManager
@@ -73,6 +75,8 @@ import com.stormpanda.megingiard.config.MGRD_MIME_TYPE
 import com.stormpanda.megingiard.log.LogReportManager
 import com.stormpanda.megingiard.macropad.AppLauncherManager
 import com.stormpanda.megingiard.macropad.BackgroundPickerManager
+import com.stormpanda.megingiard.macropad.ButtonImagePickerManager
+import com.stormpanda.megingiard.macropad.MacroExecutor
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadLayout
 import com.stormpanda.megingiard.macropad.PadProfile
@@ -99,8 +103,10 @@ import com.stormpanda.megingiard.settings.AppLanguage
 import com.stormpanda.megingiard.settings.MacroPadSettings
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.ui.AppDimens
+import com.stormpanda.megingiard.ui.BumperDirection
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.LocalAppDimens
+import com.stormpanda.megingiard.ui.PrimaryOverlayInputBridge
 import com.stormpanda.megingiard.ui.PrimaryOverlayManager
 import com.stormpanda.megingiard.ui.ScreenshotPreviewOverlay
 import com.stormpanda.megingiard.ui.colorSchemeFor
@@ -134,11 +140,15 @@ class MainActivity : ComponentActivity() {
 
     private var pendingExportKind: ConfigManager.ExportKind? = null
     private var pendingInAppImportMode = ConfigManager.ImportMode.BACKUP_RESTORE
+    private var isExternalPickerActive = false
 
     private val createDocumentLauncher =
         registerForActivityResult(
             ActivityResultContracts.CreateDocument(MGRD_MIME_TYPE),
         ) { uri ->
+            isExternalPickerActive = false
+            PrimaryOverlayManager.requestFocus()
+            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
             val kind = pendingExportKind ?: return@registerForActivityResult
             pendingExportKind = null
             if (uri == null) return@registerForActivityResult
@@ -178,6 +188,9 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.GetContent(),
         ) { uri ->
+            isExternalPickerActive = false
+            PrimaryOverlayManager.requestFocus()
+            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
             if (uri == null) {
                 return@registerForActivityResult
             }
@@ -188,6 +201,9 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.CreateDocument("text/plain"),
         ) { uri ->
+            isExternalPickerActive = false
+            PrimaryOverlayManager.requestFocus()
+            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
             if (uri == null) return@registerForActivityResult
             lifecycleScope.launch {
                 LogReportManager.writeReportToUri(
@@ -205,7 +221,20 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.GetContent(),
         ) { uri ->
+            isExternalPickerActive = false
+            PrimaryOverlayManager.requestFocus()
+            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
             BackgroundPickerManager.setPickedUri(uri)
+        }
+
+    private val pickButtonImageLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.GetContent(),
+        ) { uri ->
+            isExternalPickerActive = false
+            PrimaryOverlayManager.requestFocus()
+            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_DPAD_DOWN)
+            ButtonImagePickerManager.setPickedUri(uri)
         }
 
     // The manifest declares configChanges that prevent activity recreation when the app
@@ -305,6 +334,7 @@ class MainActivity : ComponentActivity() {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ConfigManager.exportRequest.collect { kind ->
                     pendingExportKind = kind
+                    isExternalPickerActive = true
                     createDocumentLauncher.launch(ConfigManager.exportFilename.value)
                 }
             }
@@ -313,6 +343,7 @@ class MainActivity : ComponentActivity() {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ConfigManager.importRequest.collect { mode ->
                     pendingInAppImportMode = mode
+                    isExternalPickerActive = true
                     openDocumentLauncher.launch("*/*")
                 }
             }
@@ -325,6 +356,7 @@ class MainActivity : ComponentActivity() {
                             .now()
                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
                     val filename = LogReportManager.buildReportFilename(timestamp)
+                    isExternalPickerActive = true
                     createLogDocumentLauncher.launch(filename)
                 }
             }
@@ -332,7 +364,16 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 BackgroundPickerManager.pickRequest.collect {
+                    isExternalPickerActive = true
                     pickImageLauncher.launch("image/*")
+                }
+            }
+        }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ButtonImagePickerManager.pickRequest.collect {
+                    isExternalPickerActive = true
+                    pickButtonImageLauncher.launch("image/*")
                 }
             }
         }
@@ -829,6 +870,76 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         AppLog.i(TAG, "MainActivity onStop")
         AppStateManager.setActivityResumed(false)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (isExternalPickerActive) {
+            return super.dispatchKeyEvent(event)
+        }
+        if (AppStateManager.activePrimaryModal.value != null || AppStateManager.isViewportEditActive.value) {
+            if (PrimaryOverlayManager.isOverlayAttached()) {
+                val keyCode = event.keyCode
+                when {
+                    event.action == KeyEvent.ACTION_DOWN &&
+                        (keyCode == KeyEvent.KEYCODE_BUTTON_B || keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) -> {
+                        AppLog.i(TAG, "dispatchKeyEvent: Back/B-Button forwarded to PrimaryOverlay")
+                        if (PrimaryOverlayManager.handleBack()) {
+                            return true
+                        }
+                    }
+
+                    event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BUTTON_L1 -> {
+                        AppLog.d(TAG, "dispatchKeyEvent: L1 pressed -> Bumper PREV forwarded to PrimaryOverlay")
+                        PrimaryOverlayInputBridge.sendBumper(BumperDirection.PREV)
+                        return true
+                    }
+
+                    event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BUTTON_R1 -> {
+                        AppLog.d(TAG, "dispatchKeyEvent: R1 pressed -> Bumper NEXT forwarded to PrimaryOverlay")
+                        PrimaryOverlayInputBridge.sendBumper(BumperDirection.NEXT)
+                        return true
+                    }
+
+                    event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BUTTON_A -> {
+                        AppLog.d(TAG, "dispatchKeyEvent: Button A down forwarded as DPAD_CENTER to PrimaryOverlay")
+                        val dpadCenterDown = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER)
+                        PrimaryOverlayManager.dispatchKeyEventToOverlay(dpadCenterDown)
+                        return true
+                    }
+
+                    event.action == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BUTTON_A -> {
+                        AppLog.d(TAG, "dispatchKeyEvent: Button A up forwarded as DPAD_CENTER to PrimaryOverlay")
+                        val dpadCenterUp = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER)
+                        val handled = PrimaryOverlayManager.dispatchKeyEventToOverlay(dpadCenterUp)
+                        if (!handled) {
+                            PrimaryOverlayInputBridge.sendFocusRecovery(KeyEvent.KEYCODE_BUTTON_A)
+                        }
+                        return true
+                    }
+
+                    else -> {
+                        if (PrimaryOverlayManager.dispatchKeyEventToOverlay(event)) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (isExternalPickerActive) {
+            return super.onGenericMotionEvent(event)
+        }
+        if (AppStateManager.activePrimaryModal.value != null || AppStateManager.isViewportEditActive.value) {
+            if (PrimaryOverlayManager.isOverlayAttached()) {
+                if (PrimaryOverlayManager.dispatchGenericMotionEventToOverlay(event)) {
+                    return true
+                }
+            }
+        }
+        return super.onGenericMotionEvent(event)
     }
 
     /** Called when the app is already running and receives a new ACTION_VIEW or launch intent. */

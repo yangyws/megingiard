@@ -507,8 +507,13 @@ data class ResizeButtonResult(
             overlapCol && overlapRow
         }
 
-        val shiftCol = newAnchorCol - sourceAnchorCol
-        val shiftRow = newAnchorRow - sourceAnchorRow
+        // Pure swap / move-to-empty rule (no push cascading):
+        // 1. Target area completely empty -> source moves to new anchor.
+        // 2. Target area collides with exactly 1 button -> 1-to-1 anchor swap (if both fit without overlap/out-of-bounds).
+        // 3. Target area collides with multiple buttons -> blocked (no push cascading).
+        if (collidingButtons.size > 1) {
+            return false
+        }
 
         val updatedButtons = layout.buttons.mapNotNull { button ->
             val c = button.gridCol ?: return@mapNotNull null
@@ -520,21 +525,21 @@ data class ResizeButtonResult(
                     button.copy(gridCol = newAnchorCol, gridRow = newAnchorRow)
                 }
 
-                button in collidingButtons -> {
+                collidingButtons.isNotEmpty() && button.id == collidingButtons[0].id -> {
                     val cs = button.effectiveColSpan
                     val rs = button.effectiveRowSpan
-
-                    val targetC = when {
-                        shiftCol < 0 -> newAnchorCol + sColSpan
-                        shiftCol > 0 -> newAnchorCol - cs
-                        else -> c
-                    }
-                    val targetR = when {
-                        shiftRow < 0 -> newAnchorRow + sRowSpan
-                        shiftRow > 0 -> newAnchorRow - rs
-                        else -> r
-                    }
-
+                    val targetC =
+                        when {
+                            newAnchorCol > sourceAnchorCol -> sourceAnchorCol
+                            newAnchorCol < sourceAnchorCol -> sourceAnchorCol + sColSpan - cs
+                            else -> sourceAnchorCol
+                        }
+                    val targetR =
+                        when {
+                            newAnchorRow > sourceAnchorRow -> sourceAnchorRow
+                            newAnchorRow < sourceAnchorRow -> sourceAnchorRow + sRowSpan - rs
+                            else -> sourceAnchorRow
+                        }
                     button.copy(gridCol = targetC, gridRow = targetR)
                 }
 
@@ -604,8 +609,6 @@ data class ResizeButtonResult(
         val rows = layout.effectiveGridRows
         val sColSpan = source.effectiveColSpan
         val sRowSpan = source.effectiveRowSpan
-        val newMaxCol = newAnchorCol + sColSpan
-        val newMaxRow = newAnchorRow + sRowSpan
 
         val collidingButtons = layout.buttons.filter { button ->
             if (button.id == source.id) return@filter false
@@ -615,38 +618,33 @@ data class ResizeButtonResult(
             val cs = button.effectiveColSpan
             val rs = button.effectiveRowSpan
 
-            val overlapCol = maxOf(newAnchorCol, c) < minOf(newMaxCol, c + cs)
-            val overlapRow = maxOf(newAnchorRow, r) < minOf(newMaxRow, r + rs)
+            val overlapCol = maxOf(newAnchorCol, c) < minOf(newAnchorCol + sColSpan, c + cs)
+            val overlapRow = maxOf(newAnchorRow, r) < minOf(newAnchorRow + sRowSpan, r + rs)
             overlapCol && overlapRow
         }
 
-        val shiftCol = newAnchorCol - sourceAnchorCol
-        val shiftRow = newAnchorRow - sourceAnchorRow
-
         val moved =
             layout.buttons.map { button ->
-                val c = button.gridCol ?: return@map button
-                val r = button.gridRow ?: return@map button
                 when {
                     button.id == source.id -> {
                         button.copy(gridCol = newAnchorCol, gridRow = newAnchorRow)
                     }
 
-                    button in collidingButtons -> {
+                    collidingButtons.isNotEmpty() && button.id == collidingButtons[0].id -> {
                         val cs = button.effectiveColSpan
                         val rs = button.effectiveRowSpan
-
-                        val targetC = when {
-                            shiftCol < 0 -> newAnchorCol + sColSpan
-                            shiftCol > 0 -> newAnchorCol - cs
-                            else -> c
-                        }
-                        val targetR = when {
-                            shiftRow < 0 -> newAnchorRow + sRowSpan
-                            shiftRow > 0 -> newAnchorRow - rs
-                            else -> r
-                        }
-
+                        val targetC =
+                            when {
+                                newAnchorCol > sourceAnchorCol -> sourceAnchorCol
+                                newAnchorCol < sourceAnchorCol -> sourceAnchorCol + sColSpan - cs
+                                else -> sourceAnchorCol
+                            }
+                        val targetR =
+                            when {
+                                newAnchorRow > sourceAnchorRow -> sourceAnchorRow
+                                newAnchorRow < sourceAnchorRow -> sourceAnchorRow + sRowSpan - rs
+                                else -> sourceAnchorRow
+                            }
                         button.copy(gridCol = targetC, gridRow = targetR)
                     }
 
@@ -665,23 +663,7 @@ data class ResizeButtonResult(
         to: Pair<Int, Int>,
     ): PadLayout {
         if (from == to) return layout
-        val source = buttonAt(layout, from.first, from.second) ?: return layout
-        val target = buttonAt(layout, to.first, to.second)
-
-        return if (target != null) {
-            if (target.id == source.id) return layout
-            val updatedButtons =
-                layout.buttons.map { btn ->
-                    when (btn.id) {
-                        source.id -> btn.copy(gridCol = to.first, gridRow = to.second)
-                        target.id -> btn.copy(gridCol = from.first, gridRow = from.second)
-                        else -> btn
-                    }
-                }
-            layout.copy(buttons = updatedButtons)
-        } else {
-            moveButton(layout, from, to)
-        }
+        return moveButton(layout, from, to)
     }
 
     fun cellBounds(

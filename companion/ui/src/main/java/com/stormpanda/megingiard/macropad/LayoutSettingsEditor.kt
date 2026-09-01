@@ -32,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -104,17 +103,8 @@ internal fun EditLayoutSubPageContent(
     val colors = LocalAppColors.current
     var nameText by remember(savedLayout.id, savedLayout.name) { mutableStateOf(savedLayout.name) }
 
-    LaunchedEffect(Unit) {
-        snapshotFlow { layout }
-            .collectLatest { inFlightLayout ->
-                MacroPadState.setPreviewLayout(inFlightLayout)
-            }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            MacroPadState.clearPreviewLayout()
-        }
+    LaunchedEffect(layout) {
+        MacroPadState.setPreviewLayout(layout)
     }
 
     val normalizedName = nameText.trim()

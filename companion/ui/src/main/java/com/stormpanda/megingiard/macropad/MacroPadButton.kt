@@ -52,6 +52,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -80,7 +82,8 @@ private const val MP_BTN_RUNNING_PULSE_HIGH = 0.80f
 private const val MP_PULSE_HALF_PERIOD_MS = 600
 
 internal val MP_BTN_SQUARE_RADIUS = 4.dp
-internal val MP_BTN_ICON_UNIT = 44.dp // icon size per grid unit (≈ 73 % of MP_BUTTON_UNIT_DP)
+internal val MP_BTN_ICON_UNIT = 26.dp // standard icon size per grid unit (≈ 43 % of MP_BUTTON_UNIT_DP)
+internal val MP_BTN_APP_ICON_SIZE = 40.dp
 
 private const val MP_PRESS_ANIM_MS = 80
 private const val MP_RELEASE_ANIM_MS = 160
@@ -270,18 +273,24 @@ internal fun PadButton(
         ) {
             Box(
                 modifier =
-                    Modifier.graphicsLayer {
-                        scaleX = contentScale
-                        scaleY = contentScale
-                    },
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = contentScale
+                            scaleY = contentScale
+                        },
                 contentAlignment = Alignment.Center,
             ) {
                 PadButtonContent(
                     btn = btn,
                     effectiveTextTint = effectiveTextTint,
                     iconSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
+                    faceSize = minOf(btnWidthDp, btnHeightDp),
                     isTrackpoint = isTrackpoint,
                     effectiveContentAccent = effectiveContentAccent,
+                    isTableLayout = false,
+                    width = btnWidthDp,
+                    height = btnHeightDp,
                 )
             }
         }
@@ -293,8 +302,12 @@ internal fun PadButtonContent(
     btn: PadButton,
     effectiveTextTint: Color,
     iconSize: Dp,
+    faceSize: Dp? = null,
     isTrackpoint: Boolean = btn.action is PadAction.TrackpointMove,
     effectiveContentAccent: Color = effectiveTextTint,
+    isTableLayout: Boolean = false,
+    width: Dp? = null,
+    height: Dp? = null,
 ) {
     if (isTrackpoint) {
         Text(
@@ -311,26 +324,47 @@ internal fun PadButtonContent(
             btn = btn,
             action = btn.action as PadAction.AppLauncher,
             effectiveTextTint = effectiveTextTint,
-            iconSize = iconSize,
+            iconSize = MP_BTN_APP_ICON_SIZE * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
         )
     } else {
-        val iconName = btn.iconName
-        if (iconName != null) {
-            MaterialSymbol(
-                name = iconName,
-                size = iconSize,
-                tint = effectiveTextTint,
-                filled = btn.iconFilled,
-            )
-        } else {
-            Text(
-                text = btn.label,
-                color = effectiveTextTint,
-                fontSize = (11 * btn.buttonSize.cols).sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        PadButtonGlyph(
+            btn = btn,
+            size = iconSize,
+            faceSize = faceSize,
+            tint = effectiveTextTint,
+            accentColor = effectiveContentAccent,
+            isTableLayout = isTableLayout,
+            width = width,
+            height = height,
+            fallback = {
+                val dynamicFontSize =
+                    if (btn.enlargeText) {
+                        if (faceSize != null) (faceSize.value * 0.36f).coerceIn(16f, 36f).sp else 18.sp
+                    } else {
+                        if (faceSize != null) (faceSize.value * 0.22f).coerceIn(11f, 22f).sp else 14.sp
+                    }
+                val textStyle =
+                    if (btn.enlargeText) {
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontSize = dynamicFontSize,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    } else {
+                        MaterialTheme.typography.labelMedium.copy(
+                            fontSize = dynamicFontSize,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                Text(
+                    text = btn.label,
+                    color = effectiveTextTint,
+                    style = textStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            },
+        )
     }
 }
 

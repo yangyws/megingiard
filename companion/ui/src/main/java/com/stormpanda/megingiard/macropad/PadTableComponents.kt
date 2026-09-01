@@ -1,5 +1,12 @@
 package com.stormpanda.megingiard.macropad
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -55,8 +63,8 @@ internal const val PTC_TABLE_FILL_ALPHA_PRESSED = 0.38f
 internal const val PTC_TABLE_EMPTY_ICON_ALPHA = 0.5f
 internal val PTC_TABLE_DROP_BORDER_WIDTH = 2.5.dp
 internal const val PTC_TABLE_DRAG_SOURCE_ALPHA = 0.4f
-internal val PTC_TABLE_SELECTED_BORDER = Color(0xFFE53935)
-internal val PTC_TABLE_SELECTED_BG = Color(0x40E53935)
+internal val PTC_TABLE_SELECTED_BORDER = Color(0xFF00E5FF)
+internal val PTC_TABLE_SELECTED_BG = Color(0x3300E5FF)
 internal val PTC_TABLE_CELL_CORNER_RADIUS = 4.dp
 internal val PTC_TABLE_GRID_LINE_WIDTH = 1.dp
 internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x66FFFFFF)
@@ -70,75 +78,137 @@ internal val PTC_TABLE_THICK_BORDER_INSET_PADDING = 4.dp
 internal val PTC_TABLE_THICK_BORDER_ICON_SIZE = 20.dp
 internal val PTC_TABLE_THICK_BORDER_FACE_REDUCTION = 12.dp
 
-internal val PTC_TABLE_BASE_BG = Color(0xFF26262C)
-internal val PTC_TABLE_BASE_BG_PRESSED = Color(0xFF3E3E48)
-
 @Composable
 internal fun PadTableCell(
     button: PadButton,
     layout: PadLayout,
     accentColor: Color,
     shape: Shape,
+    width: Dp = 48.dp,
+    height: Dp = 48.dp,
     faceSize: Dp = 48.dp,
     isPressed: Boolean = false,
     isRunning: Boolean = false,
     isDeviceDisabled: Boolean = false,
     isPickedUp: Boolean = false,
+    isSelected: Boolean = false,
     isDragSource: Boolean = false,
     isDropTarget: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val bg = resolveColorOption(button.buttonBgColor ?: layout.buttonBgColor, accentColor, MP_AMBIENT_NEUTRAL_BG)
-    val text =
-        resolveColorOption(button.buttonTextColor ?: layout.buttonTextColor, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+    val resolvedBgColorOption = button.buttonBgColor ?: layout.buttonBgColor
+    val resolvedBorderColorOption = button.buttonBorderColor ?: layout.buttonBorderColor
+    val resolvedTextColorOption = button.buttonTextColor ?: layout.buttonTextColor
+
+    val effectiveBg = resolveBgColorOption(resolvedBgColorOption, accentColor)
+    val effectiveBorder = resolveColorOption(resolvedBorderColorOption, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
+    val effectiveTextTint = resolveColorOption(resolvedTextColorOption, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+    val effectiveContentAccent = effectiveTextTint
     val isThickBorder = layout.gridShowBorders
+    val isIconOnly = button.buttonShape == ButtonShape.ICON_ONLY
+
+    val alphaTarget = if (isPressed) MP_BTN_PRESSED_ALPHA else MP_BTN_NORMAL_ALPHA
+    val animDuration = if (isPressed) 80 else 160
+    val pressedAlpha by animateFloatAsState(
+        targetValue = alphaTarget,
+        animationSpec = tween(animDuration),
+        label = "cellAlpha",
+    )
+    val alpha =
+        if (isRunning) {
+            val infiniteTransition = rememberInfiniteTransition(label = "cellPulse")
+            val runningAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.30f,
+                targetValue = 0.80f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(600, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "cellRunningAlpha",
+            )
+            runningAlpha
+        } else {
+            pressedAlpha
+        }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "cellRunning")
+    val runningBreathe by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.12f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "cellBreathe",
+    )
+    val pressedScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = tween(animDuration),
+        label = "cellPressedScale",
+    )
+    val contentScale =
+        if (isPressed) {
+            pressedScale
+        } else if (isRunning) {
+            runningBreathe
+        } else {
+            1.0f
+        }
+
+    val cellBgColor =
+        if (!layout.gridShowButtonBg) {
+            Color.Transparent
+        } else {
+            effectiveBg
+        }
+
+    val cellBorderColor =
+        if (isPickedUp || isDropTarget || isSelected) {
+            PTC_TABLE_SELECTED_BORDER
+        } else if (isThickBorder) {
+            PTC_TABLE_THICK_BORDER_COLOR
+        } else {
+            Color.Transparent
+        }
+
+    val isTrackpoint = button.action is PadAction.TrackpointMove
+
+    val floatScale by animateFloatAsState(
+        targetValue =
+            when {
+                isPickedUp -> 1.06f
+                isSelected -> 1.04f
+                else -> 1.0f
+            },
+        animationSpec = tween(120),
+        label = "cellFloatScale",
+    )
 
     Box(
         modifier =
             modifier
                 .then(
                     if (isThickBorder) {
-                        Modifier
-                            .padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
-                            .border(
-                                width = PTC_TABLE_THICK_BORDER_WIDTH,
-                                color = PTC_TABLE_THICK_BORDER_COLOR,
-                                shape = shape,
-                            )
+                        Modifier.padding(PTC_TABLE_THICK_BORDER_CELL_PADDING)
                     } else {
                         Modifier
                     },
                 )
                 .graphicsLayer {
-                    alpha =
+                    this.alpha =
                         when {
                             isDragSource -> PTC_TABLE_DRAG_SOURCE_ALPHA
                             isDeviceDisabled -> 0.4f
                             else -> 1f
                         }
-                }
-                .clip(shape)
-                .drawBehind {
-                    if (layout.gridShowButtonBg) {
-                        val baseColor = if (isPressed) PTC_TABLE_BASE_BG_PRESSED else PTC_TABLE_BASE_BG
-                        drawRect(baseColor)
-                        if (button.buttonBgColor != null || layout.buttonBgColor !is ColorOption.Neutral) {
-                            val alpha = if (isPressed) 0.55f else 0.30f
-                            val effectiveCustomBg = if (isPickedUp) PTC_TABLE_SELECTED_BG else bg.copy(alpha = alpha)
-                            drawRect(effectiveCustomBg)
-                        } else if (isPickedUp) {
-                            drawRect(PTC_TABLE_SELECTED_BG)
-                        }
-                    } else {
-                        if (isPressed) {
-                            drawRect(PTC_TABLE_BASE_BG_PRESSED.copy(alpha = 0.5f))
-                        } else if (isPickedUp) {
-                            drawRect(PTC_TABLE_SELECTED_BG)
-                        }
-                    }
+                    scaleX = floatScale
+                    scaleY = floatScale
+                    shadowElevation = if (isPickedUp || isSelected) 16f else 0f
                 }
                 .then(
-                    if (isPickedUp || isDropTarget) {
+                    if (isPickedUp || isDropTarget || isSelected) {
                         Modifier.border(
                             width = PTC_TABLE_DROP_BORDER_WIDTH,
                             color = PTC_TABLE_SELECTED_BORDER,
@@ -150,31 +220,53 @@ internal fun PadTableCell(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (isThickBorder) {
-                            Modifier.padding(PTC_TABLE_THICK_BORDER_INSET_PADDING)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .graphicsLayer {
-                        val scale = if (isPressed) 0.93f else 1.0f
-                        scaleX = scale
-                        scaleY = scale
-                    },
-            contentAlignment = Alignment.Center,
+        val borderPad = if (isThickBorder) PTC_TABLE_THICK_BORDER_CELL_PADDING * 2 else 0.dp
+        val paddedWidth = (width - borderPad).coerceAtLeast(1.dp)
+        val paddedHeight = (height - borderPad).coerceAtLeast(1.dp)
+        val cellInnerFaceSize = minOf(paddedWidth, paddedHeight)
+        val defaultIconSize = (cellInnerFaceSize.value * 0.42f).coerceIn(18f, 56f).dp
+
+        PadButtonFace(
+            width = paddedWidth,
+            height = paddedHeight,
+            shape = shape,
+            isIconOnly = isIconOnly,
+            isDeviceDisabled = isDeviceDisabled,
+            borderColor = cellBorderColor,
+            bgColor = cellBgColor,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            PadButtonContent(
-                btn = button,
-                effectiveTextTint = text,
-                iconSize = if (isThickBorder) PTC_TABLE_THICK_BORDER_ICON_SIZE else PTC_TABLE_ICON_SIZE,
-                isTrackpoint = false,
-                effectiveContentAccent = accentColor,
-            )
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (isThickBorder && !button.fullBleedIcon && button.imageAssetId == null) {
+                                Modifier.padding(PTC_TABLE_THICK_BORDER_INSET_PADDING)
+                            } else if (!button.fullBleedIcon && button.imageAssetId != null) {
+                                Modifier.padding(if (isThickBorder) PTC_TABLE_THICK_BORDER_INSET_PADDING else 2.dp)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .graphicsLayer {
+                            scaleX = contentScale
+                            scaleY = contentScale
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                PadButtonContent(
+                    btn = button,
+                    effectiveTextTint = effectiveTextTint,
+                    iconSize = defaultIconSize,
+                    faceSize = cellInnerFaceSize,
+                    isTrackpoint = isTrackpoint,
+                    effectiveContentAccent = effectiveContentAccent,
+                    isTableLayout = true,
+                    width = paddedWidth,
+                    height = paddedHeight,
+                )
+            }
         }
     }
 }
@@ -242,6 +334,33 @@ internal fun PadLiveTableGrid(
             list
         }
 
+    val cellShapes =
+        remember(layout, cols, rows, cellW, cellH, density) {
+            val requestedRadiusPx = with(density) { PTC_TABLE_CELL_CORNER_RADIUS.toPx() }
+            List(rows) { row ->
+                List(cols) { col ->
+                    val radii =
+                        GridLayoutMath.cellFaceRadiiPx(
+                            layout = layout,
+                            col = col,
+                            row = row,
+                            outlineEmptyCells = true,
+                            faceWidthPx = cellW,
+                            faceHeightPx = cellH,
+                            requestedRadiusPx = requestedRadiusPx,
+                        )
+                    with(density) {
+                        RoundedCornerShape(
+                            topStart = radii.topLeftPx.toDp(),
+                            topEnd = radii.topRightPx.toDp(),
+                            bottomEnd = radii.bottomRightPx.toDp(),
+                            bottomStart = radii.bottomLeftPx.toDp(),
+                        )
+                    }
+                }
+            }
+        }
+
     Box(
         modifier =
             Modifier
@@ -259,7 +378,12 @@ internal fun PadLiveTableGrid(
             val top = (cellH * row).roundToInt()
             val widthDp = with(density) { cellW.toDp() }
             val heightDp = with(density) { cellH.toDp() }
-            val shape = RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
+            val shape =
+                if (row in cellShapes.indices && col in cellShapes[row].indices) {
+                    cellShapes[row][col]
+                } else {
+                    RoundedCornerShape(0.dp)
+                }
 
             Box(
                 modifier =
@@ -275,13 +399,6 @@ internal fun PadLiveTableGrid(
                                         color = PTC_TABLE_THICK_BORDER_COLOR,
                                         shape = shape,
                                     )
-                            } else {
-                                Modifier
-                            },
-                        )
-                        .then(
-                            if (layout.gridShowButtonBg) {
-                                Modifier.background(PTC_TABLE_BASE_BG, shape)
                             } else {
                                 Modifier
                             },
@@ -306,12 +423,20 @@ internal fun PadLiveTableGrid(
                     button.action is PadAction.Macro &&
                         (button.action as PadAction.Macro).macroId in runningMacroIds
                 val isDeviceDisabled = MacroPadHitTestEngine.isDeviceDisabled(button.action, profile)
+                val shape =
+                    if (row in cellShapes.indices && col in cellShapes[row].indices) {
+                        cellShapes[row][col]
+                    } else {
+                        RoundedCornerShape(0.dp)
+                    }
 
                 PadTableCell(
                     button = button,
                     layout = layout,
                     accentColor = accentColor,
-                    shape = RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS),
+                    shape = shape,
+                    width = widthDp,
+                    height = heightDp,
                     faceSize = faceSize,
                     isPressed = isPressed,
                     isRunning = isRunning,
@@ -380,6 +505,10 @@ internal fun PadTableGrid(
     val layoutRef by rememberUpdatedState(layout)
     val onCellTapRef by rememberUpdatedState(onCellTap)
     val onCellMoveRef by rememberUpdatedState(onCellMove)
+
+    val selectedButtonId by MacroPadState.selectedButtonId.collectAsState()
+    val movingButtonId by MacroPadState.movingButtonId.collectAsState()
+    val isEditingPositions by MacroPadState.isEditingButtonPositions.collectAsState()
 
     fun cellOf(position: Offset): Pair<Int, Int>? {
         if (gridSize.width <= 0 || gridSize.height <= 0) return null
@@ -546,8 +675,11 @@ internal fun PadTableGrid(
                             RoundedCornerShape(PTC_TABLE_CELL_CORNER_RADIUS)
                         }
                     val isPressedButton = sourceButton?.id == button.id
-                    val isPickedUp = isPressedButton && TableCellPressRules.showsMoveArmedFrame(pressPhase)
-                    val isSource = isPickedUp && dragMoved
+                    val isTouchArmed = isPressedButton && TableCellPressRules.showsMoveArmedFrame(pressPhase)
+                    val isTopArmed = isEditingPositions && movingButtonId == button.id
+                    val isPickedUp = isTouchArmed || isTopArmed
+                    val isSelected = selectedButtonId == button.id || isTopArmed
+                    val isSource = isTouchArmed && dragMoved
 
                     val widthDp = with(density) { (cellWPx * button.effectiveColSpan).toDp() }
                     val heightDp = with(density) { (cellHPx * button.effectiveRowSpan).toDp() }
@@ -563,8 +695,11 @@ internal fun PadTableGrid(
                         layout = layout,
                         accentColor = accentColor,
                         shape = cellShape,
+                        width = widthDp,
+                        height = heightDp,
                         faceSize = faceSize,
                         isPickedUp = isPickedUp,
+                        isSelected = isSelected,
                         isDragSource = isSource,
                         isDropTarget = false,
                         modifier = Modifier,
@@ -605,13 +740,12 @@ internal fun PadTableGrid(
                                             )
                                     } else {
                                         Modifier
-                                    },
-                                )
-                                .then(
-                                    if (layout.gridShowButtonBg) {
-                                        Modifier.background(PTC_TABLE_BASE_BG, cellShape)
-                                    } else {
-                                        Modifier.background(PTC_TABLE_BASE_BG.copy(alpha = 0.2f), cellShape)
+                                            .padding(1.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(0x22FFFFFF),
+                                                shape = cellShape,
+                                            )
                                     },
                                 )
                                 .clip(cellShape),
@@ -649,7 +783,7 @@ internal fun PadTableGrid(
                         modifier =
                             Modifier
                                 .background(
-                                    color = if (isValidTarget) Color.Transparent else colors.error.copy(alpha = 0.22f),
+                                    color = if (isValidTarget) PTC_TABLE_SELECTED_BG else colors.error.copy(alpha = 0.22f),
                                     shape = targetShape,
                                 )
                                 .border(

@@ -208,9 +208,9 @@ Each button supports one of the following actions:
     - **Streamlined Sub-Page Pickers (Zero Sub-Page Save Buttons) & Color Wheel Undo**: Child sub-pages (`ColorWheelSubPageContent`, `LayoutColorSubPageContent`, `ButtonColorSubPageContent`) act as direct color inspectors: selections and slider movements auto-apply directly into the active draft without intermediate confirm/save buttons. Inside the Color Wheel, an **"Undo Color Changes"** action card allows reverting Hue, Saturation, Brightness, and Opacity back to the initial color selected upon entering the sub-menu while staying on the screen. Pressing Back `(B)` pops cleanly to the parent editor, where the single master confirm/save action persists all draft changes to DataStore.
   - **Opacity Slider & Direct Resting Opacity**: The custom color picker wheel incorporates an opacity/alpha slider that operates in the 10% to 100% range (`0.1f..1.0f`). Any values parsed or configured are clamped to this range. User-defined opacity directly governs the outer edge peak opacity of the button radial gradient (`bgColor.alpha`) at rest, without artificial secondary resting dimming factors. Neutral and Accent background color styles default to 70% opacity (`0.70f`), matching the established resting appearance. Legacy profiles with pre-opacity full-opacity custom background colors (`0xFF` / `1.0f`) are automatically migrated on load to `70%` (`0xB3`) opacity to preserve visual consistency.
   - **Luminance-aware Apply Button**: The "Apply" button inside the color picker dynamically changes its text color to black or white based on the luminance and transparency of the currently picked color, ensuring maximum readability.
-  - **Invisible Buttons**: Both the layout settings editor and the button editor include an "Invisible Buttons" switch toggle.
+  - **Invisible Buttons**: In Free Placement mode, both the layout settings editor and the button editor include an "Invisible Buttons" switch toggle (suppressed in Table Mode).
     - Layout-level `invisibleButtons` acts as a default template option: when active, newly created buttons in that layout will default to having their individual `invisible` property enabled.
-    - Button-level `invisible` property controls the visibility of the button in Use Mode. When true, the button is completely hidden (visually transparent) but remains fully interactive under touch input. In editing mode, the button remains visible (with the button body rendered at 40% opacity and overlaid with a small crossed-out eye in the top right corner at 100% opacity for clear distinction) so it can be customized and repositioned.
+    - Button-level `invisible` property controls the visibility of the button in Use Mode. When true, the button is completely hidden (visually transparent) but remains fully interactive under touch input. In editing mode, the button remains visible (with the button body rendered at 40% opacity and overlaid with a small crossed-out eye in the top right corner at 100% opacity for clear distinction) so it can be customized and repositioned. Table Mode ignores invisible buttons and renders unified button faces matching Free Mode styling.
   - **Button-level overrides**: Each button can override the layout-wide color defaults individually using the same `ColorOption` fields (`PadButton.buttonTextColor`, `PadButton.buttonBorderColor`, `PadButton.buttonBgColor` for fading color). A special `null` value (shown as **Layout Default**) reverts the button back to the layout-wide default behavior.
   - Color options survive profile imports/exports and migrate legacy button color formats (`buttonColorNoMirror` / `buttonColorMirror`) automatically.
 
@@ -226,6 +226,17 @@ Each button supports one of the following actions:
   - Directional inputs (`D-Pad Up/Down/Left/Right` or `Left Stick`) move the button exactly 1 pixel per tick.
   - Holding a direction down continuously accelerates the tick frequency (starting at 250 ms initial delay, ramping down to 16 ms intervals / ~60 Hz) for smooth, high-precision positioning without skipping pixels.
   - Pressing `(B)`, `(A)`, `Enter`, or back navigation deactivates precision movement mode, returning control to standard card navigation without bubbling back to the parent screen.
+
+### FR-P8c: Custom Button Image & Dedicated Cropping Sub-Page
+
+- **Custom Button Face Artwork:** Users can set custom images on individual buttons via the Button Settings deck.
+- **Dedicated Sub-Page Navigation Flow:** Selecting an image triggers bottom-screen file picking and navigates into a dedicated `GamepadDeck` sub-page (`MacroPadSubPage.CropButtonImage`) with breadcrumbs (`Buttons > Crop Image`), eliminating modal dialog clutter.
+- **Interactive Cropping & Gamepad Controls:**
+  - **Aspect Ratio Matching:** Crop viewport automatically adapts to button aspect ratio (e.g. 1×1, 2×1, 1×2, or Table Mode column/row spans).
+  - **Touch & D-pad Panning:** Users can drag the image directly on the crop canvas or use the D-pad to pan with precision.
+  - **Zooming:** L1/R1 bumper keys adjust zoom levels smoothly.
+  - **Fit / Fill Mode Selection:** Quick toggle chips allow switching between full-bleed Fill cropping and Fit-whole modes.
+- **Confirmation & Storage:** Confirming the crop bakes the transformed bitmap, saves the asset into `PadIconStore`, sets `imageAssetId` on the button draft, and pops back to Button Settings with immediate live preview.
 
 ### FR-P9a: Custom Background Image
 
@@ -287,8 +298,31 @@ Each button supports one of the following actions:
   - **Other errors**: Handled with a generic error message.
 - A **SteamGridDB API-Token** field is provided in the **Global Settings Screen** under the Scraping section to allow users to input and persist their API key via DataStore.
 
+### FR-P9c: Custom Button Images, Cropping & Icon Controls
 
-### FR-P9c: Background Image Dimming
+- **Mutual Exclusivity**: Each button face supports either a **Material Symbol icon** or a **Custom Image** from local storage. Selecting a Material Symbol automatically clears any custom image, and selecting/cropping a custom image automatically clears any Material Symbol (`iconName = null` vs `imageAssetId = null`).
+- **Unified Entry Point**: The **"Choose Icon"** subpage (`MacroPadSubPage.ChooseIcon`) serves as the unified picker for both Material Symbols and Custom Images. The parent **Button Settings** editor (`EditButtonSubPageContent`) displays a unified action card with live thumbnail preview.
+- **Dedicated Crop Subpage**: Picking an image launches the dedicated `MacroPadSubPage.CropButtonImage` subpage (`ImageCropSubPageContent`), allowing users to pan (touch drag or D-pad), zoom (pinch or L1/R1 bumpers), and switch between Fill/Whole aspect modes tailored to the button's exact aspect ratio.
+- **Content-Addressed Cache**: Cropped images are downscaled (max 256px) and stored in content-addressed WebP cache (`padicons/<sha256>.webp`) via `PadIconStore`.
+- **Custom Image Controls** (under Button Settings):
+  - **Show Label (`showLabel`)**: Toggle button text label overlay.
+  - **Label Background Scrim (`showLabelBg`)**: Toggle dark translucent background scrim behind text for high contrast.
+  - **Enlarge Text (`enlargeText`)**: When label is shown, toggle enlarged bold typography overlay.
+  - **Clear Custom Image**: Two-step confirmation card to remove custom image and return to default appearance.
+- **Button Settings Appearance Controls**:
+  - **Enlarge Icon (`enlargeIcon`) vs Full Bleed Icon (`fullBleedIcon`)**: Available under Button Settings when a Material Symbol icon is configured (mutually exclusive).
+    - **Enlarge Icon**: Scales the glyph up to fill ~82% of the button face bounds (`PadGlyphRules.ENLARGED_EM_FRACTION = 0.82f`) without clipping.
+    - **Full Bleed Icon**: Scales the glyph to 130% em size (`PadGlyphRules.FULL_BLEED_EM_FRACTION = 1.30f`), accounting for the font's internal 24x24 optical margins so the glyph visually reaches the face perimeter edge-to-edge.
+  - **Enlarge Text (`enlargeText`)**: Available under Button Settings when text label is displayed without an icon (or on custom images with label overlay enabled), rendering large prominent bold text.
+  - **Optical Center Alignment**: Material Symbol vector glyphs are rendered with `PlatformTextStyle(includeFontPadding = false)`, `LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)`, and a baseline offset compensation (`MS_OPTICAL_Y_OFFSET_FRACTION = -0.125f`) to counteract the font's asymmetric baseline ascent/descent ratio, ensuring all glyphs scale outward from the exact mathematical center.
+- **Choose Icon Picker**:
+  - **Filled Variant (`iconFilled`)**: Toggle filled vs outline Material Symbol ligature.
+  - **In-Place Selection**: Selecting an icon from the grid updates the active selection and top preview card in place without prematurely popping the subpage.
+- **Unified Rendering & Real-Time In-Flight Streaming**: Both Free Placement and Table Mode render button faces via `PadButtonFace` and `PadButtonContent` passing the shortest dimension (`faceSize`) to `PadButtonGlyph`. All in-flight adjustments stream live to the secondary bottom display (`PadCanvas`) without requiring the user to save first.
+
+
+
+### FR-P9d: Background Image Dimming
 
 - Users can dim the background image using a `GamepadSliderCard` in the layout background settings editor (`LayoutBackgroundSubPageContent`).
 - Dimming ranges from **0%** (no dimming) up to **95%** (maximum dimming) in **5%** steps to prevent complete obscurity.
@@ -323,15 +357,18 @@ Each button supports one of the following actions:
 
 
 
-### FR-P10: Optional Button Icons
+### FR-P10: Optional Button Icons and Custom Images
 
-- Any button MAY be assigned an optional **icon** from the bundled **Material Symbols Rounded** icon font.
+- Any button MAY be assigned either an optional **Material Symbols icon** or a **Custom Cropped Image** (the two are mutually exclusive: selecting one automatically clears the other).
 - Icons are stored as **snake_case ligature strings** (e.g. `"arrow_back"`, `"sports_esports"`, `"password_2"`) — the exact string the font's GSUB table maps to a glyph.
-- When `iconName` is set:
-  - In **use mode** (`MacroPadButton`): the icon is rendered centred inside the button face instead of the label text. Icon size = `43 dp × min(cols, rows)`.
-  - In the **editor canvas** (`PadCanvas`, `DraggableButton`): the icon is shown at `60 dp × 0.72 × min(cols, rows)` (≈ 43 dp for 1×1).
-  - In the **button list** (`MacroPadEditor`, `ButtonsDeck`): the icon is shown at 18 dp in the indicator box instead of the two-character label abbreviation.
-- When `iconName` is `null`, the existing label rendering is used unchanged; the label field is still stored and used in the editor button list.
+- Custom images are persisted via `PadIconStore` and stored as `imageAssetId`.
+- When an icon or custom image is set:
+  - In **use mode** (`MacroPadButton`) & **editor canvas** (`PadCanvas`): the icon/image is rendered centred inside the button face.
+    - **Enlarge Icon (`enlargeIcon = true`)**: Scales up **proportionally** (maintaining 1:1 aspect ratio) based on the button face shortest side (`FREE_ENLARGED_EM_FRACTION = 0.72f` / `TABLE_ENLARGED_EM_FRACTION = 0.70f`).
+    - **Full Bleed Icon (`fullBleedIcon = true`)**: **Force-stretches / fills to the exact button frame dimensions `(width, height)`** (e.g., 2×1 buttons stretch horizontally, 1×2 stretch vertically, 1×1 fill square frame). Custom images apply `ContentScale.FillBounds`.
+  - In the **button list** (`MacroPadEditor`, `ButtonsDeck`): the trailing action indicator displays only the icon/image/app icon without redundant text abbreviations.
+  - In **Button Settings** (`PadButtonEditDialog`): "選擇圖示" (Select Icon) and "自訂圖片" (Custom Image) are presented as distinct cards with two-step deletion options. Selecting an icon clears any custom image, and selecting/cropping a custom image clears any icon.
+- When both `iconName` and `imageAssetId` are `null`, the existing label rendering is used unchanged; the label field is still stored and used in the editor button list.
 - When the action type is `ScrollWheel`, `TrackpointMove`, or `BackgroundPeek`, `iconName` is forced to `null` (these action types have fixed rendering and do not support icons).
 - Icon selection opens `IconPickerDialog`, a full-screen overlay with three zones:
   1. **Header** — Cancel (text button) | title | ✓ confirm (icon button).

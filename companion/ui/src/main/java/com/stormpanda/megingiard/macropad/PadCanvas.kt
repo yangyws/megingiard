@@ -398,13 +398,16 @@ internal fun PadCanvas(
                                 rowSpan = 1,
                                 action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
                             )
-                        MacroPadState.updateLayout(layout.copy(buttons = layout.buttons + newBtn))
+                        val updated = layout.copy(buttons = layout.buttons + newBtn)
+                        MacroPadState.updateLayout(updated)
+                        MacroPadState.setPreviewLayout(updated)
                         MacroPadState.setSelectedButtonId(newBtn.id)
                     }
                 },
                 onCellMove = { from, to ->
                     val moved = GridLayoutMath.swapOrMoveButton(layout, from, to)
                     MacroPadState.updateLayout(moved)
+                    MacroPadState.setPreviewLayout(moved)
                 },
             )
         }
@@ -457,57 +460,7 @@ internal fun PadCanvas(
             val w = canvasSize.width.toFloat().coerceAtLeast(1f)
             val h = canvasSize.height.toFloat().coerceAtLeast(1f)
 
-            if (isGrid) {
-                val cellW = if (cols > 0) w / cols else w
-                val cellH = if (rows > 0) h / rows else h
-                val btnCol = activeBtn.gridCol ?: 0
-                val btnRow = activeBtn.gridRow ?: 0
-                val btnColSpan = activeBtn.effectiveColSpan
-                val btnRowSpan = activeBtn.effectiveRowSpan
-
-                val leftPx = btnCol * cellW
-                val topPx = btnRow * cellH
-                val widthPx = cellW * btnColSpan
-                val heightPx = cellH * btnRowSpan
-
-                val requestedRadiusPx = with(density) { PTC_TABLE_CELL_CORNER_RADIUS.toPx() }
-                val radii =
-                    GridLayoutMath.cellFaceRadiiPx(
-                        layout = layout ?: PadLayout(id = "", name = ""),
-                        col = btnCol,
-                        row = btnRow,
-                        outlineEmptyCells = true,
-                        faceWidthPx = cellW,
-                        faceHeightPx = cellH,
-                        requestedRadiusPx = requestedRadiusPx,
-                    )
-                val cellShape =
-                    with(density) {
-                        RoundedCornerShape(
-                            topStart = radii.topLeftPx.toDp(),
-                            topEnd = radii.topRightPx.toDp(),
-                            bottomEnd = radii.bottomRightPx.toDp(),
-                            bottomStart = radii.bottomLeftPx.toDp(),
-                        )
-                    }
-
-                val leftDp = with(density) { leftPx.toDp() }
-                val topDp = with(density) { topPx.toDp() }
-                val widthDp = with(density) { widthPx.toDp() }
-                val heightDp = with(density) { heightPx.toDp() }
-
-                Box(
-                    modifier =
-                        Modifier
-                            .absoluteOffset(x = leftDp, y = topDp)
-                            .size(width = widthDp, height = heightDp)
-                            .border(
-                                width = PTC_TABLE_DROP_BORDER_WIDTH,
-                                color = PTC_TABLE_SELECTED_BORDER,
-                                shape = cellShape,
-                            ),
-                )
-            } else {
+            if (!isGrid) {
                 val isTrackpoint = activeBtn.action is PadAction.TrackpointMove
                 val tpMultiplier = if (isTrackpoint) (activeBtn.action as PadAction.TrackpointMove).size.multiplier else 1f
                 val chipWidthPx =
@@ -911,12 +864,21 @@ private fun DraggableButton(
                         },
                     ),
         ) {
-            PadButtonContent(
-                btn = btn,
-                effectiveTextTint = effectiveTextTint,
-                iconSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
-                isTrackpoint = isTrackpoint,
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                PadButtonContent(
+                    btn = btn,
+                    effectiveTextTint = effectiveTextTint,
+                    iconSize = MP_BTN_ICON_UNIT * minOf(btn.buttonSize.cols, btn.buttonSize.rows),
+                    faceSize = minOf(btnWidthDp, btnHeightDp),
+                    isTrackpoint = isTrackpoint,
+                    isTableLayout = false,
+                    width = btnWidthDp,
+                    height = btnHeightDp,
+                )
+            }
         }
         if (btn.invisible) {
             Box(

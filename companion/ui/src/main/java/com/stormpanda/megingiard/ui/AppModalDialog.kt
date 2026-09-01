@@ -3,7 +3,7 @@ package com.stormpanda.megingiard.ui
 import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -83,11 +84,9 @@ fun AppModalDialog(
                     } else {
                         false
                     }
-                }.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
+                }.pointerInput(Unit) {
+                    detectTapGestures { onDismiss() }
+                },
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -98,11 +97,7 @@ fun AppModalDialog(
                     .background(colors.surface, RoundedCornerShape(cornerRadius))
                     .border(1.dp, brush = rememberBezelBrush(), shape = RoundedCornerShape(cornerRadius))
                     .blockPointerEvents()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}, // absorb clicks to prevent scrim dismiss
-                    ).padding(contentPadding),
+                    .padding(contentPadding),
             content = content,
         )
     }

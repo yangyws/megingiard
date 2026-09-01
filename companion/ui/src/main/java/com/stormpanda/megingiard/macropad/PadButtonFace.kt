@@ -44,9 +44,9 @@ internal fun PadButtonFace(
 
     val bgBrush =
         remember(bgColor, width, height, density) {
-            val wPx = with(density) { width.toPx() }
-            val hPx = with(density) { height.toPx() }
-            val halfDiag = sqrt(wPx * wPx + hPx * hPx) / 2f
+            val wPx = with(density) { width.toPx() }.coerceAtLeast(1f)
+            val hPx = with(density) { height.toPx() }.coerceAtLeast(1f)
+            val halfDiag = (sqrt(wPx * wPx + hPx * hPx) / 2f).coerceAtLeast(1f)
             val maxAlpha = bgColor.alpha.coerceIn(0f, 1f)
             Brush.radialGradient(
                 0.00f to bgColor.copy(alpha = 0f),
@@ -73,7 +73,7 @@ internal fun PadButtonFace(
                 .size(width, height)
                 .clip(shape)
                 .drawWithContent {
-                    if (isIconOnly) {
+                    if (isIconOnly || size.width <= 0f || size.height <= 0f) {
                         drawContent()
                     } else {
                         val effectiveBackingColor = PBF_BACKING_COLOR.copy(alpha = PBF_BACKING_COLOR.alpha * bgColor.alpha)

@@ -64,6 +64,7 @@ Specialized agent workflows are codified under `.agents/skills/`. When performin
 | `megingiard-release`                 | `.agents/skills/megingiard-release/SKILL.md`          | Orchestrate release branch creation, signed builds, SHA-256 generation, and version bump.   |
 | `megingiard-release-changelog`       | `.agents/skills/megingiard-release-changelog/SKILL.md`| Generate GitHub Markdown changelogs from git tag comparisons.                                |
 | `megingiard-delete-daemon`           | `.agents/skills/megingiard-delete-daemon/SKILL.md`    | Terminate and remove the privileged mode daemon from `/data/local/tmp`.                       |
+| `megingiard-dual-screen-focus`       | `.agents/skills/megingiard-dual-screen-focus/SKILL.md`| Audit and maintain dual-screen gamepad focus traversal and top/bottom screen handoffs.         |
 | `megingiard-uninstall-clean`         | `.agents/skills/megingiard-uninstall-clean/SKILL.md`  | Cleanly wipe app data, backups, and daemon binaries for clean-state testing.                  |
 
 > [!IMPORTANT]

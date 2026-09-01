@@ -100,10 +100,15 @@ class MacroPadNavStateTest {
     @Test
     fun `applyPrimaryModalPayload with LayoutSettings updates section and stack`() {
         val payload = PrimaryModalPayload.LayoutSettings(layoutId = "layout-789")
-        MacroPadNavState.applyPrimaryModalPayload(payload)
+        var activatedLayoutId: String? = null
+        MacroPadNavState.applyPrimaryModalPayload(
+            payload = payload,
+            onSetActiveLayoutId = { activatedLayoutId = it },
+        )
 
         assertEquals(EditorSection.LAYOUTS, MacroPadNavState.selectedSection.value)
         assertEquals(listOf(MacroPadSubPage.EditLayout("layout-789")), MacroPadNavState.subPageStack.value)
+        assertEquals("layout-789", activatedLayoutId)
     }
 
     @Test
@@ -264,5 +269,39 @@ class MacroPadNavStateTest {
         MacroPadNavState.setStack(emptyList())
         assertEquals(EditorSection.PROFILES, MacroPadNavState.selectedSection.value)
         assertTrue(MacroPadNavState.subPageStack.value.isEmpty())
+    }
+
+    @Test
+    fun `CropButtonImage has correct parentSection BUTTONS and preserves stack`() {
+        val dummyButton = PadButton(id = "btn-1", label = "Test", posX = 0.5f, posY = 0.5f, action = PadAction.ScrollWheel)
+        val dummyBitmap =
+            object : androidx.compose.ui.graphics.ImageBitmap {
+                override val width: Int = 100
+                override val height: Int = 100
+                override val hasAlpha: Boolean = true
+                override val colorSpace = androidx.compose.ui.graphics.colorspace.ColorSpaces.Srgb
+                override val config = androidx.compose.ui.graphics.ImageBitmapConfig.Argb8888
+                override fun readPixels(buffer: IntArray, startX: Int, startY: Int, width: Int, height: Int, bufferOffset: Int, stride: Int) {}
+                override fun prepareToDraw() {}
+            }
+        val cropSubPage =
+            MacroPadSubPage.CropButtonImage(
+                button = dummyButton,
+                draftButton = dummyButton,
+                bitmap = dummyBitmap,
+                aspectRatio = 1.0f,
+            )
+        assertEquals(EditorSection.BUTTONS, cropSubPage.parentSection)
+
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(MacroPadSubPage.EditButton(button = dummyButton))
+        MacroPadNavState.push(cropSubPage)
+
+        assertEquals(2, MacroPadNavState.subPageStack.value.size)
+        assertEquals(cropSubPage, MacroPadNavState.subPageStack.value.last())
+
+        assertTrue(MacroPadNavState.pop())
+        assertEquals(1, MacroPadNavState.subPageStack.value.size)
+        assertTrue(MacroPadNavState.subPageStack.value.first() is MacroPadSubPage.EditButton)
     }
 }

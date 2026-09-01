@@ -242,6 +242,181 @@ class GridLayoutMathTest {
         val blockedRow = GridLayoutMath.findExpandedSpanRow(fullLayout, btn1, targetRowSpan = 2)
         assertNull(blockedRow)
     }
+
+    @Test
+    fun testMoveMultiCellButtonRightToEmptyCell() {
+        // btn1 is 2x1 at (0, 0) (covers (0,0) and (1,0))
+        val btn1 = createButton("btn1", 0, 0).copy(colSpan = 2, rowSpan = 1)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        // Move btn1 right by 1 cell (from (0,0) to (1,0))
+        val moved = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(1, 0))
+        val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
+        assertNotNull(movedBtn1)
+        assertEquals(1, movedBtn1?.gridCol)
+        assertEquals(0, movedBtn1?.gridRow)
+    }
+
+    @Test
+    fun testMoveMultiCellButtonRightSwappingWithDisplacedButton() {
+        // btn1 is 2x1 at (0, 0), btn2 is 1x1 at (2, 0)
+        val btn1 = createButton("btn1", 0, 0).copy(colSpan = 2, rowSpan = 1)
+        val btn2 = createButton("btn2", 2, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        // Move btn1 right by 1 cell: btn1 occupies (1,0)..(2,0), displacing btn2 to (0, 0)
+        val moved = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(1, 0))
+        val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
+        val movedBtn2 = moved.buttons.firstOrNull { it.id == "btn2" }
+        assertNotNull(movedBtn1)
+        assertNotNull(movedBtn2)
+        assertEquals(1, movedBtn1?.gridCol)
+        assertEquals(0, movedBtn1?.gridRow)
+        assertEquals(0, movedBtn2?.gridCol)
+        assertEquals(0, movedBtn2?.gridRow)
+    }
+
+    @Test
+    fun testMoveMultiCellButtonLeftSwappingWithDisplacedButton() {
+        // btn1 is 2x1 at (1, 0) (covers 1..2), btn2 is 1x1 at (0, 0)
+        val btn1 = createButton("btn1", 1, 0).copy(colSpan = 2, rowSpan = 1)
+        val btn2 = createButton("btn2", 0, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        // Move btn1 left by 1 cell: btn1 occupies (0,0)..(1,0), displacing btn2 to (2, 0)
+        val moved = GridLayoutMath.swapOrMoveButton(layout, Pair(1, 0), Pair(0, 0))
+        val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
+        val movedBtn2 = moved.buttons.firstOrNull { it.id == "btn2" }
+        assertNotNull(movedBtn1)
+        assertNotNull(movedBtn2)
+        assertEquals(0, movedBtn1?.gridCol)
+        assertEquals(0, movedBtn1?.gridRow)
+        assertEquals(2, movedBtn2?.gridCol)
+        assertEquals(0, movedBtn2?.gridRow)
+    }
+
+    @Test
+    fun testMoveMultiCellButtonVerticalSwapping() {
+        // btn1 is 1x2 at (0, 0) (covers rows 0..1), btn2 is 1x1 at (0, 2)
+        val btn1 = createButton("btn1", 0, 0).copy(colSpan = 1, rowSpan = 2)
+        val btn2 = createButton("btn2", 0, 2)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 2,
+                gridRows = 4,
+            )
+
+        // Move btn1 down by 1 cell: btn1 occupies (0, 1)..(0, 2), displacing btn2 to (0, 0)
+        val movedDown = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(0, 1))
+        val downBtn1 = movedDown.buttons.firstOrNull { it.id == "btn1" }
+        val downBtn2 = movedDown.buttons.firstOrNull { it.id == "btn2" }
+        assertEquals(1, downBtn1?.gridRow)
+        assertEquals(0, downBtn2?.gridRow)
+
+        // Move btn1 back up from (0, 1) to (0, 0): displacing btn2 from (0, 0) to (0, 2)
+        val movedUp = GridLayoutMath.swapOrMoveButton(movedDown, Pair(0, 1), Pair(0, 0))
+        val upBtn1 = movedUp.buttons.firstOrNull { it.id == "btn1" }
+        val upBtn2 = movedUp.buttons.firstOrNull { it.id == "btn2" }
+        assertEquals(0, upBtn1?.gridRow)
+        assertEquals(2, upBtn2?.gridRow)
+    }
+
+    @Test
+    fun testDirectDragSwapOverDistance() {
+        // btn1 is 1x1 at (0, 0), btn2 is 1x1 at (2, 2)
+        val btn1 = createButton("btn1", 0, 0)
+        val btn2 = createButton("btn2", 2, 2)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 4,
+            )
+
+        val swapped = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(2, 2))
+        val movedBtn1 = swapped.buttons.firstOrNull { it.id == "btn1" }
+        val movedBtn2 = swapped.buttons.firstOrNull { it.id == "btn2" }
+        assertEquals(2, movedBtn1?.gridCol)
+        assertEquals(2, movedBtn1?.gridRow)
+        assertEquals(0, movedBtn2?.gridCol)
+        assertEquals(0, movedBtn2?.gridRow)
+    }
+
+    @Test
+    fun testMoveMultiCellButtonBlockedWhenCollidingWithMultipleButtons() {
+        // btn1 is 2x1 at (0, 0), btn2 is 1x1 at (2, 0), btn3 is 1x1 at (3, 0)
+        val btn1 = createButton("btn1", 0, 0).copy(colSpan = 2, rowSpan = 1)
+        val btn2 = createButton("btn2", 2, 0)
+        val btn3 = createButton("btn3", 3, 0)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2, btn3),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        // Moving btn1 from (0, 0) to (2, 0) collides with BOTH btn2 and btn3 -> blocked in pure swap mode
+        val moved = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(2, 0))
+        val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
+        // btn1 remains at (0, 0) because multi-button pushing is disabled
+        assertEquals(0, movedBtn1?.gridCol)
+    }
+
+    @Test
+    fun testMoveMultiCellButtonBlockedWhenSwapCausesOverlap() {
+        // btn1 is 2x1 at (0, 0), btn2 is 2x1 at (2, 0)
+        val btn1 = createButton("btn1", 0, 0).copy(colSpan = 2, rowSpan = 1)
+        val btn2 = createButton("btn2", 2, 0).copy(colSpan = 2, rowSpan = 1)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btn1, btn2),
+                gridCols = 4,
+                gridRows = 2,
+            )
+
+        // Moving btn1 by 1 cell right to (1, 0) collides with btn2.
+        // Swapping anchors (btn1 at 1..2, btn2 at 0..1) causes overlap at col 1 -> blocked
+        val moved = GridLayoutMath.swapOrMoveButton(layout, Pair(0, 0), Pair(1, 0))
+        val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
+        assertEquals(0, movedBtn1?.gridCol)
+    }
 }
 
 

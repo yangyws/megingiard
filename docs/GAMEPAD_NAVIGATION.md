@@ -246,6 +246,10 @@ When composite editor overlays are suspended (e.g. `AppStateManager.suspendCurre
 3. Upon modal resumption (`AppStateManager.resumeSuspended()`), `GamepadTwoPaneScaffold` initializes its depth map with the hoisted focus keys and automatically restores focus directly to the exact triggering card (e.g. *Record Controller Input*) on mount, avoiding reset to the top deck item.
 4. When item mutations occur in child sub-pages (e.g. deleting the last step of a macro in `MacroStepEdit`), the parent depth's focus key is adjusted to target the new adjacent item (`"macro_step_${remaining - 1}"`) or removed if no items remain, ensuring focus seamlessly transitions to the new last item upon popping the sub-page stack.
 
+### 4.5 Touch Gesture Navigation: Swipe-Right to Go Back
+
+In addition to physical gamepad `Button B` and Android hardware `Back` events, `GamepadTwoPaneScaffold` equips the content row with horizontal drag detection (`detectHorizontalDragGestures`) when `isCustomBackActive` is `true`. Swiping from left to right across the screen with a displacement greater than or equal to `48.dp` (`GS_SWIPE_BACK_THRESHOLD`) seamlessly triggers `handleBackNavigation()`, popping the active sub-page stack back to its parent menu.
+
 ---
 
 ## 5. Focus Recovery & Multi-Modal Input Synchronization

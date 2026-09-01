@@ -161,10 +161,12 @@ object MacroPadState {
             clearPreviewLayout()
             return
         }
-        val currentProfile = activeProfile.value ?: return
         val currentActiveLayout =
-            currentProfile.layouts.firstOrNull { it.id == currentProfile.activeLayoutId }
-                ?: currentProfile.layouts.firstOrNull() ?: return
+            _previewLayout.value ?: run {
+                val currentProfile = activeProfile.value ?: return
+                currentProfile.layouts.firstOrNull { it.id == currentProfile.activeLayoutId }
+                    ?: currentProfile.layouts.firstOrNull() ?: return
+            }
         val isExisting = currentActiveLayout.buttons.any { it.id == button.id }
         val updatedButtons =
             if (isExisting) {
@@ -197,6 +199,14 @@ object MacroPadState {
         _selectedButtonId.value = id
     }
 
+    private val _movingButtonId = MutableStateFlow<String?>(null)
+    val movingButtonId: StateFlow<String?> = _movingButtonId.asStateFlow()
+
+    fun setMovingButtonId(id: String?) {
+        AppLog.d(TAG, "setMovingButtonId($id)")
+        _movingButtonId.value = id
+    }
+
     private val _isEditingButtonPositions = MutableStateFlow(false)
     val isEditingButtonPositions: StateFlow<Boolean> = _isEditingButtonPositions.asStateFlow()
 
@@ -205,6 +215,7 @@ object MacroPadState {
         _isEditingButtonPositions.value = editing
         if (!editing) {
             _selectedButtonId.value = null
+            _movingButtonId.value = null
         }
     }
 

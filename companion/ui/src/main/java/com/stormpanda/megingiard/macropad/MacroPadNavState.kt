@@ -100,6 +100,7 @@ internal object MacroPadNavState {
     fun applyPrimaryModalPayload(
         payload: PrimaryModalPayload?,
         onSetActiveProfileId: (String) -> Unit = { MacroPadState.setActiveProfileId(it) },
+        onSetActiveLayoutId: (String) -> Unit = { MacroPadState.setActiveLayoutId(it) },
         onSetSelectedButtonId: (String?) -> Unit = { MacroPadState.setSelectedButtonId(it) },
     ) {
         if (payload == null) return
@@ -115,6 +116,7 @@ internal object MacroPadNavState {
                     _subPageStack.value = listOf(MacroPadSubPage.EditProfile(profId))
                 } else if (layId != null) {
                     _selectedSection.value = EditorSection.LAYOUTS
+                    onSetActiveLayoutId(layId)
                     _subPageStack.value = listOf(MacroPadSubPage.EditLayout(layId))
                 } else if (macId != null) {
                     _selectedSection.value = EditorSection.MACROS
@@ -130,6 +132,7 @@ internal object MacroPadNavState {
 
             is PrimaryModalPayload.LayoutSettings -> {
                 _selectedSection.value = EditorSection.LAYOUTS
+                onSetActiveLayoutId(payload.layoutId)
                 _subPageStack.value = listOf(MacroPadSubPage.EditLayout(payload.layoutId))
             }
 

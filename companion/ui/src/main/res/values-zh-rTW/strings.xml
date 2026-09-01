@@ -1187,7 +1187,29 @@
     <!-- Quick Actions -->
     <string name="quick_actions_title">快捷動作</string>
     <string name="quick_action_edit_buttons">排列按鈕位置</string>
-    <string name="quick_action_edit_buttons_desc">以視覺化方式移動、縮放與定位 MacroPad 按鈕</string>
     <string name="macropad_editor_precision_movement_title">精確移動</string>
     <string name="macropad_editor_precision_movement_desc">開啟後使用方向鍵以 1 像素為單位進行像素級精準對齊</string>
+    <!-- Custom Button Image & Cropping -->
+    <string name="layout_settings_crop_image_title">裁切圖片</string>
+    <string name="button_settings_custom_image">自訂圖片</string>
+    <string name="button_settings_custom_image_desc">選擇按鈕表面的圖片</string>
+    <string name="button_settings_custom_image_desc_selected">已設定自訂圖片（點擊更換）</string>
+    <string name="button_settings_clear_image">移除圖片</string>
+    <string name="button_settings_clear_icon">移除圖示</string>
+    <string name="button_settings_show_label">顯示標籤</string>
+    <string name="button_settings_show_label_desc">在按鈕表面顯示標籤文字</string>
+    <string name="button_settings_show_label_bg">標籤底色</string>
+    <string name="button_settings_show_label_bg_desc">在標籤字體後顯示半透明深色底色</string>
+    <string name="button_settings_enlarge_icon">放大圖示</string>
+    <string name="button_settings_enlarge_icon_desc">將圖示放大至填滿按鈕</string>
+    <string name="button_settings_full_bleed_icon">滿版圖示</string>
+    <string name="button_settings_full_bleed_icon_desc">將圖示直接跟按鈕滿版無邊距顯示</string>
+    <string name="button_settings_enlarge_text">放大文字</string>
+    <string name="button_settings_enlarge_text_desc">將按鈕上的文字標籤放大顯示</string>
+    <string name="layout_settings_crop_image_instructions">拖曳以平移 • 雙指縮放</string>
+    <string name="crop_image_fit_whole">完整</string>
+    <string name="crop_image_fit_fill">滿版</string>
+    <string name="macropad_crop_apply">確認裁切並套用</string>
+    <string name="macropad_crop_apply_desc">儲存並套用裁切後的圖片至此按鈕</string>
+    <string name="macropad_crop_cancel_desc">捨棄裁切變更並返回按鈕設定</string>
 </resources>
