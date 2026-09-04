@@ -383,6 +383,7 @@ internal fun PadCanvas(
                         if (existing != null) {
                             MacroPadState.setSelectedButtonId(existing.id)
                         } else {
+                            MacroPadState.setSelectedButtonId(null)
                             MacroPadNavState.selectSection(EditorSection.BUTTONS)
                             MacroPadNavState.push(
                                 MacroPadSubPage.ChooseButtonType(

@@ -1018,15 +1018,20 @@ fun MacroPadEditor(
                                                             )
                                                         }
                                                     },
-                                                    onDiscard = { MacroPadNavState.pop() },
+                                                    onDiscard = {
+                                                        MacroPadState.updateLayout(lay)
+                                                        appearanceDraft = null
+                                                        MacroPadNavState.pop()
+                                                    },
                                                     onSaveColors = { textCol, borderCol, bgCol ->
-                                                        MacroPadState.updateLayout(
-                                                            lay.copy(
+                                                        val base = appearanceDraft?.takeIf { it.id == lay.id } ?: lay
+                                                        val updated =
+                                                            base.copy(
                                                                 buttonTextColor = textCol,
                                                                 buttonBorderColor = borderCol,
                                                                 buttonBgColor = bgCol,
-                                                            ),
-                                                        )
+                                                            )
+                                                        MacroPadState.updateLayout(updated)
                                                         appearanceDraft = null
                                                         MacroPadNavState.pop()
                                                     },
@@ -1067,12 +1072,14 @@ fun MacroPadEditor(
                                                                 section = EditorSection.LAYOUTS,
                                                                 onColorChange = { liveColor ->
                                                                     val option = ColorOption.Custom(liveColor.toArgb())
+                                                                    val base = appearanceDraft ?: inFlightLayout
                                                                     val liveLayout =
-                                                                        inFlightLayout.withColorOption(
+                                                                        base.withColorOption(
                                                                             currentSubPage.target,
                                                                             option,
                                                                         )
                                                                     appearanceDraft = liveLayout
+                                                                    MacroPadState.updateLayout(liveLayout)
                                                                     MacroPadState.setPreviewLayout(liveLayout)
                                                                 },
                                                             ),

@@ -686,7 +686,6 @@ internal fun PadSurface(
             }
 
             if (layout.isGridMode) {
-                PadTableGridLines(layout = layout)
                 PadLiveTableGrid(
                     profile = profile,
                     layout = layout,

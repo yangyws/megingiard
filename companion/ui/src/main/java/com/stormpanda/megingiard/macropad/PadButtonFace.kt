@@ -25,6 +25,9 @@ import kotlin.math.sqrt
 private const val PBF_DISABLED_ALPHA = 0.38f
 private val PBF_BACKING_COLOR = Color(0x80121212)
 private val PBF_BORDER_WIDTH = 1.dp
+private const val PBF_BG_GRADIENT_STOP_0 = 0.45f
+private const val PBF_BG_GRADIENT_STOP_50 = 0.65f
+private const val PBF_BG_GRADIENT_STOP_75 = 0.85f
 
 @Composable
 internal fun PadButtonFace(
@@ -35,6 +38,7 @@ internal fun PadButtonFace(
     isDeviceDisabled: Boolean,
     borderColor: Color,
     bgColor: Color,
+    borderWidth: Dp = PBF_BORDER_WIDTH,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -47,9 +51,9 @@ internal fun PadButtonFace(
             val halfDiag = (sqrt(wPx * wPx + hPx * hPx) / 2f).coerceAtLeast(1f)
             val maxAlpha = bgColor.alpha.coerceIn(0f, 1f)
             Brush.radialGradient(
-                0.00f to bgColor.copy(alpha = 0f),
-                0.50f to bgColor.copy(alpha = maxAlpha * 0.25f),
-                0.75f to bgColor.copy(alpha = maxAlpha * 0.5625f),
+                0.00f to bgColor.copy(alpha = maxAlpha * PBF_BG_GRADIENT_STOP_0),
+                0.50f to bgColor.copy(alpha = maxAlpha * PBF_BG_GRADIENT_STOP_50),
+                0.75f to bgColor.copy(alpha = maxAlpha * PBF_BG_GRADIENT_STOP_75),
                 1.00f to bgColor.copy(alpha = maxAlpha),
                 center = Offset(wPx / 2f, hPx / 2f),
                 radius = halfDiag,
@@ -88,10 +92,10 @@ internal fun PadButtonFace(
                         }
                     }
                 }.then(
-                    if (isIconOnly) {
+                    if (isIconOnly || borderWidth <= 0.dp || borderColor == Color.Transparent) {
                         Modifier
                     } else {
-                        Modifier.border(PBF_BORDER_WIDTH, borderColor, shape)
+                        Modifier.border(borderWidth, borderColor, shape)
                     },
                 ),
     ) {

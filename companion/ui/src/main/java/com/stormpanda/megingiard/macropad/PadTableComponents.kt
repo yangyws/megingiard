@@ -65,12 +65,12 @@ internal val PTC_TABLE_DROP_BORDER_WIDTH = 2.5.dp
 internal const val PTC_TABLE_DRAG_SOURCE_ALPHA = 0.4f
 internal val PTC_TABLE_SELECTED_BORDER = Color(0xFF00E5FF)
 internal val PTC_TABLE_SELECTED_BG = Color(0x3300E5FF)
+internal val PTC_TABLE_BASE_BG_PRESSED = Color(0xFF3E3E48)
+internal const val PTC_TABLE_PRESSED_SCALE = 0.93f
 internal val PTC_TABLE_CELL_CORNER_RADIUS = 4.dp
-internal val PTC_TABLE_GRID_LINE_WIDTH = 1.dp
-internal val PTC_TABLE_GRID_LINE_COLOR = Color(0x66FFFFFF)
 internal val PTC_TABLE_LABEL_RESERVE = 16.dp
 
-internal val PTC_TABLE_THICK_BORDER_WIDTH = 2.5.dp
+internal val PTC_TABLE_THICK_BORDER_WIDTH = 3.dp
 internal val PTC_TABLE_THICK_BORDER_COLOR = Color.Black
 internal val PTC_TABLE_THICK_BORDER_CELL_PADDING = 2.5.dp
 internal val PTC_TABLE_THICK_BORDER_OUTER_PADDING = PTC_TABLE_THICK_BORDER_CELL_PADDING + PTC_TABLE_THICK_BORDER_WIDTH
@@ -144,7 +144,7 @@ internal fun PadTableCell(
         label = "cellBreathe",
     )
     val pressedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1.0f,
+        targetValue = if (isPressed) PTC_TABLE_PRESSED_SCALE else 1.0f,
         animationSpec = tween(animDuration),
         label = "cellPressedScale",
     )
@@ -159,7 +159,7 @@ internal fun PadTableCell(
 
     val cellBgColor =
         if (!layout.gridShowButtonBg) {
-            Color.Transparent
+            if (isPressed) PTC_TABLE_BASE_BG_PRESSED.copy(alpha = 0.5f) else Color.Transparent
         } else {
             effectiveBg
         }
@@ -177,11 +177,20 @@ internal fun PadTableCell(
 
     val cellBorderColor =
         if (isPickedUp || isDropTarget || isSelected) {
-            PTC_TABLE_SELECTED_BORDER.copy(alpha = if (isSelected) selectedBorderAlpha else 1f)
+            Color.Transparent
         } else if (isThickBorder) {
             PTC_TABLE_THICK_BORDER_COLOR
         } else {
             Color.Transparent
+        }
+
+    val cellBorderWidth =
+        if (isPickedUp || isDropTarget || isSelected) {
+            0.dp
+        } else if (isThickBorder) {
+            PTC_TABLE_THICK_BORDER_WIDTH
+        } else {
+            0.dp
         }
 
     val isTrackpoint = button.action is PadAction.TrackpointMove
@@ -225,12 +234,6 @@ internal fun PadTableCell(
                             color = PTC_TABLE_SELECTED_BORDER.copy(alpha = if (isSelected) selectedBorderAlpha else 1f),
                             shape = shape,
                         )
-                    } else if (isThickBorder) {
-                        Modifier.border(
-                            width = PTC_TABLE_THICK_BORDER_WIDTH,
-                            color = PTC_TABLE_THICK_BORDER_COLOR,
-                            shape = shape,
-                        )
                     } else {
                         Modifier
                     },
@@ -251,7 +254,14 @@ internal fun PadTableCell(
             isDeviceDisabled = isDeviceDisabled,
             borderColor = cellBorderColor,
             bgColor = cellBgColor,
-            modifier = Modifier.fillMaxSize(),
+            borderWidth = cellBorderWidth,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = contentScale
+                        scaleY = contentScale
+                    },
         ) {
             Box(
                 modifier =
@@ -265,11 +275,7 @@ internal fun PadTableCell(
                             } else {
                                 Modifier
                             },
-                        )
-                        .graphicsLayer {
-                            scaleX = contentScale
-                            scaleY = contentScale
-                        },
+                        ),
                 contentAlignment = Alignment.Center,
             ) {
                 PadButtonContent(
@@ -293,26 +299,6 @@ internal fun PadTableCell(
                             .background(PTC_TABLE_SELECTED_BORDER.copy(alpha = 0.15f * selectedBorderAlpha)),
                 )
             }
-        }
-    }
-}
-
-@Composable
-internal fun PadTableGridLines(layout: PadLayout) {
-    if (!layout.gridShowBorders) return
-    val density = LocalDensity.current
-    val strokePx = with(density) { PTC_TABLE_GRID_LINE_WIDTH.toPx() }
-    val lines = remember(layout) { GridLayoutMath.gridLines(layout, outlineEmptyCells = true) }
-    if (lines.isEmpty()) return
-
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        lines.forEach { line ->
-            val r = GridLayoutMath.gridLineRect(line, size.width, size.height, strokePx)
-            drawRect(
-                color = PTC_TABLE_GRID_LINE_COLOR,
-                topLeft = Offset(r.left, r.top),
-                size = Size(r.width, r.height),
-            )
         }
     }
 }
@@ -630,6 +616,11 @@ internal fun PadTableGrid(
 
                                     val held = startCell?.takeIf { startHasButton } ?: return@awaitEachGesture
 
+                                    val heldButton = GridLayoutMath.buttonAt(layoutRef, held.first, held.second)
+                                    if (heldButton != null) {
+                                        MacroPadState.setSelectedButtonId(heldButton.id)
+                                    }
+
                                     pressCell = held
                                     pressPhase = TableCellPressPhase.MOVE
                                     dragOver = held
@@ -710,9 +701,10 @@ internal fun PadTableGrid(
                     val isPressedButton = sourceButton?.id == button.id
                     val isTouchArmed = isPressedButton && TableCellPressRules.showsMoveArmedFrame(pressPhase)
                     val isTopArmed = isEditingPositions && movingButtonId == button.id
-                    val isPickedUp = isTouchArmed || isTopArmed
-                    val isSelected = selectedButtonId == button.id || isTopArmed
-                    val isSource = isTouchArmed && dragMoved
+                    val isHoveringDifferentCell = isDraggingTarget && isPressedButton
+                    val isSource = isTouchArmed && isHoveringDifferentCell
+                    val isPickedUp = (isTouchArmed && !isHoveringDifferentCell) || isTopArmed
+                    val isSelected = (selectedButtonId == button.id || isTopArmed) && !isSource
 
                     val widthDp = with(density) { (cellWPx * button.effectiveColSpan).toDp() }
                     val heightDp = with(density) { (cellHPx * button.effectiveRowSpan).toDp() }
@@ -918,7 +910,5 @@ internal fun PadTableGrid(
                 }
             }
         }
-
-        PadTableGridLines(layout = layout)
     }
 }

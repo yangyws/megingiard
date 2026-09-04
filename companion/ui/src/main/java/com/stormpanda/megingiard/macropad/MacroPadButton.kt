@@ -70,6 +70,7 @@ internal val MP_BUTTON_UNIT_DP = 60.dp // 1×1 = this size on-screen; matches ed
 
 internal const val MP_BTN_PRESSED_ALPHA = 0.80f
 internal const val MP_BTN_NORMAL_ALPHA = 0.25f
+internal const val MP_BTN_PRESSED_SCALE = 0.93f
 
 // Pulsing animation for running macros: alpha cycles between low and high.
 private const val MP_BTN_RUNNING_PULSE_LOW = 0.30f
@@ -171,7 +172,7 @@ internal fun PadButton(
         label = "btnRippleProgress",
     )
     val pressedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1.0f,
+        targetValue = if (isPressed) MP_BTN_PRESSED_SCALE else 1.0f,
         animationSpec = tween(animDuration),
         label = "btnPressedScale",
     )
@@ -265,16 +266,16 @@ internal fun PadButton(
             isDeviceDisabled = isDeviceDisabled,
             borderColor = effectiveBorder,
             bgColor = effectiveBg,
-            modifier = Modifier.fillMaxSize(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = contentScale
+                        scaleY = contentScale
+                    },
         ) {
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = contentScale
-                            scaleY = contentScale
-                        },
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 PadButtonContent(

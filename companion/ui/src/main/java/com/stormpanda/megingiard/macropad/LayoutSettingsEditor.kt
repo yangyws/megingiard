@@ -289,7 +289,7 @@ internal fun EditLayoutSubPageContent(
         GamepadToggleCard(
             title = stringResource(R.string.layout_settings_invisible_buttons),
             description = stringResource(R.string.layout_settings_invisible_buttons_desc),
-            checked = savedLayout.invisibleButtons,
+            checked = layout.invisibleButtons,
             icon = Icons.Rounded.VisibilityOff,
             onCheckedChange = onInvisibleButtonsChange,
         )
