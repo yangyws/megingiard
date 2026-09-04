@@ -1,5 +1,6 @@
 package com.stormpanda.megingiard.macropad
 
+import android.graphics.Bitmap
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.mirror.ScreenCutout
@@ -218,6 +219,24 @@ object MacroPadState {
     fun setCroppingBackground(cropping: Boolean) {
         AppLog.d(TAG, "setCroppingBackground($cropping)")
         _isCroppingBackground.value = cropping
+    }
+
+    private val _croppingButtonState = MutableStateFlow<CroppingButtonState?>(null)
+    val croppingButtonState: StateFlow<CroppingButtonState?> = _croppingButtonState.asStateFlow()
+
+    fun setCroppingButtonState(state: CroppingButtonState?) {
+        AppLog.d(TAG, "setCroppingButtonState(${state != null})")
+        _croppingButtonState.value = state
+    }
+
+    fun updateCroppingButtonTransform(scale: Float, offsetX: Float, offsetY: Float) {
+        val current = _croppingButtonState.value ?: return
+        _croppingButtonState.value = current.copy(scale = scale, offsetX = offsetX, offsetY = offsetY)
+    }
+
+    fun updateCroppingButtonScaleMode(scaleMode: BackgroundScaleMode) {
+        val current = _croppingButtonState.value ?: return
+        _croppingButtonState.value = current.copy(scaleMode = scaleMode, scale = 1.0f, offsetX = 0f, offsetY = 0f)
     }
 
     private val _gridMode = MutableStateFlow(GridMode.OFF)
@@ -1041,3 +1060,19 @@ object MacroPadState {
         _isPeekActive.value = false
     }
 }
+
+/**
+ * State representing an in-flight button custom image cropping session.
+ */
+data class CroppingButtonState(
+    val button: PadButton?,
+    val draftButton: PadButton,
+    val sourceBitmap: Bitmap,
+    val aspectRatio: Float,
+    val isGridMode: Boolean = false,
+    val scaleMode: BackgroundScaleMode = BackgroundScaleMode.FILL,
+    val scale: Float = 1.0f,
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+)
+

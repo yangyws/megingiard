@@ -110,7 +110,7 @@ private fun <T> ScrollableSelectionRow(
                 selected = itemId(item) == selectedId,
                 onClick = { onItemSelected(item) },
                 contentDescription = name,
-                unselectedContentColor = colors.accent,
+                unselectedContentColor = colors.onControlOverlay,
             )
         }
     }

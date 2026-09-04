@@ -18,7 +18,7 @@ private const val TAG = "PadIconStore"
  */
 object PadIconStore {
     const val ICONS_DIR = "padicons"
-    const val THUMBNAIL_MAX_PX = 256
+    const val THUMBNAIL_MAX_PX = 512
 
     private const val WEBP_QUALITY = 90
     private const val EXTENSION = ".webp"

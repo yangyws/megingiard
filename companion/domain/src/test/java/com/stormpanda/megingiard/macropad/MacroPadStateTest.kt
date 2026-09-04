@@ -15,12 +15,17 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.util.UUID
 
 /**
  * Unit tests for [MacroPadState] — specifically focusing on [MacroPadState.loadFrom]
  * bootstrap and default generation behaviors.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 @OptIn(ExperimentalCoroutinesApi::class)
 class MacroPadStateTest {
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -910,4 +915,57 @@ class MacroPadStateTest {
         MacroPadState.setGridMode(GridMode.OFF)
         assertEquals(GridMode.OFF, MacroPadState.gridMode.value)
     }
+
+    @Test
+    fun `cropping button state and transform mutators`() {
+        val testBitmap = android.graphics.Bitmap.createBitmap(100, 100, android.graphics.Bitmap.Config.ARGB_8888)
+        val btn = testButton(id = "b1", label = "CropBtn")
+        val state =
+            CroppingButtonState(
+                button = btn,
+                draftButton = btn,
+                sourceBitmap = testBitmap,
+                aspectRatio = 1.5f,
+            )
+
+        MacroPadState.setCroppingButtonState(state)
+        assertEquals(state, MacroPadState.croppingButtonState.value)
+
+        MacroPadState.updateCroppingButtonTransform(scale = 2.0f, offsetX = 0.2f, offsetY = -0.1f)
+        assertEquals(2.0f, MacroPadState.croppingButtonState.value?.scale)
+        assertEquals(0.2f, MacroPadState.croppingButtonState.value?.offsetX)
+        assertEquals(-0.1f, MacroPadState.croppingButtonState.value?.offsetY)
+
+        MacroPadState.updateCroppingButtonScaleMode(BackgroundScaleMode.FIT)
+        assertEquals(BackgroundScaleMode.FIT, MacroPadState.croppingButtonState.value?.scaleMode)
+        assertEquals(1.0f, MacroPadState.croppingButtonState.value?.scale)
+        assertEquals(0f, MacroPadState.croppingButtonState.value?.offsetX)
+
+        MacroPadState.setCroppingButtonState(null)
+        assertEquals(null, MacroPadState.croppingButtonState.value)
+    }
+
+    @Test
+    fun `pad button retains non-destructive image transform fields`() {
+        val btn =
+            PadButton(
+                id = "b_custom",
+                label = "Test",
+                posX = 0.5f,
+                posY = 0.5f,
+                action = PadAction.KeyboardKey(65, "A"),
+                imageAssetId = "asset_1234567890abcdef",
+                imageScaleMode = BackgroundScaleMode.FIT,
+                imageScale = 1.75f,
+                imageOffsetX = 0.15f,
+                imageOffsetY = -0.05f,
+            )
+
+        assertEquals("asset_1234567890abcdef", btn.imageAssetId)
+        assertEquals(BackgroundScaleMode.FIT, btn.imageScaleMode)
+        assertEquals(1.75f, btn.imageScale)
+        assertEquals(0.15f, btn.imageOffsetX)
+        assertEquals(-0.05f, btn.imageOffsetY)
+    }
 }
+

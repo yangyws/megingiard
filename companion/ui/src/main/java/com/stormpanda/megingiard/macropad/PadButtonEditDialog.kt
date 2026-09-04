@@ -1,6 +1,7 @@
 package com.stormpanda.megingiard.macropad
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,10 +18,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Crop
@@ -74,6 +79,7 @@ import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdState
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.ui.BumperDirection
+import com.stormpanda.megingiard.ui.cycle
 import com.stormpanda.megingiard.ui.GamepadActionCard
 import com.stormpanda.megingiard.ui.GamepadChoiceCard
 import com.stormpanda.megingiard.ui.GamepadColorSwatch
@@ -96,6 +102,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "PadButtonEditDialog"
+
+private fun BackgroundScaleMode.labelResId(): Int =
+    when (this) {
+        BackgroundScaleMode.FILL -> R.string.bg_scale_mode_fill
+        BackgroundScaleMode.FIT -> R.string.bg_scale_mode_fit
+        BackgroundScaleMode.STRETCH -> R.string.bg_scale_mode_stretch
+    }
+
+private fun BackgroundScaleMode.descriptionResId(): Int =
+    when (this) {
+        BackgroundScaleMode.FILL -> R.string.bg_scale_mode_fill_desc
+        BackgroundScaleMode.FIT -> R.string.bg_scale_mode_fit_desc
+        BackgroundScaleMode.STRETCH -> R.string.bg_scale_mode_stretch_desc
+    }
 
 internal const val BTN_IMAGE_DECODE_PX = 1024
 private val PBD_COLOR_PREVIEW_SIZE = 36.dp
@@ -161,11 +181,10 @@ internal fun EditButtonSubPageContent(
     accentColor: Color,
     initialAction: PadAction? = null,
     onOpenIconPicker: (currentDraft: PadButton) -> Unit,
-    onPickCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
-    onCropCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
-    onClearCustomImage: ((currentDraft: PadButton) -> Unit)? = null,
+    onOpenCustomImage: (currentDraft: PadButton) -> Unit,
     onOpenAppPicker: (currentDraft: PadButton) -> Unit,
     onOpenColorSubMenu: (currentDraft: PadButton, target: ButtonColorTarget) -> Unit,
+    onOpenChooseButtonType: ((currentDraft: PadButton) -> Unit)? = null,
     onOpenKeyboardPicker: ((currentDraft: PadButton) -> Unit)? = null,
     onOpenGamepadPicker: ((currentDraft: PadButton, slotIndex: Int) -> Unit)? = null,
     onOpenMousePicker: ((currentDraft: PadButton) -> Unit)? = null,
@@ -187,7 +206,7 @@ internal fun EditButtonSubPageContent(
     DisposableEffect(stableButtonId) {
         MacroPadState.setSelectedButtonId(stableButtonId)
         onDispose {
-            MacroPadState.setSelectedButtonId(null)
+            // Lifecycle is centrally managed by MacroPadEditor subPageStack to maintain highlights during subpage pickers
         }
     }
 
@@ -258,6 +277,10 @@ internal fun EditButtonSubPageContent(
     }
 
     var imageAssetId by remember(button) { mutableStateOf(button?.imageAssetId) }
+    var imageScaleMode by remember(button) { mutableStateOf(button?.imageScaleMode ?: BackgroundScaleMode.FILL) }
+    var imageScale by remember(button) { mutableStateOf(button?.imageScale ?: 1.0f) }
+    var imageOffsetX by remember(button) { mutableStateOf(button?.imageOffsetX ?: 0f) }
+    var imageOffsetY by remember(button) { mutableStateOf(button?.imageOffsetY ?: 0f) }
     var showLabel by remember(button) { mutableStateOf(button?.showLabel ?: true) }
     var showLabelBg by remember(button) { mutableStateOf(button?.showLabelBg ?: true) }
     var enlargeIcon by remember(button) { mutableStateOf(button?.enlargeIcon ?: false) }
@@ -290,6 +313,10 @@ internal fun EditButtonSubPageContent(
             buttonBgColor = button.buttonBgColor
             invisible = button.invisible
             imageAssetId = button.imageAssetId
+            imageScaleMode = button.imageScaleMode
+            imageScale = button.imageScale
+            imageOffsetX = button.imageOffsetX
+            imageOffsetY = button.imageOffsetY
             showLabel = button.showLabel
             showLabelBg = button.showLabelBg
             enlargeIcon = button.enlargeIcon
@@ -311,6 +338,10 @@ internal fun EditButtonSubPageContent(
             iconName,
             iconFilled,
             imageAssetId,
+            imageScaleMode,
+            imageScale,
+            imageOffsetX,
+            imageOffsetY,
             showLabel,
             showLabelBg,
             enlargeIcon,
@@ -349,6 +380,10 @@ internal fun EditButtonSubPageContent(
                 buttonBgColor = buttonBgColor,
                 invisible = if (activeLayout?.isGridMode == true) false else invisible,
                 imageAssetId = imageAssetId,
+                imageScaleMode = imageScaleMode,
+                imageScale = imageScale,
+                imageOffsetX = imageOffsetX,
+                imageOffsetY = imageOffsetY,
                 showLabel = showLabel,
                 showLabelBg = showLabelBg,
                 enlargeIcon = enlargeIcon,
@@ -357,41 +392,7 @@ internal fun EditButtonSubPageContent(
             )
         }
 
-    LaunchedEffect(Unit) {
-        ButtonImagePickerManager.pickedUriFlow.collect { uri ->
-            ButtonImagePickerManager.clearPickedUri()
-            AppLog.i(TAG, "Received picked button image uri: $uri, starting decode...")
-            val decoded =
-                withContext(Dispatchers.IO) {
-                    BitmapUtils.decodeScaledBitmapFromUri(
-                        context,
-                        uri,
-                        targetW = BTN_IMAGE_DECODE_PX,
-                        targetH = BTN_IMAGE_DECODE_PX,
-                    )
-                }
-            if (decoded != null) {
-                AppLog.i(TAG, "Successfully decoded button image bitmap: ${decoded.width}x${decoded.height}")
-                val isGrid = activeLayout?.isGridMode == true
-                val buttonCropAspect =
-                    if (isGrid) {
-                        (colSpan.toFloat() / rowSpan.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
-                    } else {
-                        (buttonSize.cols.toFloat() / buttonSize.rows.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
-                    }
-                MacroPadNavState.push(
-                    MacroPadSubPage.CropButtonImage(
-                        button = button,
-                        draftButton = currentButton,
-                        bitmap = decoded.asImageBitmap(),
-                        aspectRatio = buttonCropAspect,
-                    ),
-                )
-            } else {
-                AppLog.e(TAG, "Failed to decode picked button image from $uri")
-            }
-        }
-    }
+
 
     val isConfirmEnabled =
         when {
@@ -504,71 +505,51 @@ internal fun EditButtonSubPageContent(
                 if (hasCustomImage) {
                     val bmp = customImagePreview
                     if (bmp != null) {
+                        val isTable = activeLayout?.isGridMode == true || activeLayout?.layoutMode == PadLayoutMode.GRID
+                        val (imgWidth, imgHeight) =
+                            if (isTable) {
+                                val cellAspect =
+                                    GridLayoutMath.cellAspectRatio(
+                                        cols = activeLayout?.effectiveGridCols ?: 1,
+                                        rows = activeLayout?.effectiveGridRows ?: 1,
+                                        colSpan = colSpan,
+                                        rowSpan = rowSpan,
+                                    )
+                                val baseHeight = 26.dp
+                                val w = (baseHeight.value * cellAspect).coerceIn(16f, 52f).dp
+                                w to baseHeight
+                            } else {
+                                val baseUnit = 26.dp
+                                val maxUnit = 38.dp
+                                val w = (baseUnit.value * buttonSize.cols).coerceIn(16f, maxUnit.value).dp
+                                val h = (baseUnit.value * buttonSize.rows).coerceIn(16f, maxUnit.value).dp
+                                w to h
+                            }
+                        val imgShape =
+                            if (isTable) {
+                                RoundedCornerShape(4.dp)
+                            } else if (buttonShape == ButtonShape.CIRCLE && buttonSize == ButtonSize.SIZE_1X1) {
+                                CircleShape
+                            } else {
+                                RoundedCornerShape(4.dp)
+                            }
+
                         Image(
                             bitmap = bmp,
                             contentDescription = stringResource(R.string.button_settings_custom_image),
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(26.dp).clip(RoundedCornerShape(4.dp)),
+                            modifier =
+                                Modifier
+                                    .size(width = imgWidth, height = imgHeight)
+                                    .clip(imgShape),
                         )
                     }
                 }
             },
-            onClick = { onPickCustomImage?.invoke(currentButton) },
+            onClick = { onOpenCustomImage(currentButton) },
         )
 
-        if (hasCustomImage && onCropCustomImage != null) {
-            GamepadActionCard(
-                title = stringResource(R.string.button_settings_crop_image),
-                description = stringResource(R.string.button_settings_crop_image_desc),
-                icon = Icons.Rounded.Crop,
-                onClick = { onCropCustomImage(currentButton) },
-            )
-        }
-
-        if (hasCustomImage && onClearCustomImage != null) {
-            GamepadTwoStepConfirmCard(
-                title = stringResource(R.string.button_settings_clear_image),
-                confirmTitle = stringResource(R.string.gamepad_action_confirm),
-                description = stringResource(R.string.button_settings_custom_image_desc_selected),
-                actionText = stringResource(R.string.gamepad_action_delete),
-                confirmActionText = stringResource(R.string.gamepad_action_confirm),
-                isDestructive = true,
-                icon = Icons.Rounded.Delete,
-                onConfirm = {
-                    imageAssetId = null
-                    onClearCustomImage(currentButton.copy(imageAssetId = null))
-                },
-            )
-        }
-
-        if (hasCustomImage) {
-            GamepadToggleCard(
-                title = stringResource(R.string.button_settings_full_bleed_icon),
-                description = stringResource(R.string.button_settings_full_bleed_icon_desc),
-                checked = fullBleedIcon,
-                onCheckedChange = { fullBleedIcon = it },
-            )
-            GamepadToggleCard(
-                title = stringResource(R.string.button_settings_show_label),
-                description = stringResource(R.string.button_settings_show_label_desc),
-                checked = showLabel,
-                onCheckedChange = { showLabel = it },
-            )
-            if (showLabel) {
-                GamepadToggleCard(
-                    title = stringResource(R.string.button_settings_show_label_bg),
-                    description = stringResource(R.string.button_settings_show_label_bg_desc),
-                    checked = showLabelBg,
-                    onCheckedChange = { showLabelBg = it },
-                )
-                GamepadToggleCard(
-                    title = stringResource(R.string.button_settings_enlarge_text),
-                    description = stringResource(R.string.button_settings_enlarge_text_desc),
-                    checked = enlargeText,
-                    onCheckedChange = { enlargeText = it },
-                )
-            }
-        } else if (iconName != null) {
+        if (iconName != null && !hasCustomImage) {
             GamepadToggleCard(
                 title = stringResource(R.string.button_settings_enlarge_icon),
                 description = stringResource(R.string.button_settings_enlarge_icon_desc),
@@ -590,9 +571,21 @@ internal fun EditButtonSubPageContent(
         }
     }
 
+    GamepadSectionHeader(
+        text = stringResource(R.string.macropad_editor_button_type),
+        color = accentColor,
+    )
+
+    GamepadActionCard(
+        title = stringResource(R.string.macropad_editor_change_button_type),
+        description = stringResource(action.toCategory().group().labelResId),
+        icon = action.toCategory().group().icon,
+        onClick = { onOpenChooseButtonType?.invoke(currentButton) },
+    )
+
     ActionPicker(
         current = action,
-        isFirstItem = !showLabelAndIcon,
+        isFirstItem = false,
         onOpenMacroPicker = {
             onOpenMacroPicker?.invoke(currentButton)
         },
@@ -793,73 +786,50 @@ internal fun EditButtonSubPageContent(
         )
 
         val previewLabel = stringResource(R.string.macropad_editor_button_preview_text)
-        val previewShape = if (buttonShape == ButtonShape.CIRCLE) CircleShape else PBD_CORNER_SHAPE
         val buttonPreviewLeading: (textColor: Color, borderColor: Color, bgColor: Color, isIconOnly: Boolean) -> @Composable () -> Unit =
             { tColor, bColor, bgCol, iconOnly ->
                 @Composable {
-                    val isTable = activeLayout?.layoutMode == PadLayoutMode.GRID
-                    val previewWidth = if (isTable) PBD_COLOR_PREVIEW_SIZE * colSpan else PBD_COLOR_PREVIEW_SIZE * buttonSize.cols
-                    val previewHeight = if (isTable) PBD_COLOR_PREVIEW_SIZE * rowSpan else PBD_COLOR_PREVIEW_SIZE * buttonSize.rows
+                    val isTable = activeLayout?.isGridMode == true || activeLayout?.layoutMode == PadLayoutMode.GRID
+                    val (previewWidth, previewHeight) =
+                        if (isTable) {
+                            val cellAspect =
+                                GridLayoutMath.cellAspectRatio(
+                                    cols = activeLayout?.effectiveGridCols ?: 1,
+                                    rows = activeLayout?.effectiveGridRows ?: 1,
+                                    colSpan = colSpan,
+                                    rowSpan = rowSpan,
+                                )
+                            val baseHeight = 28.dp
+                            val w = (baseHeight.value * cellAspect).coerceIn(28f, 56f).dp
+                            w to baseHeight
+                        } else {
+                            val w = PBD_COLOR_PREVIEW_SIZE * buttonSize.cols
+                            val h = PBD_COLOR_PREVIEW_SIZE * buttonSize.rows
+                            w to h
+                        }
                     val previewFaceSize = minOf(previewWidth, previewHeight)
+                    val shape =
+                        if (isTable) {
+                            RoundedCornerShape(PBD_CORNER_RADIUS_DP)
+                        } else if (buttonShape == ButtonShape.CIRCLE) {
+                            CircleShape
+                        } else {
+                            RoundedCornerShape(PBD_CORNER_RADIUS_DP)
+                        }
 
                     PadButtonFace(
                         width = previewWidth,
                         height = previewHeight,
-                        shape = if (buttonShape == ButtonShape.CIRCLE) CircleShape else RoundedCornerShape(PBD_CORNER_RADIUS_DP),
-                        isIconOnly = iconOnly || buttonShape == ButtonShape.ICON_ONLY,
+                        shape = shape,
+                        isIconOnly = iconOnly || (!isTable && buttonShape == ButtonShape.ICON_ONLY),
                         isDeviceDisabled = false,
                         borderColor = bColor,
                         bgColor = bgCol,
                     ) {
-                        val bmp = customImagePreview
-                        if (bmp != null) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Image(
-                                    bitmap = bmp,
-                                    contentDescription = label.ifBlank { null },
-                                    contentScale = if (fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                                if (showLabel && label.isNotBlank()) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.BottomCenter,
-                                    ) {
-                                        val labelStyle =
-                                            if (enlargeText) {
-                                                MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                            } else {
-                                                MaterialTheme.typography.labelSmall
-                                            }
-                                        Text(
-                                            text = label,
-                                            color = tColor,
-                                            style = labelStyle,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            textAlign = TextAlign.Center,
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .then(
-                                                        if (showLabelBg) {
-                                                            Modifier.background(Color.Black.copy(alpha = 0.45f))
-                                                        } else {
-                                                            Modifier
-                                                        },
-                                                    )
-                                                    .padding(horizontal = 2.dp, vertical = 1.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        } else if (iconName != null) {
+                        if (iconName != null) {
                             val previewIconSize =
                                 PadGlyphRules.glyphSizeDp(
-                                    defaultSizeDp = if (isTable) (previewFaceSize.value * 0.42f).coerceIn(16f, 36f) else MP_BTN_ICON_UNIT.value,
+                                    defaultSizeDp = if (isTable) (previewFaceSize.value * 0.5f).coerceIn(14f, 24f) else MP_BTN_ICON_UNIT.value,
                                     faceSizeDp = previewFaceSize.value,
                                     enlarge = enlargeIcon,
                                     fullBleed = fullBleedIcon,
@@ -887,13 +857,15 @@ internal fun EditButtonSubPageContent(
                                 modifier = stretchModifier,
                             )
                         } else {
-                            val dynamicFontSize = (previewFaceSize.value * 0.28f).coerceIn(12f, 22f).sp
+                            val effectiveLabel = label.ifBlank { previewLabel }
+                            val dynamicFontSize = (previewFaceSize.value * 0.35f).coerceIn(10f, 16f).sp
                             Text(
-                                text = previewLabel,
+                                text = effectiveLabel,
                                 color = tColor,
                                 style = MaterialTheme.typography.titleMedium.copy(fontSize = dynamicFontSize),
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 softWrap = false,
                             )
                         }
@@ -905,19 +877,19 @@ internal fun EditButtonSubPageContent(
             Triple(
                 ButtonColorTarget.TEXT,
                 Icons.Rounded.FormatColorText,
-                buttonPreviewLeading(currentText, Color.Transparent, Color.Transparent, true) to
+                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
                     describeButtonColorOption(buttonTextColor, currentText),
             ),
             Triple(
                 ButtonColorTarget.BORDER,
                 Icons.Rounded.Palette,
-                buttonPreviewLeading(Color.Transparent, currentBorder, Color.Transparent, false) to
+                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
                     describeButtonColorOption(buttonBorderColor, currentBorder),
             ),
             Triple(
                 ButtonColorTarget.BG,
                 Icons.Rounded.FormatColorFill,
-                buttonPreviewLeading(Color.Transparent, Color.Transparent, currentBg, false) to
+                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
                     describeButtonColorOption(buttonBgColor, currentBg),
             ),
         ).forEach { (colorTarget, colorIcon, previewAndDesc) ->

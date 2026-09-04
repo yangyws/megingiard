@@ -400,6 +400,13 @@ internal fun PadSurface(
     val currentEdgeZonePx by rememberUpdatedState(edgeZonePx)
     val currentIsQuickMenuOpen by rememberUpdatedState(viewModel.isQuickMenuOpen.value)
     val currentOnDisabledActionFeedback by rememberUpdatedState(onDisabledActionFeedback)
+    val isAnyModalActive by AppStateManager.isAnyModalActive.collectAsState()
+    val isAnyMenuOpen by AppStateManager.isAnyMenuOpen.collectAsState()
+    val isFullscreenKeyboardActive by AppStateManager.isFullscreenKeyboardActive.collectAsState()
+    val isFullscreenMouseActive by AppStateManager.isFullscreenMouseActive.collectAsState()
+    val isViewportEditActive by AppStateManager.isViewportEditActive.collectAsState()
+    val isGesturesEnabled = !isAnyMenuOpen && !isFullscreenKeyboardActive && !isFullscreenMouseActive && !isViewportEditActive && !isAnyModalActive
+    val currentGesturesEnabled by rememberUpdatedState(isGesturesEnabled)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -427,6 +434,7 @@ internal fun PadSurface(
                                     val activeEdgeZone = currentEdgeZonePx
                                     val activeQuickMenuOpen = currentIsQuickMenuOpen
                                     val activePeek = currentIsPeekActive
+                                    val activeGesturesEnabled = currentGesturesEnabled
 
                                     val canvasSize = canvasSizeState.value
                                     val w = canvasSize.width.toFloat().coerceAtLeast(1f)
@@ -487,21 +495,28 @@ internal fun PadSurface(
                                         when (event.type) {
                                             PointerEventType.Press -> {
                                                 if (!change.previousPressed) {
+                                                    val nearEdge =
+                                                        if (activeOverlayAtBottom) {
+                                                            change.position.y >= h - activeEdgeZone
+                                                        } else {
+                                                            change.position.y <= activeEdgeZone
+                                                        }
                                                     if (activeLayout.isEmpty()) {
                                                         pointerStartPos = change.position
                                                     }
                                                     val isHit =
-                                                        activeEngine.hitTest(
-                                                            change.position.x,
-                                                            change.position.y,
-                                                            w,
-                                                            h,
-                                                            activeLayout.buttons,
-                                                            activePeek,
-                                                            isGridMode = activeLayout.isGridMode,
-                                                            cols = activeLayout.effectiveGridCols,
-                                                            rows = activeLayout.effectiveGridRows,
-                                                        )
+                                                        (!nearEdge || !activeGesturesEnabled) &&
+                                                            activeEngine.hitTest(
+                                                                change.position.x,
+                                                                change.position.y,
+                                                                w,
+                                                                h,
+                                                                activeLayout.buttons,
+                                                                activePeek,
+                                                                isGridMode = activeLayout.isGridMode,
+                                                                cols = activeLayout.effectiveGridCols,
+                                                                rows = activeLayout.effectiveGridRows,
+                                                            )
                                                     if (isHit) {
                                                         val disabledBtn =
                                                             activeEngine.onPress(

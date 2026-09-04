@@ -222,6 +222,51 @@ object GridLayoutMath {
         }
 
     /**
+     * Finds the nearest existing neighbor button in direction ([dirX], [dirY]) on the 2D grid of [layout].
+     */
+    fun findNeighborButton(
+        layout: PadLayout,
+        currentBtn: PadButton,
+        dirX: Int,
+        dirY: Int,
+    ): PadButton? {
+        if (!layout.isGridMode) return null
+        val cols = layout.effectiveGridCols
+        val rows = layout.effectiveGridRows
+        val curCol = currentBtn.gridCol ?: 0
+        val curRow = currentBtn.gridRow ?: 0
+        val curColSpan = currentBtn.effectiveColSpan
+        val curRowSpan = currentBtn.effectiveRowSpan
+
+        if (dirX != 0) {
+            val step = if (dirX > 0) 1 else -1
+            var targetC = if (dirX > 0) curCol + curColSpan else curCol - 1
+            while (targetC in 0 until cols) {
+                for (r in curRow until (curRow + curRowSpan)) {
+                    val found = buttonAt(layout, targetC, r)
+                    if (found != null && found.id != currentBtn.id) {
+                        return found
+                    }
+                }
+                targetC += step
+            }
+        } else if (dirY != 0) {
+            val step = if (dirY > 0) 1 else -1
+            var targetR = if (dirY > 0) curRow + curRowSpan else curRow - 1
+            while (targetR in 0 until rows) {
+                for (c in curCol until (curCol + curColSpan)) {
+                    val found = buttonAt(layout, c, targetR)
+                    if (found != null && found.id != currentBtn.id) {
+                        return found
+                    }
+                }
+                targetR += step
+            }
+        }
+        return null
+    }
+
+    /**
      * Checks whether [button] (or button with [buttonId]) in [layout] can be resized to [newColSpan] x [newRowSpan]
      * without going outside grid bounds or overlapping with another button.
      */
@@ -1077,6 +1122,25 @@ data class ResizeButtonResult(
         buttons.firstOrNull { button ->
             buttonRect(button, canvasWidthPx, canvasHeightPx, buttonUnitPx).contains(px, py)
         }
+
+    /**
+     * Calculates the physical aspect ratio of a button cell or spanned cell block
+     * in a table grid on the secondary screen.
+     */
+    fun cellAspectRatio(
+        cols: Int,
+        rows: Int,
+        colSpan: Int = 1,
+        rowSpan: Int = 1,
+        containerAspect: Float = 4f / 3f,
+    ): Float {
+        val safeCols = cols.coerceAtLeast(1).toFloat()
+        val safeRows = rows.coerceAtLeast(1).toFloat()
+        val safeColSpan = colSpan.coerceAtLeast(1).toFloat()
+        val safeRowSpan = rowSpan.coerceAtLeast(1).toFloat()
+        val cellAspect = containerAspect * (safeRows / safeCols)
+        return (cellAspect * (safeColSpan / safeRowSpan)).coerceAtLeast(0.1f)
+    }
 }
 
 /** Pixel rect of a pad button face or a table cell frame. */

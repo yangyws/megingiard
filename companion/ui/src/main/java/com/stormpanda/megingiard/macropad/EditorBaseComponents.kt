@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,9 @@ private val EBC_INFO_BOX_PADDING_V = 12.dp
 private val EBC_ARROW_SIZE = 14.dp
 private const val EBC_ARROW_ALPHA = 0.6f
 
+internal val EBC_PREVIEW_CORNER_RADIUS = 6.dp
+internal val EBC_PREVIEW_SQUARE_SHAPE = RoundedCornerShape(EBC_PREVIEW_CORNER_RADIUS)
+
 @Composable
 internal fun SwordsButtonPreview(
     textColor: Color,
@@ -56,11 +60,12 @@ internal fun SwordsButtonPreview(
     modifier: Modifier = Modifier,
     size: Dp = EBC_PREVIEW_DEFAULT_SIZE,
     isIconOnly: Boolean = false,
+    shape: Shape = CircleShape,
 ) {
     PadButtonFace(
         width = size,
         height = size,
-        shape = CircleShape,
+        shape = shape,
         isIconOnly = isIconOnly,
         isDeviceDisabled = false,
         borderColor = borderColor,

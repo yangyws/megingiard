@@ -28,6 +28,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 /**
@@ -185,6 +187,10 @@ class IntegrationApiPipelineE2ETest {
         // 2. Update token in SettingsManager
         val testToken = "sgdb_test_token_abcdef123456"
         SettingsManager.setSteamGridDbApiToken(testToken)
+        ShadowLooper.idleMainLooper()
+        runBlocking {
+            SettingsManager.steamGridDbApiToken.first { it == testToken }
+        }
         ShadowLooper.idleMainLooper()
 
         // 3. Verify client reads updated token via IPC contract

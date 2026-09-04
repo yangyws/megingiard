@@ -40,10 +40,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.stormpanda.megingiard.math.ViewportMath
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -113,6 +115,97 @@ private fun cropOutputSize(aspectRatio: Float): IntSize {
         IntSize(CROP_OUTPUT_MAX_PX, (CROP_OUTPUT_MAX_PX / ratio).roundToInt().coerceAtLeast(1))
     } else {
         IntSize((CROP_OUTPUT_MAX_PX * ratio).roundToInt().coerceAtLeast(1), CROP_OUTPUT_MAX_PX)
+    }
+}
+
+internal fun calculateViewportDst(
+    containerW: Float,
+    containerH: Float,
+    contentW: Float,
+    contentH: Float,
+    fitMode: CropFitMode,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+): Pair<IntOffset, IntSize> {
+    if (containerW <= 0f || containerH <= 0f || contentW <= 0f || contentH <= 0f) {
+        return IntOffset.Zero to IntSize(containerW.toInt().coerceAtLeast(1), containerH.toInt().coerceAtLeast(1))
+    }
+    return when (fitMode) {
+        CropFitMode.STRETCH -> {
+            IntOffset.Zero to IntSize(containerW.toInt().coerceAtLeast(1), containerH.toInt().coerceAtLeast(1))
+        }
+        CropFitMode.FIT, CropFitMode.FILL -> {
+            val safeScale = scale.coerceAtLeast(0.01f)
+            val scaleBase =
+                if (fitMode == CropFitMode.FIT) {
+                    ViewportMath.calculateAspectFitScale(containerW, containerH, contentW, contentH)
+                } else {
+                    ViewportMath.calculateAspectFillScale(containerW, containerH, contentW, contentH)
+                }
+            val ws = contentW * scaleBase
+            val hs = contentH * scaleBase
+            val targetW = (ws * safeScale).toInt().coerceAtLeast(1)
+            val targetH = (hs * safeScale).toInt().coerceAtLeast(1)
+            val (maxTx, maxTy) = ViewportMath.getMaxOffsets(containerW, containerH, ws, hs, safeScale)
+            val clampedX = if (maxTx > 0f) (offsetX * containerW).coerceIn(-maxTx, maxTx) else 0f
+            val clampedY = if (maxTy > 0f) (offsetY * containerH).coerceIn(-maxTy, maxTy) else 0f
+            IntOffset(
+                ((containerW - targetW) / 2f + clampedX).roundToInt(),
+                ((containerH - targetH) / 2f + clampedY).roundToInt(),
+            ) to IntSize(targetW, targetH)
+        }
+    }
+}
+
+internal fun renderCroppedBitmap(
+    source: Bitmap,
+    aspectRatio: Float,
+    fitMode: CropFitMode = CropFitMode.FILL,
+    scale: Float = 1.0f,
+    offsetX: Float = 0f,
+    offsetY: Float = 0f,
+): Bitmap? {
+    if (source.width <= 0 || source.height <= 0) {
+        AppLog.w(TAG, "Cannot crop a ${source.width}x${source.height} source")
+        return null
+    }
+    return try {
+        val out = cropOutputSize(aspectRatio)
+        val target = Bitmap.createBitmap(out.width, out.height, Bitmap.Config.ARGB_8888)
+        val canvas = AndroidCanvas(target)
+        val paint =
+            Paint().apply {
+                isAntiAlias = true
+                isFilterBitmap = true
+                isDither = true
+            }
+        val (dstOffset, dstSize) =
+            calculateViewportDst(
+                containerW = out.width.toFloat(),
+                containerH = out.height.toFloat(),
+                contentW = source.width.toFloat(),
+                contentH = source.height.toFloat(),
+                fitMode = fitMode,
+                scale = scale,
+                offsetX = offsetX,
+                offsetY = offsetY,
+            )
+        canvas.drawBitmap(
+            source,
+            null,
+            RectF(
+                dstOffset.x.toFloat(),
+                dstOffset.y.toFloat(),
+                (dstOffset.x + dstSize.width).toFloat(),
+                (dstOffset.y + dstSize.height).toFloat(),
+            ),
+            paint,
+        )
+        target
+    } catch (e: Exception) {
+        AppLog.e(TAG, "Failed to bake cropped bitmap", e)
+        null
     }
 }
 
@@ -595,6 +688,20 @@ private fun CropFitModeChip(
     }
 }
 
+internal fun BackgroundScaleMode.toCropFitMode(): CropFitMode =
+    when (this) {
+        BackgroundScaleMode.FILL -> CropFitMode.FILL
+        BackgroundScaleMode.FIT -> CropFitMode.FIT
+        BackgroundScaleMode.STRETCH -> CropFitMode.STRETCH
+    }
+
+internal fun CropFitMode.toBackgroundScaleMode(): BackgroundScaleMode =
+    when (this) {
+        CropFitMode.FILL -> BackgroundScaleMode.FILL
+        CropFitMode.FIT -> BackgroundScaleMode.FIT
+        CropFitMode.STRETCH -> BackgroundScaleMode.STRETCH
+    }
+
 /**
  * Full deck sub-page content for image cropping in [MacroPadEditor].
  */
@@ -604,38 +711,59 @@ internal fun ImageCropSubPageContent(
     aspectRatio: Float,
     onConfirm: (baked: Bitmap) -> Unit,
     onCancel: () -> Unit,
-    initialTransform: CropTransform? = null,
-    initialFit: CropFitMode = CropFitMode.FILL,
+    scaleMode: BackgroundScaleMode = BackgroundScaleMode.FILL,
+    scale: Float = 1.0f,
+    offsetX: Float = 0f,
+    offsetY: Float = 0f,
+    onScaleModeChange: ((BackgroundScaleMode) -> Unit)? = null,
+    onTransformChange: ((scale: Float, offsetX: Float, offsetY: Float) -> Unit)? = null,
     showFitToggle: Boolean = true,
 ) {
     val colors = LocalAppColors.current
-    val density = LocalDensity.current
 
-    val extents =
-        remember(bitmap, aspectRatio) {
-            CropSelectionMath.imageExtents(bitmap.width.toFloat(), bitmap.height.toFloat(), aspectRatio)
-        }
-    val widthFraction = extents.first
-    val heightFraction = extents.second
-
-    var fitMode by remember { mutableStateOf(initialFit) }
-    val allowMargins = fitMode == CropFitMode.FIT || !showFitToggle
-    val effW = if (fitMode == CropFitMode.STRETCH) 1f else widthFraction
-    val effH = if (fitMode == CropFitMode.STRETCH) 1f else heightFraction
-
-    var selection by remember {
-        mutableStateOf(
-            if (initialTransform != null) {
-                CropSelectionMath.fromTransform(initialTransform, effW, effH, allowMargins)
-            } else {
-                CropSelectionMath.maxSelection(effW, effH, allowMargins)
-            },
-        )
-    }
+    var localFitMode by remember { mutableStateOf(scaleMode.toCropFitMode()) }
+    var localScale by remember { mutableFloatStateOf(scale.coerceIn(1.0f, 5.0f)) }
+    var localOffsetX by remember { mutableFloatStateOf(offsetX) }
+    var localOffsetY by remember { mutableFloatStateOf(offsetY) }
     var stageSize by remember { mutableStateOf(IntSize.Zero) }
-    var dragOrigin by remember { mutableStateOf(selection) }
-    val currentSelection = rememberUpdatedState(selection)
-    val zoomStep = 0.05f
+
+    val effectiveFitMode = if (onScaleModeChange != null) scaleMode.toCropFitMode() else localFitMode
+    val effectiveScale = if (onTransformChange != null) scale else localScale
+    val effectiveOffsetX = if (onTransformChange != null) offsetX else localOffsetX
+    val effectiveOffsetY = if (onTransformChange != null) offsetY else localOffsetY
+
+    fun updateTransform(newScale: Float, newX: Float, newY: Float) {
+        if (onTransformChange != null) {
+            onTransformChange(newScale, newX, newY)
+        } else {
+            localScale = newScale
+            localOffsetX = newX
+            localOffsetY = newY
+        }
+    }
+
+    fun updateFitMode(newMode: CropFitMode) {
+        if (onScaleModeChange != null) {
+            onScaleModeChange(newMode.toBackgroundScaleMode())
+        } else {
+            localFitMode = newMode
+            localScale = 1.0f
+            localOffsetX = 0f
+            localOffsetY = 0f
+        }
+    }
+
+    var accumScale by remember { mutableFloatStateOf(effectiveScale) }
+    var accumOffsetX by remember { mutableFloatStateOf(effectiveOffsetX) }
+    var accumOffsetY by remember { mutableFloatStateOf(effectiveOffsetY) }
+
+    LaunchedEffect(effectiveScale, effectiveOffsetX, effectiveOffsetY) {
+        if (effectiveScale != accumScale) accumScale = effectiveScale
+        if (effectiveOffsetX != accumOffsetX) accumOffsetX = effectiveOffsetX
+        if (effectiveOffsetY != accumOffsetY) accumOffsetY = effectiveOffsetY
+    }
+
+    val zoomStep = 0.1f
 
     BackHandler(onBack = onCancel)
 
@@ -645,18 +773,37 @@ internal fun ImageCropSubPageContent(
             Modifier
                 .fillMaxWidth()
                 .onKeyEvent { keyEvent ->
-                    if (keyEvent.type == KeyEventType.KeyDown) {
+                    if (keyEvent.type == KeyEventType.KeyDown && effectiveFitMode != CropFitMode.STRETCH) {
+                        val cw = stageSize.width.toFloat()
+                        val ch = stageSize.height.toFloat()
+                        val iw = bitmap.width.toFloat()
+                        val ih = bitmap.height.toFloat()
                         when (keyEvent.nativeKeyEvent.keyCode) {
                             AndroidKeyEvent.KEYCODE_BUTTON_L1 -> {
-                                val sel = currentSelection.value
-                                val newSize = (sel.size - zoomStep).coerceAtLeast(CropSelectionMath.minSize(effW, effH))
-                                selection = CropSelectionMath.clamp(sel.copy(size = newSize), effW, effH, allowMargins)
+                                val newScale = (effectiveScale - zoomStep).coerceIn(1.0f, 5.0f)
+                                if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                                    val scaleBase =
+                                        if (effectiveFitMode == CropFitMode.FIT) {
+                                            ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                                        } else {
+                                            ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                                        }
+                                    val ws = iw * scaleBase
+                                    val hs = ih * scaleBase
+                                    val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
+                                    val clampedX = if (maxTx > 0f) (effectiveOffsetX * cw).coerceIn(-maxTx, maxTx) else 0f
+                                    val clampedY = if (maxTy > 0f) (effectiveOffsetY * ch).coerceIn(-maxTy, maxTy) else 0f
+                                    val newX = if (cw > 0f) clampedX / cw else 0f
+                                    val newY = if (ch > 0f) clampedY / ch else 0f
+                                    updateTransform(newScale, newX, newY)
+                                } else {
+                                    updateTransform(newScale, effectiveOffsetX, effectiveOffsetY)
+                                }
                                 true
                             }
                             AndroidKeyEvent.KEYCODE_BUTTON_R1 -> {
-                                val sel = currentSelection.value
-                                val newSize = (sel.size + zoomStep).coerceAtMost(CropSelectionMath.maxSize(effW, effH, allowMargins))
-                                selection = CropSelectionMath.clamp(sel.copy(size = newSize), effW, effH, allowMargins)
+                                val newScale = (effectiveScale + zoomStep).coerceIn(1.0f, 5.0f)
+                                updateTransform(newScale, effectiveOffsetX, effectiveOffsetY)
                                 true
                             }
                             else -> false
@@ -676,109 +823,76 @@ internal fun ImageCropSubPageContent(
                 modifier =
                     Modifier
                         .fillMaxWidth(CROP_MODAL_WIDTH_FRACTION)
-                        .aspectRatio(stageAspect.coerceIn(0.5f, 2f))
+                        .aspectRatio(stageAspect.coerceIn(0.2f, 5f))
                         .clip(RoundedCornerShape(CROP_IMAGE_ROUNDING))
-                        .clipToBounds()
                         .background(Color.Black)
-                        .border(1.dp, colors.surfaceVariant, RoundedCornerShape(CROP_IMAGE_ROUNDING))
+                        .border(2.dp, colors.accent, RoundedCornerShape(CROP_IMAGE_ROUNDING))
                         .onSizeChanged { stageSize = it }
-                        .pointerInput(bitmap, effW, effH, allowMargins) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                val w = size.width.toFloat()
-                                val h = size.height.toFloat()
-                                if (w <= 0f || h <= 0f) return@detectTransformGestures
-                                var cur = currentSelection.value
-                                if (zoom != 1f) {
-                                    val currentSize = cur.size
-                                    val targetSize =
-                                        (currentSize / zoom).coerceIn(
-                                            CropSelectionMath.minSize(effW, effH),
-                                            CropSelectionMath.maxSize(effW, effH, allowMargins),
-                                        )
-                                    cur = CropSelectionMath.clamp(cur.copy(size = targetSize), effW, effH, allowMargins)
+                        .then(
+                            if (effectiveFitMode != CropFitMode.STRETCH) {
+                                Modifier.pointerInput(bitmap, effectiveFitMode) {
+                                    detectTransformGestures { _, pan, zoom, _ ->
+                                        val cw = size.width.toFloat()
+                                        val ch = size.height.toFloat()
+                                        val iw = bitmap.width.toFloat()
+                                        val ih = bitmap.height.toFloat()
+                                        if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                                            val newScale = (accumScale * zoom).coerceIn(1.0f, 5.0f)
+                                            accumScale = newScale
+
+                                            val scaleBase =
+                                                if (effectiveFitMode == CropFitMode.FIT) {
+                                                    ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                                                } else {
+                                                    ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                                                }
+                                            val ws = iw * scaleBase
+                                            val hs = ih * scaleBase
+                                            val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
+
+                                            val currentPixelX = accumOffsetX * cw + pan.x
+                                            val currentPixelY = accumOffsetY * ch + pan.y
+                                            val clampedX = if (maxTx > 0f) currentPixelX.coerceIn(-maxTx, maxTx) else 0f
+                                            val clampedY = if (maxTy > 0f) currentPixelY.coerceIn(-maxTy, maxTy) else 0f
+
+                                            val newX = if (cw > 0f) clampedX / cw else 0f
+                                            val newY = if (ch > 0f) clampedY / ch else 0f
+                                            accumOffsetX = newX
+                                            accumOffsetY = newY
+                                            updateTransform(newScale, newX, newY)
+                                        }
+                                    }
                                 }
-                                if (pan != Offset.Zero) {
-                                    cur = CropSelectionMath.move(cur, pan.x / w, pan.y / h, effW, effH, allowMargins)
-                                }
-                                selection = cur
-                            }
-                        },
+                            } else {
+                                Modifier
+                            },
+                        ),
             ) {
                 val stageW = stageSize.width.toFloat()
                 val stageH = stageSize.height.toFloat()
 
                 if (stageW > 0f && stageH > 0f) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val drawnW = effW * stageW
-                        val drawnH = effH * stageH
-                        drawImage(
-                            image = bitmap,
-                            dstOffset =
-                                IntOffset(
-                                    ((stageW - drawnW) / 2f).roundToInt(),
-                                    ((stageH - drawnH) / 2f).roundToInt(),
-                                ),
-                            dstSize = IntSize(drawnW.roundToInt(), drawnH.roundToInt()),
-                        )
-
-                        val boxLeft = selection.left * stageW
-                        val boxTop = selection.top * stageH
-                        val boxW = selection.size * stageW
-                        val boxH = selection.size * stageH
-
-                        val scrim = Color.Black.copy(alpha = CROP_SCRIM_ALPHA)
-                        drawRect(scrim, Offset(0f, 0f), Size(stageW, boxTop.coerceAtLeast(0f)))
-                        drawRect(scrim, Offset(0f, boxTop + boxH), Size(stageW, (stageH - boxTop - boxH).coerceAtLeast(0f)))
-                        drawRect(scrim, Offset(0f, boxTop), Size(boxLeft.coerceAtLeast(0f), boxH))
-                        drawRect(
-                            scrim,
-                            Offset(boxLeft + boxW, boxTop),
-                            Size((stageW - boxLeft - boxW).coerceAtLeast(0f), boxH),
-                        )
-
-                        drawRect(
-                            color = colors.accent,
-                            topLeft = Offset(boxLeft, boxTop),
-                            size = Size(boxW, boxH),
-                            style = Stroke(width = CROP_SELECTION_BORDER.toPx()),
-                        )
-                    }
-
-                    val touchPx = with(density) { CROP_HANDLE_TOUCH_SIZE.toPx() }
-                    val gripPx = with(density) { CROP_HANDLE_INDICATOR_SIZE.toPx() }
-                    val boxLeft = selection.left * stageW
-                    val boxTop = selection.top * stageH
-                    val boxRight = boxLeft + selection.size * stageW
-                    val boxBottom = boxTop + selection.size * stageH
-
-                    CropCorner.entries.forEach { corner ->
-                        val cornerX = if (corner.isLeft) boxLeft + gripPx / 2f else boxRight - gripPx / 2f
-                        val cornerY = if (corner.isTop) boxTop + gripPx / 2f else boxBottom - gripPx / 2f
-                        DragResizeHandle(
-                            offset =
-                                IntOffset(
-                                    (cornerX - touchPx / 2f).roundToInt(),
-                                    (cornerY - touchPx / 2f).roundToInt(),
-                                ),
-                            touchWidth = CROP_HANDLE_TOUCH_SIZE,
-                            touchHeight = CROP_HANDLE_TOUCH_SIZE,
-                            indicatorSize = CROP_HANDLE_INDICATOR_SIZE,
-                            indicatorCorner = CROP_HANDLE_CORNER,
-                            color = colors.accent,
-                            onDragStart = { dragOrigin = selection },
-                            onDrag = { totalX, totalY ->
-                                selection =
-                                    CropSelectionMath.resize(
-                                        dragOrigin,
-                                        corner,
-                                        totalX / stageW,
-                                        totalY / stageH,
-                                        effW,
-                                        effH,
-                                        allowMargins,
-                                    )
-                            },
-                        )
+                        val iw = bitmap.width.toFloat()
+                        val ih = bitmap.height.toFloat()
+                        val (dstOffset, dstSize) =
+                            calculateViewportDst(
+                                containerW = stageW,
+                                containerH = stageH,
+                                contentW = iw,
+                                contentH = ih,
+                                fitMode = effectiveFitMode,
+                                scale = effectiveScale,
+                                offsetX = effectiveOffsetX,
+                                offsetY = effectiveOffsetY,
+                            )
+                        if (dstSize.width > 0 && dstSize.height > 0) {
+                            drawImage(
+                                image = bitmap,
+                                dstOffset = dstOffset,
+                                dstSize = dstSize,
+                            )
+                        }
                     }
                 }
             }
@@ -788,41 +902,36 @@ internal fun ImageCropSubPageContent(
     if (showFitToggle) {
         GamepadChoiceCard(
             title = stringResource(R.string.layout_settings_bg_scale_mode),
-            description = stringResource(R.string.button_settings_crop_scale_mode_desc),
+            description =
+                when (effectiveFitMode) {
+                    CropFitMode.FILL -> stringResource(R.string.bg_scale_mode_fill_desc)
+                    CropFitMode.FIT -> stringResource(R.string.bg_scale_mode_fit_desc)
+                    CropFitMode.STRETCH -> stringResource(R.string.bg_scale_mode_stretch_desc)
+                },
             selectedText =
-                when (fitMode) {
+                when (effectiveFitMode) {
                     CropFitMode.FILL -> stringResource(R.string.bg_scale_mode_fill)
                     CropFitMode.FIT -> stringResource(R.string.bg_scale_mode_fit)
                     CropFitMode.STRETCH -> stringResource(R.string.bg_scale_mode_stretch)
                 },
             icon = Icons.Rounded.AspectRatio,
             onPrevious = {
-                fitMode =
-                    when (fitMode) {
+                val newMode =
+                    when (effectiveFitMode) {
                         CropFitMode.FILL -> CropFitMode.STRETCH
                         CropFitMode.FIT -> CropFitMode.FILL
                         CropFitMode.STRETCH -> CropFitMode.FIT
                     }
-                selection =
-                    when (fitMode) {
-                        CropFitMode.FILL -> CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
-                        CropFitMode.FIT -> CropSelectionMath.maxSelection(widthFraction, heightFraction, true)
-                        CropFitMode.STRETCH -> CropSelectionMath.maxSelection(1f, 1f, false)
-                    }
+                updateFitMode(newMode)
             },
             onNext = {
-                fitMode =
-                    when (fitMode) {
+                val newMode =
+                    when (effectiveFitMode) {
                         CropFitMode.FILL -> CropFitMode.FIT
                         CropFitMode.FIT -> CropFitMode.STRETCH
                         CropFitMode.STRETCH -> CropFitMode.FILL
                     }
-                selection =
-                    when (fitMode) {
-                        CropFitMode.FILL -> CropSelectionMath.maxSelection(widthFraction, heightFraction, false)
-                        CropFitMode.FIT -> CropSelectionMath.maxSelection(widthFraction, heightFraction, true)
-                        CropFitMode.STRETCH -> CropSelectionMath.maxSelection(1f, 1f, false)
-                    }
+                updateFitMode(newMode)
             },
             modifier = Modifier.firstDeckItem(),
         )
@@ -838,10 +947,10 @@ internal fun ImageCropSubPageContent(
                     renderCroppedBitmap(
                         source = bitmap.asAndroidBitmap(),
                         aspectRatio = aspectRatio,
-                        selection = selection,
-                        widthFraction = widthFraction,
-                        heightFraction = heightFraction,
-                        fitMode = fitMode,
+                        fitMode = effectiveFitMode,
+                        scale = effectiveScale,
+                        offsetX = effectiveOffsetX,
+                        offsetY = effectiveOffsetY,
                     )
                 }.onFailure { AppLog.e(TAG, "Crop source is not an Android bitmap", it) }
                     .getOrNull()

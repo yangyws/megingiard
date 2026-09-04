@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Colorize
@@ -76,7 +77,6 @@ internal fun EditLayoutSubPageContent(
     existingNames: List<String>,
     accentColor: Color,
     onNameChange: (String) -> Unit,
-    onLayoutModeChange: (PadLayoutMode) -> Unit,
     onGridColsChange: (Int) -> Unit,
     onGridRowsChange: (Int) -> Unit,
     onGridShowBordersChange: (Boolean) -> Unit,
@@ -157,40 +157,11 @@ internal fun EditLayoutSubPageContent(
         modifier = Modifier.firstDeckItem(),
     )
 
-    GamepadSectionHeader(
-        text = stringResource(R.string.layout_settings_mode_title),
-        color = accentColor,
-    )
-
-    val modeEntries = PadLayoutMode.entries
-    val modeLabels =
-        listOf(
-            stringResource(R.string.layout_settings_mode_free),
-            stringResource(R.string.layout_settings_mode_grid),
-        )
-    val modeIdx = modeEntries.indexOf(layout.layoutMode).coerceAtLeast(0)
-
-    GamepadChoiceCard(
-        title = stringResource(R.string.layout_settings_mode_title),
-        description =
-            if (layout.isGridMode) {
-                stringResource(R.string.layout_settings_mode_grid_desc)
-            } else {
-                stringResource(R.string.layout_settings_mode_free_desc)
-            },
-        selectedText = modeLabels[modeIdx],
-        icon = if (layout.isGridMode) Icons.Rounded.GridView else Icons.Rounded.DashboardCustomize,
-        onPrevious = {
-            val nextIdx = (modeIdx - 1 + modeEntries.size) % modeEntries.size
-            onLayoutModeChange(modeEntries[nextIdx])
-        },
-        onNext = {
-            val nextIdx = (modeIdx + 1) % modeEntries.size
-            onLayoutModeChange(modeEntries[nextIdx])
-        },
-    )
-
     if (layout.isGridMode) {
+        GamepadSectionHeader(
+            text = stringResource(R.string.layout_settings_mode_grid),
+            color = accentColor,
+        )
         GamepadStepperCard(
             title = stringResource(R.string.layout_settings_grid_cols),
             description = stringResource(R.string.layout_settings_grid_cols_desc),
@@ -251,6 +222,7 @@ internal fun EditLayoutSubPageContent(
             TargetConfig(EditorColorTarget.BORDER, layout.buttonBorderColor, currentResolvedBorder, Icons.Rounded.Palette),
             TargetConfig(EditorColorTarget.BG, layout.buttonBgColor, currentResolvedBg, Icons.Rounded.FormatColorFill),
         )
+    val previewShape = if (layout.isGridMode) EBC_PREVIEW_SQUARE_SHAPE else CircleShape
     colorTargets.forEach { item ->
         GamepadActionCard(
             title = stringResource(item.target.titleResId),
@@ -262,6 +234,7 @@ internal fun EditLayoutSubPageContent(
                     borderColor = if (item.target == EditorColorTarget.BORDER) item.resolvedColor else Color.Transparent,
                     bgColor = if (item.target == EditorColorTarget.BG) item.resolvedColor else Color.Transparent,
                     isIconOnly = item.target == EditorColorTarget.TEXT,
+                    shape = previewShape,
                 )
             },
             onClick = { onOpenColorSubMenu(item.target) },
@@ -277,6 +250,7 @@ internal fun EditLayoutSubPageContent(
                 borderColor = savedResolvedBorder,
                 bgColor = savedResolvedBg,
                 isIconOnly = false,
+                shape = previewShape,
             )
         },
         currentPreview = {
@@ -285,6 +259,7 @@ internal fun EditLayoutSubPageContent(
                 borderColor = currentResolvedBorder,
                 bgColor = currentResolvedBg,
                 isIconOnly = false,
+                shape = previewShape,
             )
         },
     )

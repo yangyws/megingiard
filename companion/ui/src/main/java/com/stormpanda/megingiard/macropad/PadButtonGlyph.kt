@@ -1,5 +1,6 @@
 package com.stormpanda.megingiard.macropad
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -67,12 +68,39 @@ internal fun PadButtonGlyph(
                 modifier = modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Image(
-                    bitmap = bitmap!!,
-                    contentDescription = btn.label.ifBlank { null },
-                    contentScale = if (btn.fullBleedIcon) ContentScale.FillBounds else ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val cw = this.size.width
+                    val ch = this.size.height
+                    val bmp = bitmap ?: return@Canvas
+                    val iw = bmp.width.toFloat()
+                    val ih = bmp.height.toFloat()
+                    if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                        val fitMode =
+                            if (btn.fullBleedIcon) {
+                                CropFitMode.STRETCH
+                            } else {
+                                btn.imageScaleMode.toCropFitMode()
+                            }
+                        val (dstOffset, dstSize) =
+                            calculateViewportDst(
+                                containerW = cw,
+                                containerH = ch,
+                                contentW = iw,
+                                contentH = ih,
+                                fitMode = fitMode,
+                                scale = btn.imageScale,
+                                offsetX = btn.imageOffsetX,
+                                offsetY = btn.imageOffsetY,
+                            )
+                        if (dstSize.width > 0 && dstSize.height > 0) {
+                            drawImage(
+                                image = bmp,
+                                dstOffset = dstOffset,
+                                dstSize = dstSize,
+                            )
+                        }
+                    }
+                }
                 if (isPressed) {
                     Box(
                         modifier =

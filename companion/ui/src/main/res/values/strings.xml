@@ -208,9 +208,9 @@ Open Settings to create a layout.</string>
     <string name="settings_macropad_new">New</string>
     <string name="macropad_reorder_profiles">Reorder Profiles</string>
     <string name="macropad_reorder_layouts">Reorder Layouts</string>
-    <string name="layout_settings_mode_title">Layout Mode</string>
+    <string name="layout_settings_mode_title">Button Layout</string>
     <string name="layout_settings_mode_free">Freeform</string>
-    <string name="layout_settings_mode_grid">Table Grid</string>
+    <string name="layout_settings_mode_grid">Table</string>
     <string name="layout_settings_mode_free_desc">Buttons can be placed and sized anywhere on the canvas.</string>
     <string name="layout_settings_mode_grid_desc">Buttons snap into a structured N×M table grid with customizable cell spans.</string>
     <string name="layout_settings_grid_cols">Columns</string>
@@ -400,8 +400,11 @@ Open Settings to create a layout.</string>
     <string name="layout_settings_bg_scale_mode">Scaling</string>
     <string name="layout_settings_bg_scale_mode_desc">Choose how the background image adapts to the screen aspect ratio.</string>
     <string name="bg_scale_mode_fill">Fill</string>
+    <string name="bg_scale_mode_fill_desc">Fills the entire area while preserving aspect ratio, allowing pan and zoom</string>
     <string name="bg_scale_mode_fit">Fit</string>
+    <string name="bg_scale_mode_fit_desc">Fits the entire image inside the bounds without clipping, allowing pan and zoom</string>
     <string name="bg_scale_mode_stretch">Stretch</string>
+    <string name="bg_scale_mode_stretch_desc">Stretches the image to completely fill bounds (may distort aspect ratio; pan/zoom disabled)</string>
     <string name="layout_settings_bg_image_adjustments">Image Adjustments &amp; Masking</string>
     <string name="layout_settings_bg_section_title">Background</string>
     <string name="layout_settings_bg_image_dimming_title">Dimming</string>
@@ -564,6 +567,8 @@ Open Settings to create a layout.</string>
     <string name="macropad_action_group_other">Overlays</string>
     <string name="macropad_action_group_other_desc">Open fullscreen mouse and keyboard overlays</string>
     <string name="macropad_editor_button_type">Button Type</string>
+    <string name="macropad_editor_change_button_type">Change Button Type</string>
+    <string name="macropad_editor_change_button_type_desc">Change the action category of this button</string>
 
     <!-- Log report export -->
     <string name="settings_save_log_report">Save log report</string>
@@ -948,6 +953,7 @@ Open Settings to create a layout.</string>
     <string name="gamepad_action_enable">Enable</string>
     <string name="gamepad_action_custom_color">Custom Color</string>
     <string name="gamepad_action_select">Select</string>
+    <string name="gamepad_action_done">Done</string>
     <string name="gamepad_slider_fine_adjustment_toast">Hold L2 for precise adjustments</string>
     <string name="macropad_picker_visual_keyboard_title">Select Keyboard Key</string>
     <string name="macropad_picker_keyboard_nav_title">Navigation &amp; Extended</string>

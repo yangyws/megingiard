@@ -164,9 +164,20 @@ internal fun PadTableCell(
             effectiveBg
         }
 
+    val selectedBorderAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.65f,
+        targetValue = 1.0f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "cellSelectedBorderAlpha",
+    )
+
     val cellBorderColor =
         if (isPickedUp || isDropTarget || isSelected) {
-            PTC_TABLE_SELECTED_BORDER
+            PTC_TABLE_SELECTED_BORDER.copy(alpha = if (isSelected) selectedBorderAlpha else 1f)
         } else if (isThickBorder) {
             PTC_TABLE_THICK_BORDER_COLOR
         } else {
@@ -179,7 +190,7 @@ internal fun PadTableCell(
         targetValue =
             when {
                 isPickedUp -> 1.06f
-                isSelected -> 1.04f
+                isSelected -> 1.05f
                 else -> 1.0f
             },
         animationSpec = tween(120),
@@ -205,13 +216,19 @@ internal fun PadTableCell(
                         }
                     scaleX = floatScale
                     scaleY = floatScale
-                    shadowElevation = if (isPickedUp || isSelected) 16f else 0f
+                    shadowElevation = if (isPickedUp || isSelected) 24f else 0f
                 }
                 .then(
                     if (isPickedUp || isDropTarget || isSelected) {
                         Modifier.border(
-                            width = PTC_TABLE_DROP_BORDER_WIDTH,
-                            color = PTC_TABLE_SELECTED_BORDER,
+                            width = if (isSelected) 3.5.dp else PTC_TABLE_DROP_BORDER_WIDTH,
+                            color = PTC_TABLE_SELECTED_BORDER.copy(alpha = if (isSelected) selectedBorderAlpha else 1f),
+                            shape = shape,
+                        )
+                    } else if (isThickBorder) {
+                        Modifier.border(
+                            width = PTC_TABLE_THICK_BORDER_WIDTH,
+                            color = PTC_TABLE_THICK_BORDER_COLOR,
                             shape = shape,
                         )
                     } else {
@@ -267,13 +284,22 @@ internal fun PadTableCell(
                     height = paddedHeight,
                 )
             }
+            if (isSelected) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .clip(shape)
+                            .background(PTC_TABLE_SELECTED_BORDER.copy(alpha = 0.15f * selectedBorderAlpha)),
+                )
+            }
         }
     }
 }
 
 @Composable
 internal fun PadTableGridLines(layout: PadLayout) {
-    if (layout.gridShowBorders) return
+    if (!layout.gridShowBorders) return
     val density = LocalDensity.current
     val strokePx = with(density) { PTC_TABLE_GRID_LINE_WIDTH.toPx() }
     val lines = remember(layout) { GridLayoutMath.gridLines(layout, outlineEmptyCells = true) }
@@ -747,12 +773,6 @@ internal fun PadTableGrid(
                                             )
                                     } else {
                                         Modifier
-                                            .padding(1.dp)
-                                            .border(
-                                                width = 1.dp,
-                                                color = Color(0x22FFFFFF),
-                                                shape = cellShape,
-                                            )
                                     },
                                 )
                                 .clip(cellShape),

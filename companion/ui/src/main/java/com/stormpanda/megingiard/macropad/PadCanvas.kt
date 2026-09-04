@@ -2,6 +2,12 @@ package com.stormpanda.megingiard.macropad
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,9 +21,11 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,11 +33,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,7 +69,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -153,6 +167,17 @@ internal fun PadCanvas(
     transparentBackground: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val croppingButtonState by MacroPadState.croppingButtonState.collectAsState()
+    val activeCroppingButton = croppingButtonState
+    if (activeCroppingButton != null) {
+        ButtonCropCanvas(
+            state = activeCroppingButton,
+            accentColor = accentColor,
+            modifier = modifier,
+        )
+        return
+    }
+
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val selectedButtonId by MacroPadState.selectedButtonId.collectAsState()
     val isMirrorEditorBackgroundHidden by AppStateManager.isMirrorEditorBackgroundHidden.collectAsState()
@@ -340,7 +365,7 @@ internal fun PadCanvas(
             )
         }
 
-        if (layout?.isGridMode == true) {
+        if (effectiveLayout?.isGridMode == true) {
             Box(
                 modifier =
                     if (isCropping) {
@@ -350,41 +375,29 @@ internal fun PadCanvas(
                     },
             ) {
                 PadTableGrid(
-                    layout = layout,
+                    layout = effectiveLayout,
                     accentColor = accentColor,
                     isInteractive = !isCropping,
                     onCellTap = { col, row ->
-                        val existing = GridLayoutMath.buttonAt(layout, col, row)
+                        val existing = GridLayoutMath.buttonAt(effectiveLayout, col, row)
                         if (existing != null) {
                             MacroPadState.setSelectedButtonId(existing.id)
                         } else {
-                            val newBtn =
-                                PadButton(
-                                    id = UUID.randomUUID().toString(),
-                                    label = context.getString(R.string.macropad_editor_new_button_default_label),
-                                    posX = 0.5f,
-                                    posY = 0.5f,
-                                    gridCol = col,
-                                    gridRow = row,
-                                    colSpan = 1,
-                                    rowSpan = 1,
-                                    action = PadAction.GamepadButton(GamepadKeycodes.BTN_SOUTH, "A"),
-                                )
-                            val updated = layout.copy(buttons = layout.buttons + newBtn)
-                            MacroPadState.updateLayout(updated)
-                            MacroPadState.setPreviewLayout(updated)
-                            MacroPadState.setSelectedButtonId(newBtn.id)
                             MacroPadNavState.selectSection(EditorSection.BUTTONS)
                             MacroPadNavState.push(
-                                MacroPadSubPage.EditButton(
-                                    button = newBtn,
-                                    draftButton = newBtn,
+                                MacroPadSubPage.ChooseButtonType(
+                                    initialGridCol = col,
+                                    initialGridRow = row,
                                 ),
                             )
                         }
                     },
                     onCellMove = { from, to ->
-                        val moved = GridLayoutMath.swapOrMoveButton(layout, from, to)
+                        val moved = GridLayoutMath.swapOrMoveButton(effectiveLayout, from, to)
+                        val movedBtn = GridLayoutMath.buttonAt(moved, to.first, to.second)
+                        if (movedBtn != null) {
+                            MacroPadState.setSelectedButtonId(movedBtn.id)
+                        }
                         MacroPadState.updateLayout(moved)
                         MacroPadState.setPreviewLayout(moved)
                     },
@@ -401,11 +414,11 @@ internal fun PadCanvas(
                     Modifier
                 },
         ) {
-            (if (layout?.isGridMode == true) emptyList() else layout?.buttons ?: emptyList()).forEach { btn ->
-                val targetLayoutId = layout?.id
+            (if (effectiveLayout?.isGridMode == true) emptyList() else effectiveLayout?.buttons ?: emptyList()).forEach { btn ->
+                val targetLayoutId = effectiveLayout?.id
                 DraggableButton(
                     btn = btn,
-                    layout = layout!!,
+                    layout = effectiveLayout!!,
                     canvasSize = canvasSize,
                     accentColor = accentColor,
                     enableKeyboard = profile.enableKeyboard,
@@ -415,6 +428,7 @@ internal fun PadCanvas(
                     gridMode = gridMode,
                     gridStepPx = gridStepPx,
                     isLocked = isLocked || isCropping,
+                    isSelected = selectedButtonId == btn.id,
                     onTouch = {
                         MacroPadState.setSelectedButtonId(btn.id)
                     },
@@ -440,19 +454,24 @@ internal fun PadCanvas(
         }
 
         // Render handles or highlight pointers for the active button
-        val activeBtn = (layout?.buttons ?: emptyList()).firstOrNull { it.id == selectedButtonId }
+        val activeBtn = (effectiveLayout?.buttons ?: emptyList()).firstOrNull { it.id == selectedButtonId }
         if (activeBtn != null && !isCropping) {
-            val isGrid = layout?.isGridMode == true
-            val cols = layout?.effectiveGridCols ?: 1
-            val rows = layout?.effectiveGridRows ?: 1
+            val isGrid = effectiveLayout?.isGridMode == true
+            val cols = effectiveLayout?.effectiveGridCols ?: 1
+            val rows = effectiveLayout?.effectiveGridRows ?: 1
 
             val w = canvasSize.width.toFloat().coerceAtLeast(1f)
             val h = canvasSize.height.toFloat().coerceAtLeast(1f)
 
+            val chipWidthPx: Float
+            val chipHeightPx: Float
+            val centerX: Float
+            val centerY: Float
+
             if (!isGrid) {
                 val isTrackpoint = activeBtn.action is PadAction.TrackpointMove
                 val tpMultiplier = if (isTrackpoint) (activeBtn.action as PadAction.TrackpointMove).size.multiplier else 1f
-                val chipWidthPx =
+                chipWidthPx =
                     with(density) {
                         if (isTrackpoint) {
                             (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
@@ -460,7 +479,7 @@ internal fun PadCanvas(
                             (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.cols).toPx()
                         }
                     }
-                val chipHeightPx =
+                chipHeightPx =
                     with(density) {
                         if (isTrackpoint) {
                             (ED_BUTTON_UNIT_DP * tpMultiplier).toPx()
@@ -468,14 +487,24 @@ internal fun PadCanvas(
                             (ED_BUTTON_UNIT_DP * activeBtn.buttonSize.rows).toPx()
                         }
                     }
-                val centerX = activeBtn.posX * w
-                val centerY = activeBtn.posY * h
+                centerX = activeBtn.posX * w
+                centerY = activeBtn.posY * h
+            } else {
+                val cellWPx = if (cols > 0) w / cols else 0f
+                val cellHPx = if (rows > 0) h / rows else 0f
+                val col = activeBtn.gridCol ?: 0
+                val row = activeBtn.gridRow ?: 0
+                chipWidthPx = cellWPx * activeBtn.effectiveColSpan
+                chipHeightPx = cellHPx * activeBtn.effectiveRowSpan
+                centerX = col * cellWPx + chipWidthPx / 2f
+                centerY = row * cellHPx + chipHeightPx / 2f
+            }
 
-                val halfW = chipWidthPx / 2f
-                val halfH = chipHeightPx / 2f
+            val halfW = chipWidthPx / 2f
+            val halfH = chipHeightPx / 2f
 
-                val handleSizePx = with(density) { PC_HANDLE_SIZE.toPx() }
-                val paddingPx = with(density) { PC_HANDLE_PADDING.toPx() }
+            val handleSizePx = with(density) { PC_HANDLE_SIZE.toPx() }
+            val paddingPx = with(density) { PC_HANDLE_PADDING.toPx() }
 
             val handles =
                 listOf(
@@ -485,7 +514,7 @@ internal fun PadCanvas(
                     HandlePosition(centerX + halfW + paddingPx, centerY - handleSizePx / 2f, PC_POINTER_ROTATION_RIGHT),
                 )
 
-            if (!isLocked && !isCropping) {
+            if (!isLocked && !isCropping && !isGrid) {
                 handles.forEach { pos ->
                     DragHandle(
                         buttonId = activeBtn.id,
@@ -514,7 +543,6 @@ internal fun PadCanvas(
                 }
             }
         }
-    }
 
         AnimatedVisibility(
             visible = lockSymbolVisible,
@@ -564,6 +592,7 @@ private fun DraggableButton(
     gridMode: GridMode,
     gridStepPx: Float,
     isLocked: Boolean,
+    isSelected: Boolean = false,
     onTouch: () -> Unit,
     onPositionChanged: (Float, Float) -> Unit,
 ) {
@@ -573,9 +602,28 @@ private fun DraggableButton(
     val resolvedBorderColorOption = btn.buttonBorderColor ?: layout.buttonBorderColor
     val resolvedTextColorOption = btn.buttonTextColor ?: layout.buttonTextColor
 
+    val infiniteTransition = rememberInfiniteTransition(label = "btnSelectedTransition")
+    val selectedBorderAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.65f,
+        targetValue = 1.0f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "btnSelectedBorderAlpha",
+    )
+
     val effectiveBg = resolveBgColorOption(resolvedBgColorOption, accentColor)
     val effectiveBorder = resolveColorOption(resolvedBorderColorOption, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
     val effectiveTextTint = resolveColorOption(resolvedTextColorOption, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+    val cellBorderColor = if (isSelected) PTC_TABLE_SELECTED_BORDER.copy(alpha = selectedBorderAlpha) else effectiveBorder
+
+    val floatScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.05f else 1.0f,
+        animationSpec = tween(120),
+        label = "btnFloatScale",
+    )
 
     // rememberUpdatedState lets the pointerInput closure (keyed only on btn.id +
     // canvasSize) see the live btn even though its lambda is NOT restarted when
@@ -646,6 +694,22 @@ private fun DraggableButton(
                 .absoluteOffset { IntOffset(left.roundToInt(), top.roundToInt()) }
                 .width(btnWidthDp)
                 .height(btnHeightDp)
+                .graphicsLayer {
+                    scaleX = floatScale
+                    scaleY = floatScale
+                    shadowElevation = if (isSelected) 24f else 0f
+                }
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = 3.5.dp,
+                            color = PTC_TABLE_SELECTED_BORDER.copy(alpha = selectedBorderAlpha),
+                            shape = chipShape,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .then(
                     if (isLocked) {
                         Modifier
@@ -708,7 +772,7 @@ private fun DraggableButton(
             shape = chipShape,
             isIconOnly = isIconOnly,
             isDeviceDisabled = isDeviceDisabled,
-            borderColor = effectiveBorder,
+            borderColor = cellBorderColor,
             bgColor = effectiveBg,
             modifier =
                 Modifier
@@ -734,6 +798,15 @@ private fun DraggableButton(
                     isTableLayout = false,
                     width = btnWidthDp,
                     height = btnHeightDp,
+                )
+            }
+            if (isSelected) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .clip(chipShape)
+                            .background(PTC_TABLE_SELECTED_BORDER.copy(alpha = 0.15f * selectedBorderAlpha)),
                 )
             }
         }
@@ -1076,3 +1149,236 @@ private fun HighlightPointer(
         )
     }
 }
+
+@Composable
+internal fun ButtonCropCanvas(
+    state: CroppingButtonState,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val bitmap = remember(state.sourceBitmap) { state.sourceBitmap.asImageBitmap() }
+
+    var accumScale by remember { mutableFloatStateOf(state.scale) }
+    var accumOffsetX by remember { mutableFloatStateOf(state.offsetX) }
+    var accumOffsetY by remember { mutableFloatStateOf(state.offsetY) }
+
+    LaunchedEffect(state.scaleMode, state.sourceBitmap) {
+        accumScale = state.scale.coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
+        accumOffsetX = state.offsetX
+        accumOffsetY = state.offsetY
+    }
+
+    LaunchedEffect(state.scale, state.offsetX, state.offsetY) {
+        if (state.scale != accumScale) accumScale = state.scale
+        if (state.offsetX != accumOffsetX) accumOffsetX = state.offsetX
+        if (state.offsetY != accumOffsetY) accumOffsetY = state.offsetY
+    }
+
+    val activeProfile by MacroPadState.activeProfile.collectAsState()
+    val previewLayout by MacroPadState.previewLayout.collectAsState()
+    val currentLayout =
+        previewLayout ?: activeProfile?.let { p ->
+            p.layouts.firstOrNull { it.id == p.activeLayoutId } ?: p.layouts.firstOrNull()
+        }
+
+    val maxW = canvasSize.width * 0.76f
+    val maxH = canvasSize.height * 0.76f
+    val aspect =
+        if (state.isGridMode && canvasSize.width > 0 && canvasSize.height > 0) {
+            val cols = currentLayout?.effectiveGridCols ?: 4
+            val rows = currentLayout?.effectiveGridRows ?: 3
+            val colSpan = state.draftButton.effectiveColSpan
+            val rowSpan = state.draftButton.effectiveRowSpan
+            ((canvasSize.width.toFloat() / cols * colSpan) / (canvasSize.height.toFloat() / rows * rowSpan)).coerceAtLeast(0.1f)
+        } else if (!state.isGridMode) {
+            (state.draftButton.buttonSize.cols.toFloat() / state.draftButton.buttonSize.rows.toFloat().coerceAtLeast(1f)).coerceAtLeast(0.1f)
+        } else if (state.aspectRatio.isFinite() && state.aspectRatio > 0f) {
+            state.aspectRatio
+        } else {
+            1f
+        }
+
+    val (buttonW, buttonH) =
+        if (canvasSize.width > 0 && canvasSize.height > 0) {
+            if (aspect >= maxW / maxH) {
+                maxW to (maxW / aspect)
+            } else {
+                (maxH * aspect) to maxH
+            }
+        } else {
+            0f to 0f
+        }
+
+    val gestureModifier =
+        if (buttonW > 0f && buttonH > 0f && state.scaleMode != BackgroundScaleMode.STRETCH) {
+            Modifier.pointerInput(buttonW, buttonH, bitmap, state.scaleMode) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    val cw = buttonW
+                    val ch = buttonH
+                    val iw = bitmap.width.toFloat()
+                    val ih = bitmap.height.toFloat()
+                    if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                        val newScale = (accumScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
+                        accumScale = newScale
+
+                        val scaleBase =
+                            if (state.scaleMode == BackgroundScaleMode.FIT) {
+                                ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                            } else {
+                                ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                            }
+                        val ws = iw * scaleBase
+                        val hs = ih * scaleBase
+
+                        val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
+                        val currentPixelX = accumOffsetX * cw + pan.x
+                        val currentPixelY = accumOffsetY * ch + pan.y
+                        val clampedX = if (maxTx > 0f) currentPixelX.coerceIn(-maxTx, maxTx) else 0f
+                        val clampedY = if (maxTy > 0f) currentPixelY.coerceIn(-maxTy, maxTy) else 0f
+
+                        val normX = if (cw > 0f) clampedX / cw else 0f
+                        val normY = if (ch > 0f) clampedY / ch else 0f
+
+                        accumOffsetX = normX
+                        accumOffsetY = normY
+
+                        MacroPadState.updateCroppingButtonTransform(newScale, normX, normY)
+                    }
+                }
+            }
+        } else {
+            Modifier
+        }
+
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .clip(PC_HIGHLIGHT_BORDER_SHAPE)
+                .background(Color.Black)
+                .border(
+                    width = PC_HIGHLIGHT_BORDER_WIDTH,
+                    color = accentColor.copy(alpha = PC_HIGHLIGHT_BORDER_ALPHA),
+                    shape = PC_HIGHLIGHT_BORDER_SHAPE,
+                )
+                .onSizeChanged { canvasSize = it }
+                .then(gestureModifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (buttonW > 0f && buttonH > 0f) {
+            val buttonWDp = with(density) { buttonW.toDp() }
+            val buttonHDp = with(density) { buttonH.toDp() }
+
+            val shape =
+                if (state.isGridMode) {
+                    RoundedCornerShape(8.dp)
+                } else {
+                    when (state.draftButton.buttonShape) {
+                        ButtonShape.CIRCLE -> {
+                            if (state.draftButton.buttonSize == ButtonSize.SIZE_2X1 ||
+                                state.draftButton.buttonSize == ButtonSize.SIZE_1X2
+                            ) {
+                                PC_PILL_SHAPE
+                            } else {
+                                CircleShape
+                            }
+                        }
+                        ButtonShape.SQUARE, ButtonShape.ICON_ONLY -> ED_BTN_SQUARE_SHAPE
+                    }
+                }
+
+            val resolvedBgColorOption = state.draftButton.buttonBgColor ?: currentLayout?.buttonBgColor ?: ColorOption.Neutral
+            val resolvedBorderColorOption = state.draftButton.buttonBorderColor ?: currentLayout?.buttonBorderColor ?: ColorOption.Neutral
+            val resolvedTextColorOption = state.draftButton.buttonTextColor ?: currentLayout?.buttonTextColor ?: ColorOption.Neutral
+
+            val effectiveBg =
+                when (resolvedBgColorOption) {
+                    ColorOption.Neutral -> Color(0xFF161616)
+                    ColorOption.Accent -> accentColor.copy(alpha = 0.35f)
+                    is ColorOption.Custom -> Color(resolvedBgColorOption.argb)
+                }
+            val effectiveBorder = resolveColorOption(resolvedBorderColorOption, accentColor, MP_AMBIENT_NEUTRAL_BORDER)
+            val effectiveTextTint = resolveColorOption(resolvedTextColorOption, accentColor, MP_AMBIENT_NEUTRAL_TEXT)
+
+            Box(
+                modifier =
+                    Modifier
+                        .size(width = buttonWDp, height = buttonHDp)
+                        .clip(shape)
+                        .background(effectiveBg)
+                        .border(
+                            width = PC_HIGHLIGHT_BORDER_WIDTH,
+                            color = effectiveBorder,
+                            shape = shape,
+                        ),
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val cw = size.width
+                    val ch = size.height
+                    val iw = bitmap.width.toFloat()
+                    val ih = bitmap.height.toFloat()
+                    if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
+                        val (dstOffset, dstSize) =
+                            calculateViewportDst(
+                                containerW = cw,
+                                containerH = ch,
+                                contentW = iw,
+                                contentH = ih,
+                                fitMode = state.scaleMode.toCropFitMode(),
+                                scale = state.scale,
+                                offsetX = state.offsetX,
+                                offsetY = state.offsetY,
+                            )
+                        if (dstSize.width > 0 && dstSize.height > 0) {
+                            drawImage(
+                                image = bitmap,
+                                dstOffset = dstOffset,
+                                dstSize = dstSize,
+                            )
+                        }
+                    }
+                }
+
+                val textLabel = state.draftButton.label.ifBlank { state.draftButton.action.displayLabel() }
+                if (state.draftButton.showLabel && textLabel.isNotBlank()) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(bottom = 6.dp),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        val labelBgModifier =
+                            if (state.draftButton.showLabelBg) {
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.55f))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            } else {
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            }
+                        Box(
+                            modifier = labelBgModifier,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = textLabel,
+                                color = effectiveTextTint,
+                                fontSize = if (state.draftButton.enlargeText) 18.sp else 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

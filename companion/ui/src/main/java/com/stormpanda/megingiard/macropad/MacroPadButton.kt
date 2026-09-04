@@ -304,6 +304,7 @@ internal fun PadButtonContent(
     isTableLayout: Boolean = false,
     width: Dp? = null,
     height: Dp? = null,
+    labelOverlay: Boolean = true,
 ) {
     if (isTrackpoint) {
         Text(
@@ -329,25 +330,28 @@ internal fun PadButtonContent(
             faceSize = faceSize,
             tint = effectiveTextTint,
             accentColor = effectiveContentAccent,
+            labelOverlay = labelOverlay,
             isTableLayout = isTableLayout,
             width = width,
             height = height,
             fallback = {
-                val dynamicFontSize =
-                    if (faceSize != null) (faceSize.value * 0.28f).coerceIn(14f, 28f).sp else 16.sp
-                val textStyle =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontSize = dynamicFontSize,
-                        fontWeight = FontWeight.Bold,
+                if (labelOverlay) {
+                    val dynamicFontSize =
+                        if (faceSize != null) (faceSize.value * 0.28f).coerceIn(14f, 28f).sp else 16.sp
+                    val textStyle =
+                        MaterialTheme.typography.titleMedium.copy(
+                            fontSize = dynamicFontSize,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    Text(
+                        text = btn.label,
+                        color = effectiveTextTint,
+                        style = textStyle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                     )
-                Text(
-                    text = btn.label,
-                    color = effectiveTextTint,
-                    style = textStyle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
+                }
             },
         )
     }

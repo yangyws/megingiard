@@ -79,6 +79,13 @@ private fun BackgroundScaleMode.labelResId(): Int =
         BackgroundScaleMode.STRETCH -> R.string.bg_scale_mode_stretch
     }
 
+private fun BackgroundScaleMode.descriptionResId(): Int =
+    when (this) {
+        BackgroundScaleMode.FILL -> R.string.bg_scale_mode_fill_desc
+        BackgroundScaleMode.FIT -> R.string.bg_scale_mode_fit_desc
+        BackgroundScaleMode.STRETCH -> R.string.bg_scale_mode_stretch_desc
+    }
+
 private const val BSE_DIM_MAX = 0.95f
 private const val BSE_DIM_STEP = 0.05f
 private const val BSE_PERCENT_DIVISOR = 100f
@@ -98,6 +105,7 @@ internal fun LayoutBackgroundSubPageContent(
     profileName: String,
     accentColor: Color,
     onOpenScrape: () -> Unit,
+    onOpenPicker: () -> Unit = {},
     onDiscard: () -> Unit = {},
     onConfirm: (
         backgroundImagePath: String?,
@@ -142,6 +150,13 @@ internal fun LayoutBackgroundSubPageContent(
 
     LaunchedEffect(isCropActive) {
         MacroPadState.setCroppingBackground(isCropActive)
+    }
+
+    val isCroppingBg by MacroPadState.isCroppingBackground.collectAsState()
+    LaunchedEffect(isCroppingBg) {
+        if (!isCroppingBg && isCropActive) {
+            isCropActive = false
+        }
     }
 
     DisposableEffect(Unit) {
@@ -297,6 +312,14 @@ internal fun LayoutBackgroundSubPageContent(
     )
 
     GamepadActionCard(
+        title = stringResource(R.string.layout_settings_bg_image_browse_local),
+        description = stringResource(R.string.button_image_picker_desc),
+        icon = Icons.Rounded.Folder,
+        onClick = onOpenPicker,
+        modifier = Modifier.firstDeckItem(),
+    )
+
+    GamepadActionCard(
         title = stringResource(R.string.layout_settings_bg_image_scrape),
         description = stringResource(R.string.macropad_editor_bg_steamgriddb_desc),
         icon = Icons.Rounded.Search,
@@ -307,14 +330,6 @@ internal fun LayoutBackgroundSubPageContent(
                 onOpenScrape()
             }
         },
-        modifier = Modifier.firstDeckItem(),
-    )
-
-    GamepadActionCard(
-        title = stringResource(R.string.layout_settings_bg_image_browse_local),
-        description = stringResource(R.string.macropad_editor_bg_storage_desc),
-        icon = Icons.Rounded.Folder,
-        onClick = { BackgroundPickerManager.requestImagePicker() },
     )
 
     if (previewBitmap != null) {
@@ -325,7 +340,7 @@ internal fun LayoutBackgroundSubPageContent(
 
         GamepadChoiceCard(
             title = stringResource(R.string.layout_settings_bg_scale_mode),
-            description = stringResource(R.string.layout_settings_bg_scale_mode_desc),
+            description = stringResource(bgScaleMode.descriptionResId()),
             selectedText = stringResource(bgScaleMode.labelResId()),
             icon = Icons.Rounded.AspectRatio,
             onPrevious = {

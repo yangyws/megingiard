@@ -213,7 +213,9 @@ Each button supports one of the following actions:
     - Button-level `invisible` property controls the visibility of the button in Use Mode. When true, the button is completely hidden (visually transparent) but remains fully interactive under touch input. In editing mode, the button remains visible (with the button body rendered at 40% opacity and overlaid with a small crossed-out eye in the top right corner at 100% opacity for clear distinction) so it can be customized and repositioned. Table Mode ignores invisible buttons and renders unified button faces matching Free Mode styling.
   - **Button-level overrides**: Each button can override the layout-wide color defaults individually using the same `ColorOption` fields (`PadButton.buttonTextColor`, `PadButton.buttonBorderColor`, `PadButton.buttonBgColor` for fading color). A special `null` value (shown as **Layout Default**) reverts the button back to the layout-wide default behavior.
   - Color options survive profile imports/exports and migrate legacy button color formats (`buttonColorNoMirror` / `buttonColorMirror`) automatically.
-
+- **Top-Level Button Layout Mode Selection (`LayoutsDeck`)**:
+  - The Layouts top-level deck (`EditorSection.LAYOUTS`) features a direct **Button Layout (`layout_settings_mode_title`)** card allowing users to seamlessly toggle the active layout between **Freeform (`layout_settings_mode_free`)** and **Table (`layout_settings_mode_grid`)** directly on the main deck.
+  - Detailed grid dimensions (Columns and Rows steppers), border frame visibility, and background options remain managed within the dedicated **Edit Layout** sub-page (`EditLayoutSubPageContent`).
 
 ### FR-P8b: Edit Button Positions & Precision Movement
 
@@ -227,22 +229,29 @@ Each button supports one of the following actions:
   - Holding a direction down continuously accelerates the tick frequency (starting at 250 ms initial delay, ramping down to 16 ms intervals / ~60 Hz) for smooth, high-precision positioning without skipping pixels.
   - Pressing `(B)`, `(A)`, `Enter`, or back navigation deactivates precision movement mode, returning control to standard card navigation without bubbling back to the parent screen.
 
-### FR-P8c: Custom Button Image & Dedicated Cropping Sub-Page
+### FR-P8c: Custom Button Image & Dedicated Sub-Page (`ButtonCustomImage`)
 
-- **Custom Button Face Artwork:** Users can set custom images on individual buttons via the Button Settings deck.
-- **Dedicated Sub-Page Navigation Flow:** Selecting an image triggers bottom-screen file picking and navigates into a dedicated `GamepadDeck` sub-page (`MacroPadSubPage.CropButtonImage`) with breadcrumbs (`Buttons > Crop Image`), eliminating modal dialog clutter.
-- **Interactive Cropping & Gamepad Controls:**
-  - **Aspect Ratio Matching:** Crop viewport automatically adapts to button aspect ratio (e.g. 1×1, 2×1, 1×2, or Table Mode column/row spans).
-  - **Touch & D-pad Panning:** Users can drag the image directly on the crop canvas or use the D-pad to pan with precision.
-  - **Zooming:** L1/R1 bumper keys adjust zoom levels smoothly.
-  - **Fit / Fill Mode Selection:** Quick toggle chips allow switching between full-bleed Fill cropping and Fit-whole modes.
-- **Confirmation & Storage:** Confirming the crop bakes the transformed bitmap, saves the asset into `PadIconStore`, sets `imageAssetId` on the button draft, and pops back to Button Settings with immediate live preview.
+- **Custom Button Face Artwork & Dedicated Sub-Page:** Users can set and adjust custom images on individual buttons via a dedicated sub-page (`MacroPadSubPage.ButtonCustomImage` / `ButtonCustomImageSubPageContent`), sharing identical structure, sections, and parity with Layout Background settings (`LayoutBackgroundSubPageContent`):
+  - **1. Artwork Source (圖片來源):**
+    - **Browse Local Images (`ChooseButtonImage`):** Opens a 4-column 2D gamepad-navigable thumbnail gallery of device images and system file picker.
+    - **Search on SteamGridDB (`SteamGridDbScrape`):** Scrapes game posters and grids online.
+  - **2. Image Adjustments (圖片調整):**
+    - **Scale Mode Selection (`GamepadChoiceCard`):** Directly cycles between **Fill (填滿)**, **Fit (符合)**, and **Stretch (拉伸)** with live dynamic descriptions.
+    - **Button Label Overlays:** Toggle to show/hide button label over custom artwork (`showLabel`), add semi-transparent label background for readability (`showLabelBg`), and enlarge label font size (`enlargeText`).
+  - **3. Save & Delete (儲存與刪除):**
+    - **Save Action Row (`GamepadSaveExitActionRow`):** Confirms changes back to button settings draft, or handles back navigation with save/discard prompts.
+    - **Remove Image (`GamepadTwoStepConfirmCard`):** Safely deletes custom image association.
+- **Automatic Enlarged Secondary Screen Crop Canvas (`ButtonCropCanvas`):** While browsing the Custom Image sub-page with an active image, the secondary bottom screen (`PadCanvas`) automatically transforms to display a prominent enlarged preview of the target button (conforming dynamically to its exact physical aspect ratio and geometric button shape: circle, square, or spanned grid cell on the handheld display) bordered in the theme accent color.
+- **Bottom-Screen Direct Touch & Gesture Controls:** Users can directly drag to pan and pinch to zoom (1.0×–5.0×) on the bottom touchscreen to adjust image positioning within the button face with 60fps real-time feedback, matching the background cropping interaction model.
+- **Offset Clamping & Aspect Ratio Matching:** Crop viewport automatically adapts to button aspect ratio (e.g. 1×1, 2×1, 1×2, or Table Mode cell aspect ratios derived from live secondary screen canvas dimensions, grid columns/rows, and button column/row spans via `((canvasWidth / cols * colSpan) / (canvasHeight / rows * rowSpan))`), with pan clamping via `ViewportMath.calculateViewportDst`.
+- **Seamless Deactivation:** Leaving or saving the Custom Image sub-page (or setting scale mode to Stretch) automatically deactivates the bottom crop canvas and returns the secondary screen to normal pad layout preview.
+- **Non-Destructive Storage & Re-Cropping:** The full uncropped source asset is preserved in `PadIconStore` and viewport transform parameters (`imageScaleMode`, `imageScale`, `imageOffsetX`, `imageOffsetY`) are stored directly on `PadButton`. Users can freely switch scale modes, readjust pan/zoom offsets at any time without fidelity loss or baked bitmap locking.
 
 ### FR-P9a: Custom Background Image
 
 - Users can choose a **custom background image** to be displayed behind the MacroPad buttons.
 - The configuration is situated in the **Background** section of the layout editor (`LayoutBackgroundSubPageContent`).
-- Tapping "Browse Local" opens the system document picker (`image/*`), while "Search SteamGridDB" allows scraping game artwork directly.
+- **Unified Local Image Picker Sub-Page (`ChooseBackgroundImage`):** Tapping "Browse Local" opens the same 4-column local image gallery as buttons, providing device media thumbnails, SteamGridDB scraping, and system SAF file picking.
 - **Dual-Screen Live In-Flight Preview:** Choosing a background image, adjusting the dimming slider, toggling "Use as mask", clearing/deleting the image, or adjusting crop pan/zoom transformations streams in-flight preview state (`MacroPadState.previewLayout`) immediately to the secondary bottom display (`PadCanvas`) in real time, allowing users to see the exact composition before saving.
 - **In-Place Crop Toggle & Bottom-Screen Gestures:** Tapping the "Crop" toggle card activates cropping mode directly (`MacroPadState.isCroppingBackground = true`). While active:
   - The bottom screen (`PadCanvas`) is highlighted with an accent color border (matching button move mode).

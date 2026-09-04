@@ -417,6 +417,63 @@ class GridLayoutMathTest {
         val movedBtn1 = moved.buttons.firstOrNull { it.id == "btn1" }
         assertEquals(0, movedBtn1?.gridCol)
     }
+
+    @Test
+    fun testCellAspectRatio() {
+        // 4 cols x 3 rows on 4:3 screen:
+        // cellAspect = (4/3) * (3/4) = 1.0f (exact square cell)
+        val aspect1x1 = GridLayoutMath.cellAspectRatio(cols = 4, rows = 3, colSpan = 1, rowSpan = 1, containerAspect = 4f / 3f)
+        assertEquals(1.0f, aspect1x1, 0.001f)
+
+        // 2x1 cell in 4x3 grid:
+        val aspect2x1 = GridLayoutMath.cellAspectRatio(cols = 4, rows = 3, colSpan = 2, rowSpan = 1, containerAspect = 4f / 3f)
+        assertEquals(2.0f, aspect2x1, 0.001f)
+
+        // 1x2 cell in 4x3 grid:
+        val aspect1x2 = GridLayoutMath.cellAspectRatio(cols = 4, rows = 3, colSpan = 1, rowSpan = 2, containerAspect = 4f / 3f)
+        assertEquals(0.5f, aspect1x2, 0.001f)
+
+        // 8 cols x 2 rows on 4:3 screen:
+        // cellAspect = (4/3) * (2/8) = (4/3) * (1/4) = 1/3 ~ 0.3333f
+        val aspect8x2 = GridLayoutMath.cellAspectRatio(cols = 8, rows = 2, colSpan = 1, rowSpan = 1, containerAspect = 4f / 3f)
+        assertEquals(1f / 3f, aspect8x2, 0.001f)
+    }
+
+    @Test
+    fun testFindNeighborButton() {
+        val btnTopLeft = createButton("tl", 0, 0)
+        val btnTopRight = createButton("tr", 2, 0)
+        val btnBottomLeft = createButton("bl", 0, 1)
+        val layout =
+            PadLayout(
+                id = "layout1",
+                name = "Test Layout",
+                layoutMode = PadLayoutMode.GRID,
+                buttons = listOf(btnTopLeft, btnTopRight, btnBottomLeft),
+                gridCols = 4,
+                gridRows = 3,
+            )
+
+        // Right from (0,0) jumps gap at col 1 and finds (2,0)
+        val neighborRight = GridLayoutMath.findNeighborButton(layout, btnTopLeft, dirX = 1, dirY = 0)
+        assertEquals("tr", neighborRight?.id)
+
+        // Left from (2,0) finds (0,0)
+        val neighborLeft = GridLayoutMath.findNeighborButton(layout, btnTopRight, dirX = -1, dirY = 0)
+        assertEquals("tl", neighborLeft?.id)
+
+        // Down from (0,0) finds (0,1)
+        val neighborDown = GridLayoutMath.findNeighborButton(layout, btnTopLeft, dirX = 0, dirY = 1)
+        assertEquals("bl", neighborDown?.id)
+
+        // Up from (0,1) finds (0,0)
+        val neighborUp = GridLayoutMath.findNeighborButton(layout, btnBottomLeft, dirX = 0, dirY = -1)
+        assertEquals("tl", neighborUp?.id)
+
+        // Up from (0,0) is null
+        assertNull(GridLayoutMath.findNeighborButton(layout, btnTopLeft, dirX = 0, dirY = -1))
+    }
 }
+
 
 

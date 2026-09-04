@@ -148,10 +148,21 @@ internal sealed interface MacroPadSubPage {
         override val parentSection = EditorSection.LAYOUTS
     }
 
-    data class SteamGridDbScrape(
+    data class ChooseBackgroundImage(
         val layoutId: String,
     ) : MacroPadSubPage {
         override val parentSection = EditorSection.BACKGROUND
+    }
+
+    data class SteamGridDbScrape(
+        val layoutId: String,
+        val targetButton: PadButton? = null,
+        val draftButton: PadButton? = null,
+        val aspectRatio: Float = 1f,
+        val isGridMode: Boolean = false,
+    ) : MacroPadSubPage {
+        override val parentSection =
+            if (targetButton != null || draftButton != null) EditorSection.BUTTONS else EditorSection.BACKGROUND
     }
 
     data class CutoutSettings(
@@ -182,7 +193,12 @@ internal sealed interface MacroPadSubPage {
         override val parentSection = EditorSection.LAYOUTS
     }
 
-    data object ChooseButtonType : MacroPadSubPage {
+    data class ChooseButtonType(
+        val initialGridCol: Int? = null,
+        val initialGridRow: Int? = null,
+        val editingButton: PadButton? = null,
+        val savedButton: PadButton? = null,
+    ) : MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }
 
@@ -193,6 +209,13 @@ internal sealed interface MacroPadSubPage {
     data class EditButton(
         val button: PadButton?,
         val draftButton: PadButton? = null,
+    ) : MacroPadSubPage {
+        override val parentSection = EditorSection.BUTTONS
+    }
+
+    data class ButtonCustomImage(
+        val button: PadButton?,
+        val draftButton: PadButton,
     ) : MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }
@@ -256,6 +279,7 @@ internal sealed interface MacroPadSubPage {
         val button: PadButton?,
         val draftButton: PadButton,
         val aspectRatio: Float,
+        val isGridMode: Boolean = false,
     ) : MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }
@@ -265,6 +289,11 @@ internal sealed interface MacroPadSubPage {
         val draftButton: PadButton,
         val bitmap: ImageBitmap,
         val aspectRatio: Float,
+        val isGridMode: Boolean = false,
+        val initialScaleMode: BackgroundScaleMode = BackgroundScaleMode.FILL,
+        val initialScale: Float = 1.0f,
+        val initialOffsetX: Float = 0f,
+        val initialOffsetY: Float = 0f,
     ) : MacroPadSubPage {
         override val parentSection = EditorSection.BUTTONS
     }

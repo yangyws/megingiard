@@ -206,11 +206,11 @@
     <string name="settings_macropad_new">新建</string>
     <string name="macropad_reorder_profiles">重新排序設定檔</string>
     <string name="macropad_reorder_layouts">重新排序配置</string>
-    <string name="layout_settings_mode_title">版面配置模式</string>
-    <string name="layout_settings_mode_free">自由配置</string>
-    <string name="layout_settings_mode_grid">表格模式</string>
+    <string name="layout_settings_mode_title">按鈕排版</string>
+    <string name="layout_settings_mode_free">自由</string>
+    <string name="layout_settings_mode_grid">表格</string>
     <string name="layout_settings_mode_free_desc">按鈕可自由拖曳放置於畫布上的任意位置與大小。</string>
-    <string name="layout_settings_mode_grid_desc">按鈕對齊至結構化的 N×M 網格儲存格，支援跨欄與跨列擴展。</string>
+    <string name="layout_settings_mode_grid_desc">按鈕對齊至結構化的 N×M 表格網格，支援跨欄與跨列擴展。</string>
     <string name="layout_settings_grid_cols">欄數</string>
     <string name="layout_settings_grid_cols_desc">表格網格的水平欄數（1～8）</string>
     <string name="layout_settings_grid_rows">列數</string>
@@ -398,8 +398,11 @@
     <string name="layout_settings_bg_scale_mode">縮放模式</string>
     <string name="layout_settings_bg_scale_mode_desc">選擇背景圖片適應螢幕長寬比的方式。</string>
     <string name="bg_scale_mode_fill">填滿</string>
+    <string name="bg_scale_mode_fill_desc">等比例填滿畫面並裁切超出邊界，可自由縮放與平移位置</string>
     <string name="bg_scale_mode_fit">符合</string>
+    <string name="bg_scale_mode_fit_desc">等比例完整顯示整張圖片，邊界留空不裁切，可自由縮放與平移位置</string>
     <string name="bg_scale_mode_stretch">拉伸</string>
+    <string name="bg_scale_mode_stretch_desc">直接拉伸以完全貼合邊界（可能造成圖片變形，停用裁切與平移）</string>
     <string name="layout_settings_bg_image_adjustments">圖片調整與遮罩</string>
     <string name="layout_settings_bg_section_title">背景</string>
     <string name="layout_settings_bg_image_dimming_title">調暗</string>
@@ -562,6 +565,8 @@
     <string name="macropad_action_group_other">全螢幕工具</string>
     <string name="macropad_action_group_other_desc">開啟全螢幕滑鼠與鍵盤覆蓋層</string>
     <string name="macropad_editor_button_type">按鈕類型</string>
+    <string name="macropad_editor_change_button_type">更換按鈕類型</string>
+    <string name="macropad_editor_change_button_type_desc">重新選擇此按鈕的動作類別</string>
 
     <!-- Log report export -->
     <string name="settings_save_log_report">儲存日誌報告</string>
@@ -946,6 +951,7 @@
     <string name="gamepad_action_enable">啟用</string>
     <string name="gamepad_action_custom_color">自訂顏色</string>
     <string name="gamepad_action_select">選取</string>
+    <string name="gamepad_action_done">完成</string>
     <string name="gamepad_slider_fine_adjustment_toast">按住 L2 進行微調</string>
     <string name="macropad_picker_visual_keyboard_title">選取鍵盤按鍵</string>
     <string name="macropad_picker_keyboard_nav_title">導覽與擴充</string>
