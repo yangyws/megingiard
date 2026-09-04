@@ -178,6 +178,7 @@ Before marking a task as done, verify:
 - [ ] Test coverage verified or generated via `./gradlew koverLog` / `./gradlew koverHtmlReport` when required
 - [ ] If any native C source was modified, the corresponding build script was run and produced a new binary
 - [ ] Strict Zero-Heuristics Policy (§7.5) respected: No heuristics, substring guessing (e.g. contains("launcher")), synthetic fallbacks, or approximations introduced without explicit user permission
+- [ ] Standalone Companion Autonomy respected: Megingiard Companion bugs are resolved strictly within Companion / shared modules — zero dependency on or delegation to Game Focus (§6.1)
 - [ ] Help menus, onboardings, and localized strings updated if user interaction behavior changed (verify that every settings preference option has a corresponding explanation entry in its HelpModal)
 
 ---
@@ -228,7 +229,7 @@ affect runtime behaviour or user-facing interactions.
 
 ## 6 Package Structure
 
-The project is structured into 9 Feature-First Gradle modules:
+The project is structured into 10 Feature-First Gradle modules:
 
 ### App Modules (Executables)
 * **`:companion:ui`** — Main Android companion app UI layer (`com.stormpanda.megingiard`). Contains Activities, viewmodels, custom Compose views, and secondary screen presentations.
@@ -238,7 +239,8 @@ The project is structured into 9 Feature-First Gradle modules:
 * **`:companion:domain`** — Companion business logic, device managers, input injection facades (Touchpad, MacroPad, Keyboard, Mirror, Privd).
 * **`:gamefocus:domain`** — Standalone launcher domain logic and ROM launcher implementations (`RetroArchLauncher`, `GameNativeLauncher`).
 
-### Shared Domain & Core Modules
+### Shared UI, Domain & Core Modules
+* **`:shared:ui`** — App-wide design system tokens, themes (`AppColors`, `AppTheme`), modal dialogs (`AppModalDialog`), overlay modifiers, button glyphs (`GamePadButton`), and Material Symbol font resources.
 * **`:shared:catalog`** — Installed app index, ROM file scanning, system definitions (`InstalledAppsManager`, `RomManager`, `DisplayDetector`, `RomLauncherRegistry`).
 * **`:shared:media`** — External artwork fetchers, HTTP clients, and caching layers (`SteamGridDbClient`).
 * **`:shared:session`** — Active game detection engines (`EmulatorDetectionFunnel`, `GameNativeDetector`, `RetroArchDetector`, `Pcsx2AndroidDetector`, `YuzuDetector`).
@@ -257,6 +259,16 @@ Across all modules, files are organized into feature-centric packages. Keep thes
 * `ui/` — Design system constants, AppTheme palette factories, and reusable edge overlay quick menu bars.
 
 **Rule:** Shared business logic belongs in `:shared:catalog`, `:shared:media`, or `:shared:session`. Pure data types, math helpers, and logging facades belong in `:shared:core`. Feature-specific app logic belongs in `:companion:domain` or `:gamefocus:domain`. UI components belong in `:companion:ui` or `:gamefocus:ui`.
+
+### 6.1 Strict Decoupling: Megingiard Companion vs. Game Focus
+
+> [!CAUTION]
+> **CRITICAL ARCHITECTURAL RULE: MEGNINGIARD COMPANION IS A FULLY STANDALONE APP WITH ZERO DEPENDENCY ON GAME FOCUS.**
+>
+> 1. **Public vs. Unreleased:** Megingiard Companion (`:companion:ui`, `:companion:domain`, `:mirrorserver`, and `:shared:*`) is the primary standalone product distributed to users. **Game Focus (`:gamefocus:ui`, `:gamefocus:domain`) is currently NOT released to the public.**
+> 2. **Optional Usage:** Users are **never** forced or required to use Game Focus. Users may use stock Android, Odin/Thor launcher, Nova, Daijisho, ES-DE, Beacon, or any other third-party launcher on the top screen.
+> 3. **NO COMPANION BUGS FIXED IN GAME FOCUS:** Whenever an issue, bug, crash, focus glitch, lifecycle collision, or unexpected behavior occurs in Megingiard Companion, AI agents must **NEVER** assume that fixing or modifying Game Focus is a valid solution. Megingiard Companion must function with 100% stability and correctness completely on its own.
+> 4. **Strict Architectural Independence:** Megingiard Companion must have zero runtime dependencies on Game Focus. It must never assume Game Focus is installed, running, active in the foreground, or managing top-screen window state. Any inter-process integration (such as theme synchronization via `MegingiardThemeProvider`) is strictly optional and one-way: Companion acts as the independent authority/host, while Game Focus acts as an optional passive consumer.
 
 ---
 
@@ -634,6 +646,10 @@ These constraints are non-negotiable:
    that achieves zero-latency DRM-free mirroring on the AYN Thor.
 5. **Synthetic LifecycleOwner in Presentation** — required for Compose
    inside the background-service window.
+6. **Megingiard Companion Autonomy & Zero Game Focus Dependency** — Megingiard
+   Companion is a completely standalone application with zero dependencies on
+   Game Focus. Bugs in Companion must NEVER be fixed or mitigated by altering
+   Game Focus.
 
 ---
 

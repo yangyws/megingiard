@@ -49,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
@@ -91,6 +91,7 @@ import com.stormpanda.megingiard.ui.GamepadToggleCard
 import com.stormpanda.megingiard.ui.GamepadTwoColumnGrid
 import com.stormpanda.megingiard.ui.GamepadTwoStepConfirmCard
 import com.stormpanda.megingiard.ui.LocalAppColors
+import com.stormpanda.megingiard.ui.MaterialSymbol
 import com.stormpanda.megingiard.ui.cycle
 import com.stormpanda.megingiard.ui.firstDeckItem
 import com.stormpanda.megingiard.ui.rememberSaveExitPromptState
@@ -145,9 +146,9 @@ internal fun ChooseButtonTypeSubPageContent(
     enableMouse: Boolean = true,
     onSelectType: (ActionGroup) -> Unit,
 ) {
-    val privdState by PrivdManager.state.collectAsState()
+    val privdState by PrivdManager.state.collectAsStateWithLifecycle()
     val isPrivdRunning = privdState == PrivdState.RUNNING
-    val profile by MacroPadState.activeProfile.collectAsState()
+    val profile by MacroPadState.activeProfile.collectAsStateWithLifecycle()
     val hasMacros = isPrivdRunning && (profile?.macros?.isNotEmpty() == true)
     val availableGroups =
         remember(hasMacros, enableKeyboard, enableGamepad, enableMouse, isPrivdRunning) {
@@ -200,7 +201,7 @@ internal fun EditButtonSubPageContent(
 ) {
     val context = LocalContext.current
     val colors = LocalAppColors.current
-    val activeLayout = MacroPadState.activeLayout.collectAsState().value
+    val activeLayout by MacroPadState.activeLayout.collectAsStateWithLifecycle()
     val stableButtonId = remember(button?.id) { button?.id ?: UUID.randomUUID().toString() }
 
     DisposableEffect(stableButtonId) {
@@ -248,9 +249,10 @@ internal fun EditButtonSubPageContent(
     var buttonBgColor by remember(button) { mutableStateOf(button?.buttonBgColor) }
     var invisible by remember(button) { mutableStateOf(button?.invisible ?: (activeLayout?.invisibleButtons ?: false)) }
 
-    val globalAccentColor = accentColor
+    val globalAccentInt by SettingsManager.accentColor.collectAsStateWithLifecycle()
+    val globalAccentColor = Color(globalAccentInt)
 
-    val profile by MacroPadState.activeProfile.collectAsState()
+    val profile by MacroPadState.activeProfile.collectAsStateWithLifecycle()
     val macros = profile?.macros ?: emptyList()
 
     LaunchedEffect(macros) {
@@ -612,13 +614,14 @@ internal fun EditButtonSubPageContent(
         },
         onChange = ::onActionChanged,
     )
-    if (activeLayout?.isGridMode == true) {
-        val totalCols = activeLayout.effectiveGridCols
-        val totalRows = activeLayout.effectiveGridRows
+    val currentActiveLayout = activeLayout
+    if (currentActiveLayout?.isGridMode == true) {
+        val totalCols = currentActiveLayout.effectiveGridCols
+        val totalRows = currentActiveLayout.effectiveGridRows
 
         val canExpandCol =
             GridLayoutMath.findExpandedSpanCol(
-                layout = activeLayout,
+                layout = currentActiveLayout,
                 button = currentButton,
                 targetColSpan = colSpan + 1,
                 rowSpan = rowSpan,
@@ -628,7 +631,7 @@ internal fun EditButtonSubPageContent(
 
         val canExpandRow =
             GridLayoutMath.findExpandedSpanRow(
-                layout = activeLayout,
+                layout = currentActiveLayout,
                 button = currentButton,
                 targetRowSpan = rowSpan + 1,
                 colSpan = colSpan,
@@ -661,7 +664,7 @@ internal fun EditButtonSubPageContent(
             onIncrement = {
                 val newAnchorCol =
                     GridLayoutMath.findExpandedSpanCol(
-                        layout = activeLayout,
+                        layout = currentActiveLayout,
                         button = currentButton,
                         targetColSpan = colSpan + 1,
                         rowSpan = rowSpan,
@@ -690,7 +693,7 @@ internal fun EditButtonSubPageContent(
             onIncrement = {
                 val newAnchorRow =
                     GridLayoutMath.findExpandedSpanRow(
-                        layout = activeLayout,
+                        layout = currentActiveLayout,
                         button = currentButton,
                         targetRowSpan = rowSpan + 1,
                         colSpan = colSpan,

@@ -2,7 +2,7 @@ package com.stormpanda.megingiard.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,14 +21,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-internal val APP_DIALOG_CORNER = 16.dp
-internal val APP_DIALOG_ELEVATION = 8.dp
-internal val APP_DIALOG_PADDING = 20.dp
-internal const val APP_DIALOG_SCRIM_ALPHA = 0.5f
-internal const val APP_DIALOG_WIDTH_FRACTION = 0.85f
+val APP_DIALOG_CORNER = 16.dp
+val APP_DIALOG_ELEVATION = 8.dp
+val APP_DIALOG_PADDING = 20.dp
+const val APP_DIALOG_SCRIM_ALPHA = 0.5f
+const val APP_DIALOG_WIDTH_FRACTION = 0.85f
+
+private val APP_DIALOG_ICON_BOTTOM_PADDING = 12.dp
+private val APP_DIALOG_TITLE_BOTTOM_PADDING = 12.dp
+private val APP_DIALOG_TEXT_BOTTOM_PADDING = 20.dp
+private val APP_DIALOG_BUTTON_SPACING = 8.dp
 
 /**
  * Centralized modal dialog container for non-fullscreen popups and dialogs.
@@ -62,11 +69,16 @@ fun AppModalDialog(
             Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = scrimAlpha))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
+                .onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.isBackKeyDown()) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }.pointerInput(Unit) {
+                    detectTapGestures { onDismiss() }
+                },
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -77,20 +89,16 @@ fun AppModalDialog(
                     .background(colors.surface, shape)
                     .border(1.dp, brush = rememberBezelBrush(), shape = shape)
                     .blockPointerEvents()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}, // absorb clicks to prevent scrim dismiss
-                    ).padding(contentPadding),
+                    .padding(contentPadding),
             content = content,
         )
     }
 }
 
 /**
- * Centralized wrapper around Material 3 [AlertDialog] that automatically applies the
+ * Centralized alert dialog composable that automatically applies the
  * app's dual-corner bezel light refraction border ([rememberBezelBrush]) and
- * theme colors.
+ * theme colors using [AppModalDialog] to support all overlay and presentation contexts.
  *
  * @param onDismissRequest Called when the user tries to dismiss the dialog.
  * @param confirmButton The primary action button.
@@ -113,7 +121,6 @@ fun AppAlertDialog(
     AppModalDialog(
         onDismiss = onDismissRequest,
         modifier = modifier,
-        widthFraction = 0.5f,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -123,7 +130,7 @@ fun AppAlertDialog(
                     modifier =
                         Modifier
                             .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = APP_DIALOG_ICON_BOTTOM_PADDING),
                 ) {
                     it()
                 }
@@ -133,7 +140,7 @@ fun AppAlertDialog(
                     modifier =
                         Modifier
                             .align(Alignment.Start)
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = APP_DIALOG_TITLE_BOTTOM_PADDING),
                 ) {
                     it()
                 }
@@ -143,7 +150,7 @@ fun AppAlertDialog(
                     modifier =
                         Modifier
                             .align(Alignment.Start)
-                            .padding(bottom = 20.dp),
+                            .padding(bottom = APP_DIALOG_TEXT_BOTTOM_PADDING),
                 ) {
                     it()
                 }
@@ -155,7 +162,7 @@ fun AppAlertDialog(
             ) {
                 dismissButton?.let {
                     it()
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(APP_DIALOG_BUTTON_SPACING))
                 }
                 confirmButton()
             }

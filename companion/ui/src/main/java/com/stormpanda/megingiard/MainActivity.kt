@@ -44,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.stormpanda.megingiard.catalog.DisplayDetector
@@ -255,6 +255,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (savedInstanceState == null && display?.displayId != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
+
         // Init settings first so the persisted log level is active before anything
         // else runs (including SignatureGuard below). SettingsManager.init() reads
         // just the log level synchronously from DataStore then continues async.
@@ -419,28 +423,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            val isCapturing by ScreenCaptureManager.isCapturing.collectAsState()
-
-            val lifecycleOwner = LocalLifecycleOwner.current
-            LaunchedEffect(lifecycleOwner) {
-                val observer =
-                    LifecycleEventObserver { _, event ->
-                        when (event) {
-                            Lifecycle.Event.ON_RESUME -> {
-                                AppLog.i(TAG, "ON_RESUME isValid=${AppStateManager.isOnValidScreen.value}")
-                                AppStateManager.setActivityResumed(true)
-                            }
-
-                            Lifecycle.Event.ON_STOP -> {
-                                AppLog.i(TAG, "ON_STOP")
-                                AppStateManager.setActivityResumed(false)
-                            }
-
-                            else -> {}
-                        }
-                    }
-                lifecycleOwner.lifecycle.addObserver(observer)
-            }
+            val isCapturing by ScreenCaptureManager.isCapturing.collectAsStateWithLifecycle()
 
             // Synchronous display evaluation gets correct value on frame 0
             val context = LocalContext.current
@@ -452,9 +435,9 @@ class MainActivity : ComponentActivity() {
                 AppStateManager.setOnValidScreen(isOnValidScreenLocal)
             }
 
-            val isOnValidScreen by AppStateManager.isOnValidScreen.collectAsState()
+            val isOnValidScreen by AppStateManager.isOnValidScreen.collectAsStateWithLifecycle()
 
-            val activeLayout by MacroPadState.activeLayout.collectAsState()
+            val activeLayout by MacroPadState.activeLayout.collectAsStateWithLifecycle()
 
             // Reconcile the running mirror session with the active layout's persisted
             // desired state. PadLayout.mirrorAutoStart is the single source of truth:
@@ -715,8 +698,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val themeMode by SettingsManager.themeMode.collectAsState()
-            val userAccentArgb by SettingsManager.accentColor.collectAsState()
+            val themeMode by SettingsManager.themeMode.collectAsStateWithLifecycle()
+            val userAccentArgb by SettingsManager.accentColor.collectAsStateWithLifecycle()
             val appColors = paletteFor(themeMode, Color(userAccentArgb))
 
             MaterialTheme(

@@ -72,7 +72,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +93,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
@@ -205,8 +205,8 @@ fun MacroPadEditor(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val profiles by MacroPadState.profiles.collectAsState()
-    val activeId by MacroPadState.activeProfileId.collectAsState()
+    val profiles by MacroPadState.profiles.collectAsStateWithLifecycle()
+    val activeId by MacroPadState.activeProfileId.collectAsStateWithLifecycle()
     val colors = LocalAppColors.current
     val globalAccentColor = colors.accent
 
@@ -227,15 +227,15 @@ fun MacroPadEditor(
             profile?.layouts?.firstOrNull { it.id == layoutId } ?: profile?.layouts?.firstOrNull()
         }
 
-    val selectedSection by MacroPadNavState.selectedSection.collectAsState()
-    val subPageStack by MacroPadNavState.subPageStack.collectAsState()
+    val selectedSection by MacroPadNavState.selectedSection.collectAsStateWithLifecycle()
+    val subPageStack by MacroPadNavState.subPageStack.collectAsStateWithLifecycle()
 
-    val macroTimelineFocusStepIndex by MacroPadNavState.macroTimelineFocusStepIndex.collectAsState()
+    val macroTimelineFocusStepIndex by MacroPadNavState.macroTimelineFocusStepIndex.collectAsStateWithLifecycle()
     var appearanceDraft by remember { mutableStateOf<PadLayout?>(null) }
     var buttonDraft by remember { mutableStateOf<PadButton?>(null) }
 
-    val activePrimaryModal by AppStateManager.activePrimaryModal.collectAsState()
-    val savedFocusKeys by MacroPadNavState.savedFocusKeysByDepth.collectAsState()
+    val activePrimaryModal by AppStateManager.activePrimaryModal.collectAsStateWithLifecycle()
+    val savedFocusKeys by MacroPadNavState.savedFocusKeysByDepth.collectAsStateWithLifecycle()
 
     LaunchedEffect(selectedSection) {
         MacroPadState.setSelectedButtonId(null)
@@ -1805,7 +1805,7 @@ fun MacroPadEditor(
                                                 3 -> currentBtnAction?.extraBtnCodes?.getOrNull(2) ?: -1
                                                 else -> currentBtnAction?.btnCode ?: GamepadKeycodes.BTN_SOUTH
                                             }
-                                        val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsState()
+                                        val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsStateWithLifecycle()
                                         val slotTitle =
                                             when (slotIndex) {
                                                 1 -> stringResource(R.string.macropad_picker_label_extra_1)
@@ -2189,7 +2189,7 @@ fun MacroPadEditor(
                                             }
                                         }
 
-                                        val croppingState by MacroPadState.croppingButtonState.collectAsState()
+                                        val croppingState by MacroPadState.croppingButtonState.collectAsStateWithLifecycle()
                                         val activeCropState = croppingState
 
                                         GamepadDeck(
@@ -2316,7 +2316,7 @@ fun MacroPadEditor(
                                     }
 
                                     is MacroPadSubPage.ChooseMacroMode -> {
-                                        val privdState by PrivdManager.state.collectAsState()
+                                        val privdState by PrivdManager.state.collectAsStateWithLifecycle()
                                         val defaultMacroName = stringResource(R.string.macropad_macro_default_name)
                                         val existingMacroNames = profile.macros.map { it.name }
 
@@ -2594,7 +2594,7 @@ fun MacroPadEditor(
                                                 ?: profile?.macros?.firstOrNull { it.id == currentSubPage.macroId }
                                                 ?: profiles.flatMap { it.macros }.firstOrNull { it.id == currentSubPage.macroId }
                                         if (macro != null) {
-                                            val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsState()
+                                            val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsStateWithLifecycle()
                                             GamepadReorderDeck(
                                                 items = macro.steps,
                                                 itemKey = { step -> "${step.startTimeMs}_${step.durationMs}_${step.hashCode()}" },
@@ -2868,8 +2868,8 @@ private fun ButtonsDeck(
 ) {
     val colors = LocalAppColors.current
     val rawButtons = layout?.buttons ?: emptyList()
-    val isEditingPositions by MacroPadState.isEditingButtonPositions.collectAsState()
-    val gridMode by MacroPadState.gridMode.collectAsState()
+    val isEditingPositions by MacroPadState.isEditingButtonPositions.collectAsStateWithLifecycle()
+    val gridMode by MacroPadState.gridMode.collectAsStateWithLifecycle()
     val isGridMode = layout?.isGridMode == true
     val buttons =
         remember(rawButtons, isGridMode) {
@@ -2900,7 +2900,7 @@ private fun ButtonsDeck(
             }
         }
 
-    val selectedButtonId by MacroPadState.selectedButtonId.collectAsState()
+    val selectedButtonId by MacroPadState.selectedButtonId.collectAsStateWithLifecycle()
 
     LaunchedEffect(movingItemKey, movingIndex) {
         if (movingItemKey != null && movingIndex >= 0) {
@@ -3066,9 +3066,9 @@ private fun EditButtonPositionsSubPageContent(
             }
         }
     val coroutineScope = rememberCoroutineScope()
-    val selectedButtonId by MacroPadState.selectedButtonId.collectAsState()
+    val selectedButtonId by MacroPadState.selectedButtonId.collectAsStateWithLifecycle()
     val cardRequesters = remember { mutableMapOf<String, FocusRequester>() }
-    val movingButtonId by MacroPadState.movingButtonId.collectAsState()
+    val movingButtonId by MacroPadState.movingButtonId.collectAsStateWithLifecycle()
     var activeRepeatJob by remember { mutableStateOf<Job?>(null) }
     var activeDirectionKey by remember { mutableIntStateOf(0) }
     var precisionMovement by remember { mutableStateOf(false) }
@@ -3400,7 +3400,7 @@ private fun MacrosDeck(
     onEditMacro: (Macro) -> Unit,
     onDeleteMacro: (Macro) -> Unit,
 ) {
-    val privdState by PrivdManager.state.collectAsState()
+    val privdState by PrivdManager.state.collectAsStateWithLifecycle()
     val isPrivdRunning = privdState == PrivdState.RUNNING
 
     if (!isPrivdRunning) {

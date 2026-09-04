@@ -101,6 +101,7 @@ class MacroPadStateTest {
         activeLayoutId: String = layouts.firstOrNull()?.id ?: "",
         macros: List<Macro> = emptyList(),
         association: ProfileAssociation? = null,
+        isDefault: Boolean = false,
     ) = PadProfile(
         id = id,
         name = name,
@@ -108,6 +109,7 @@ class MacroPadStateTest {
         activeLayoutId = activeLayoutId,
         macros = macros,
         association = association,
+        isDefault = isDefault,
     )
 
     private fun loadProfiles(
@@ -966,6 +968,36 @@ class MacroPadStateTest {
         assertEquals(1.75f, btn.imageScale)
         assertEquals(0.15f, btn.imageOffsetX)
         assertEquals(-0.05f, btn.imageOffsetY)
+    }
+
+    @Test
+    fun `getDefaultOrFirstProfile returns profile marked isDefault`() {
+        val p1 = testProfile(id = "p1", name = "First", isDefault = false)
+        val p2 = testProfile(id = "p2", name = "Second", isDefault = true)
+        loadProfiles(p1, p2)
+
+        val result = MacroPadState.getDefaultOrFirstProfile()
+        assertEquals(p2.id, result?.id)
+    }
+
+    @Test
+    fun `getDefaultOrFirstProfile falls back to profile named Default when isDefault is false`() {
+        val p1 = testProfile(id = "p1", name = "Custom Profile", isDefault = false)
+        val p2 = testProfile(id = "p2", name = "Default", isDefault = false)
+        loadProfiles(p1, p2)
+
+        val result = MacroPadState.getDefaultOrFirstProfile()
+        assertEquals(p2.id, result?.id)
+    }
+
+    @Test
+    fun `getDefaultOrFirstProfile falls back to first profile when none isDefault or named Default`() {
+        val p1 = testProfile(id = "p1", name = "Custom One", isDefault = false)
+        val p2 = testProfile(id = "p2", name = "Custom Two", isDefault = false)
+        loadProfiles(p1, p2)
+
+        val result = MacroPadState.getDefaultOrFirstProfile()
+        assertEquals(p1.id, result?.id)
     }
 }
 

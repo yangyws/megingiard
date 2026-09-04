@@ -138,5 +138,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
 }

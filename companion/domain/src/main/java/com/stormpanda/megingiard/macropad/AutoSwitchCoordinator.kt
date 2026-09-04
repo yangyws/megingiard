@@ -99,6 +99,17 @@ object AutoSwitchCoordinator {
                     if (currentForeground != null && !EmulatorDetectionFunnel.isRegisteredEmulator(currentForeground)) {
                         AppStateManager.setStandaloneForegroundState(currentForeground, null)
                     }
+                    if (AppStateManager.companionViewMode.value == CompanionViewMode.AUTO) {
+                        val matchingProfile = currentForeground?.let { MacroPadState.findBestMatchingProfile(it) }
+                        val targetProfile = matchingProfile ?: MacroPadState.getDefaultOrFirstProfile()
+                        if (targetProfile != null && targetProfile.id != MacroPadState.activeProfileId.value) {
+                            AppLog.i(
+                                TAG,
+                                "activeSession cleared: auto-switching to profile '${targetProfile.name}' (id=${targetProfile.id})",
+                            )
+                            MacroPadState.setActiveProfileId(targetProfile.id)
+                        }
+                    }
                 }
             }
         }
@@ -123,7 +134,17 @@ object AutoSwitchCoordinator {
         val pkg = AppStateManager.focusedAppPackageName.value ?: _foregroundApp.value
         if (!pkg.isNullOrBlank()) {
             val romPath = AppStateManager.focusedRomPath.value
-            tryAutoSwitch(pkg, romPath, logContext = "package '$pkg'")
+            val switched = tryAutoSwitch(pkg, romPath, logContext = "package '$pkg'")
+            if (!switched && romPath == null && EmulatorDetectionFunnel.isRegisteredEmulator(pkg)) {
+                val targetProfile = MacroPadState.getDefaultOrFirstProfile()
+                if (targetProfile != null && targetProfile.id != MacroPadState.activeProfileId.value) {
+                    AppLog.i(
+                        TAG,
+                        "reevaluateAutoState: falling back to default profile '${targetProfile.name}' (id=${targetProfile.id}) for emulator '$pkg'",
+                    )
+                    MacroPadState.setActiveProfileId(targetProfile.id)
+                }
+            }
         }
     }
 

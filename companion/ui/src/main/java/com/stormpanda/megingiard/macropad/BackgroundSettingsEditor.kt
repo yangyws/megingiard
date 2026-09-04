@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.math.ViewportMath
@@ -152,7 +152,7 @@ internal fun LayoutBackgroundSubPageContent(
         MacroPadState.setCroppingBackground(isCropActive)
     }
 
-    val isCroppingBg by MacroPadState.isCroppingBackground.collectAsState()
+    val isCroppingBg by MacroPadState.isCroppingBackground.collectAsStateWithLifecycle()
     LaunchedEffect(isCroppingBg) {
         if (!isCroppingBg && isCropActive) {
             isCropActive = false
@@ -165,7 +165,12 @@ internal fun LayoutBackgroundSubPageContent(
         }
     }
 
-    val previewLayout by MacroPadState.previewLayout.collectAsState()
+    LaunchedEffect(bgScaleMode) {
+        val pl = MacroPadState.previewLayout.value ?: layout
+        MacroPadState.setPreviewLayout(pl.copy(bgScaleMode = bgScaleMode))
+    }
+
+    val previewLayout by MacroPadState.previewLayout.collectAsStateWithLifecycle()
     LaunchedEffect(previewLayout?.bgImageScale, previewLayout?.bgImageOffsetX, previewLayout?.bgImageOffsetY) {
         val pl = previewLayout ?: return@LaunchedEffect
         bgScale = pl.bgImageScale
@@ -197,7 +202,7 @@ internal fun LayoutBackgroundSubPageContent(
         }
     }
 
-    val pickedUri by BackgroundPickerManager.pickedUri.collectAsState()
+    val pickedUri by BackgroundPickerManager.pickedUri.collectAsStateWithLifecycle()
     LaunchedEffect(pickedUri) {
         val uri = pickedUri ?: return@LaunchedEffect
         AppLog.d(TAG, "Background image picked from system picker: $uri")

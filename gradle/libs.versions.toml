@@ -21,6 +21,7 @@ paletteKtx = "1.0.0"
 documentfile = "1.0.1"
 mlkitTextRecognition = "16.0.1"
 kover = "0.9.1"
+turbine = "1.2.0"
 
 [libraries]
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
@@ -56,6 +57,7 @@ libadb-android = { group = "com.github.MuntashirAkon", name = "libadb-android", 
 sun-security-android = { group = "com.github.MuntashirAkon", name = "sun-security-android", version.ref = "sunSecurityAndroid" }
 hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

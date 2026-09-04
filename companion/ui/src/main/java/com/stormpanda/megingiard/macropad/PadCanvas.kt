@@ -47,7 +47,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,12 +72,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.math.ViewportMath
 import com.stormpanda.megingiard.ui.LocalAppColors
+import com.stormpanda.megingiard.ui.MaterialSymbol
 import com.stormpanda.megingiard.ui.dimColorFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -167,7 +168,7 @@ internal fun PadCanvas(
     transparentBackground: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val croppingButtonState by MacroPadState.croppingButtonState.collectAsState()
+    val croppingButtonState by MacroPadState.croppingButtonState.collectAsStateWithLifecycle()
     val activeCroppingButton = croppingButtonState
     if (activeCroppingButton != null) {
         ButtonCropCanvas(
@@ -179,16 +180,16 @@ internal fun PadCanvas(
     }
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    val selectedButtonId by MacroPadState.selectedButtonId.collectAsState()
-    val isMirrorEditorBackgroundHidden by AppStateManager.isMirrorEditorBackgroundHidden.collectAsState()
-    val isViewportEditActive by AppStateManager.isViewportEditActive.collectAsState()
+    val selectedButtonId by MacroPadState.selectedButtonId.collectAsStateWithLifecycle()
+    val isMirrorEditorBackgroundHidden by AppStateManager.isMirrorEditorBackgroundHidden.collectAsStateWithLifecycle()
+    val isViewportEditActive by AppStateManager.isViewportEditActive.collectAsStateWithLifecycle()
     val shouldHideBackground = isViewportEditActive && isMirrorEditorBackgroundHidden
     val colors = LocalAppColors.current
     val density = LocalDensity.current
     val context = LocalContext.current
     val gridStepPx = with(density) { PC_GRID_STEP_DP.toPx() }
 
-    val previewLayout by MacroPadState.previewLayout.collectAsState()
+    val previewLayout by MacroPadState.previewLayout.collectAsStateWithLifecycle()
     val effectiveLayout = previewLayout ?: layout
 
     var bgBitmap by remember(effectiveLayout?.backgroundImagePath, effectiveLayout?.backgroundImageVersion) { mutableStateOf<ImageBitmap?>(null) }
@@ -1177,8 +1178,8 @@ internal fun ButtonCropCanvas(
         if (state.offsetY != accumOffsetY) accumOffsetY = state.offsetY
     }
 
-    val activeProfile by MacroPadState.activeProfile.collectAsState()
-    val previewLayout by MacroPadState.previewLayout.collectAsState()
+    val activeProfile by MacroPadState.activeProfile.collectAsStateWithLifecycle()
+    val previewLayout by MacroPadState.previewLayout.collectAsStateWithLifecycle()
     val currentLayout =
         previewLayout ?: activeProfile?.let { p ->
             p.layouts.firstOrNull { it.id == p.activeLayoutId } ?: p.layouts.firstOrNull()
