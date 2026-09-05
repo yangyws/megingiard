@@ -65,6 +65,9 @@ Specialized agent workflows are codified under `.agents/skills/`. When performin
 | `megingiard-release-changelog`       | `.agents/skills/megingiard-release-changelog/SKILL.md`| Generate GitHub Markdown changelogs from git tag comparisons.                                |
 | `megingiard-delete-daemon`           | `.agents/skills/megingiard-delete-daemon/SKILL.md`    | Terminate and remove the privileged mode daemon from `/data/local/tmp`.                       |
 | `megingiard-dual-screen-focus`       | `.agents/skills/megingiard-dual-screen-focus/SKILL.md`| Audit and maintain dual-screen gamepad focus traversal and top/bottom screen handoffs.         |
+| `megingiard-sync-upstream`           | `.agents/skills/megingiard-sync-upstream/SKILL.md`   | Sync upstream origin/main to fork/main and merge cleanly into main-zh.                         |
+| `megingiard-i18n-audit`              | `.agents/skills/megingiard-i18n-audit/SKILL.md`      | Audit Traditional Chinese (zh-TW) localization completeness and terminology against upstream. |
+| `megingiard-release-zh`              | `.agents/skills/megingiard-release-zh/SKILL.md`      | Manage Megingiard-ZH releases, GitHub Actions builds, and clean release notes.                |
 | `megingiard-uninstall-clean`         | `.agents/skills/megingiard-uninstall-clean/SKILL.md`  | Cleanly wipe app data, backups, and daemon binaries for clean-state testing.                  |
 
 > [!IMPORTANT]
