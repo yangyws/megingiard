@@ -1,384 +1,238 @@
-# Megingiard for **AYN Thor**
+# Megingiard 專為 **AYN Thor** 打造的副螢幕掌機隨身伴侶
 
-[繁體中文說明文件 (Traditional Chinese README)](README_zh-TW.md)
+[English README (英文說明文件)](README_en.md)
 
-Welcome to **Megingiard**, a bespoke companion application specifically designed for the **AYN Thor** dual-screen Android handheld. Megingiard combines deep Android hardware video stream manipulation with modern Jetpack Compose interfaces to turn your secondary display into a fully interactive tool belt: a latency-free, multi-cutout mirror of your primary screen, a virtual keyboard, a virtual touchpad, a configurable MacroPad, and a virtual gamepad — all driven by native input injection for sub-millisecond response.
+歡迎使用 **Megingiard** —— 專為 **AYN Thor** 雙螢幕 Android 遊戲掌機量身打造的副螢幕伴侶應用程式。Megingiard 結合了 Android 底層硬體視訊串流處理與現代 Jetpack Compose 介面，將您的副螢幕（下方螢幕）化身為功能強大的全互動工具箱：零延遲、多區域裁剪的主螢幕畫面鏡像、虛擬鍵盤、虛擬觸控板、可自由高度自訂的巨集板（MacroPad），以及原生核心層級虛擬控制器 —— 全數由原生輸入注入技術驅動，達到亞毫秒級（<1ms）超低延遲反應。
 
 <p align="center">
   <a href="https://youtu.be/vgs6X9piswA?si=K8TbTrWHGzLIRxe3">
-    <img src="https://img.youtube.com/vi/vgs6X9piswA/hqdefault.jpg" alt="Megingiard Feature Overview by Rye J's Outpost" width="390">
+    <img src="https://img.youtube.com/vi/vgs6X9piswA/hqdefault.jpg" alt="Rye J's Outpost 製作的 Megingiard 功能總覽" width="390">
   </a>
   <a href="https://youtu.be/1Iksugqljj8">
-    <img src="https://img.youtube.com/vi/1Iksugqljj8/hqdefault.jpg" alt="Turn All Your Games Into Dual Screen Games by RoeTaKa" width="390">
+    <img src="https://img.youtube.com/vi/1Iksugqljj8/hqdefault.jpg" alt="RoeTaKa 製作的將所有遊戲化為雙螢幕遊戲教學" width="390">
   </a>
   <br>
-  <em>Megingiard Feature Overview by <a href="https://youtu.be/vgs6X9piswA?si=K8TbTrWHGzLIRxe3">Rye J’s Outpost</a> &nbsp;·&nbsp; Turn All Your Games Into Dual Screen Games by <a href="https://youtu.be/1Iksugqljj8">RoeTaKa</a></em>
+  <em>Megingiard 功能總覽（由 <a href="https://youtu.be/vgs6X9piswA?si=K8TbTrWHGzLIRxe3">Rye J’s Outpost</a> 製作）&nbsp;·&nbsp; 雙螢幕掌機玩法介紹（由 <a href="https://youtu.be/1Iksugqljj8">RoeTaKa</a> 製作）</em>
 </p>
 
 ---
 
-[Enhanced Fork Highlights](#megingiard-zh-enhanced-features) · [Device Compatibility](#device-compatibility) · [Documentation](#documentation) · [Core Features](#core-features) · [Screenshots](#screenshots) · [Installation](#installation) · [Quick Start](#first-launch--quick-start) · [Privileged Mode](#privileged-mode) · [Privacy](#privacy) · [Releases](#releases) · [FAQ & Troubleshooting](#faq--troubleshooting) · [Security](#security) · [License](#license) · [Support This App](#support-this-app) · [Links](#links)
+[繁體中文增強版特色](#megingiard-zh-繁體中文增強版特色) · [裝置相容性](#裝置相容性) · [技術文件導覽](#技術文件導覽) · [核心功能](#核心功能) · [畫面截圖](#畫面截圖) · [安裝方式](#安裝方式) · [初次啟動與快速上手](#初次啟動與快速上手) · [特權模式說明](#特權模式-privileged-mode) · [隱私權](#隱私權) · [版本發布](#版本發布) · [常見問題與疑難排解](#常見問題與疑難排解) · [安全性](#安全性) · [授權條款](#授權條款) · [贊助與支持](#贊助與支持) · [外部連結](#外部連結)
 
 ---
 
-## Megingiard-ZH Enhanced Features
+## Megingiard-ZH 繁體中文增強版特色
 
-This fork (`megingiard-zh`) provides tailored enhancements specifically focused on localization and handheld usability improvements:
+本分支（`megingiard-zh`）專為台灣及繁體中文使用者提供深度的在地化精修與掌機操作優化：
 
-- **Independent Package ID**: Built as `com.stormpanda.megingiard.zh`, allowing side-by-side coexistence with the official upstream app without package collisions.
-- **MacroPad Table Mode**: Grid layout mode supporting customizable row/column counts (1×1 to 8×6), cell drag-to-swap/move, multi-cell button spanning, and full top-layer border rendering.
-- **Custom Button Images & Dual-Screen Cropping**: Pick custom button images from device storage or SteamGridDB, with dedicated enlarged cropping subpages and full-bleed image scaling.
-- **Traditional Chinese Localization**: Complete 100% Traditional Chinese (`zh-TW`) translations across all UI, settings, and help tutorials, meticulously refined to Taiwanese tech conventions.
-
----
-
-## Device Compatibility
-
-- **Target device:** AYN Thor (gaming handheld with two displays)
-- **Minimum Android version:** 13 / API 33 (which is what the Thor comes with)
-- **Single-Screen Devices:** **Permanently unsupported.** Megingiard is architected strictly as an inter-screen companion system where the primary (top) display and secondary (bottom) display operate concurrently. Single-screen phones, tablets, and emulators are not supported.
-- **Other devices:** Not supported. Megingiard depends on hardware-specific
-  paths (`/dev/input/event*`, the secondary display, the AYN Thor input layout)
-  that might not exist on other phones or handhelds. Also, I just don't have any
-  other dual screen handhelds 😅
+- **獨立 Package ID**：採用 `com.stormpanda.megingiard.zh` 套件識別碼，可與官方原版並存安裝於同一台設備，設定檔與資料互不干擾衝突。
+- **巨集板表格模式（Table Mode）**：自訂網格行列配置（支援 1×1 至 8×6）、支援儲存格拖曳交換與移動、跨格合併按鈕，並具備頂層細白格線全繪製，排版更整齊俐落。
+- **自訂按鈕圖片與雙螢幕裁切**：支援從本機儲存空間或 SteamGridDB 挑選按鈕自訂圖示，提供獨立副螢幕放大裁切頁面與全滿版縮放（full-bleed）效果。
+- **100% 繁體中文在地化**：完整翻譯所有介面文字、全域設定及功能說明教學彈窗（HelpModal）。
 
 ---
 
-## Documentation
+## 裝置相容性
 
-Given its hardware-specific approach and advanced features, this project is extensively documented:
-
-- **[Requirements](docs/REQUIREMENTS.md):** Functional capabilities and the design constraints under which the app was engineered.
-- **[Technical Architecture](docs/ARCHITECTURE.md):** A detailed deep dive into the implementation approaches, focusing specifically on bypassing DRM blocks, rendering Jetpack Compose over native system dialogs (Presentations), and hardware-backed frame freezing.
-- **[Security Concept](SECURITY_CONCEPT.md):** Threat model, hardening layers, Privileged Mode authentication, native binary integrity checks, and release configuration requirements.
-- **[Agent Guidelines](AGENTS.md):** Coding conventions, patterns, and constraints for AI coding agents working on this project.
-- **[Contributing Guidelines](CONTRIBUTING.md):** Architectural rules, styling conventions, and licensing compliance instructions for human contributors.
-- **[Manual Verification Guide](docs/MANUAL_VERIFICATION.md):** Step-by-step manual regression tests and PR sanity checklists.
+- **目標硬體：** AYN Thor（配備上下雙螢幕的 Android 掌上遊戲機）。
+- **最低 Android 版本：** Android 13 / API 33（AYN Thor 出廠內建之系統版本）。
+- **單螢幕裝置：** **永久不支援。** Megingiard 的架構嚴格建立在主螢幕（上方螢幕）與副螢幕（下方螢幕）同時協同運作的伴侶機制上。單螢幕手機、平板電腦與一般 Android 模擬器皆無法使用。
+- **其他裝置：** 不保證支援。Megingiard 極度依賴硬體特定路徑（如 `/dev/input/event*` 節點、副螢幕硬體通道、AYN Thor 實體按鍵配置）。
 
 ---
 
-## Core Features
+## 技術文件導覽
 
-### 1. Latency-Free Multi-Cutout Screen Mirroring
+本專案具備完整且嚴謹的架構設計與開發文件（文件統一以英文撰寫維護）：
 
-- **Direct Hardware Pipe:** Utilizes Android's `MediaProjection` coupled with native `VirtualDisplay` directly into a `SurfaceView` to bypass all software composition and copy steps.
-- **Multi-Cutout Layout Editor:** Define up to 10 cropped regions ("cutouts") of the primary screen and arrange them freely on the secondary screen using a single-surface duplication architecture that prevents token conflicts and display freezes.
-- **Aspect Ratio Lock Modes:** Configure aspect ratio locking per cutout: _Free_ for independent sizing, _Top_ (source-locked) to scale destination bounds uniformly, and _Bottom_ (destination-locked) to auto-adjust source crops.
-- **Edge Blending & Circular Shapes:** Apply additive edge gradients (up to 100 dp) to create seamless transitions without dark seams between adjacent cutouts, or toggle cutouts to render as perfect circles.
-- **Temporal Motion Smoothing:** Select between Off, Light, Medium, or Strong temporal filtering (exponential moving average) to stabilize UI elements in individual cutouts.
-- **Follow Touch Mode:** Real-time touch tracking on the primary screen. The mirror viewport automatically centers on the spot last touched on the primary screen at your current zoom level, with optional movement smoothing. Can be configured to temporarily disable during macro execution to prevent movement conflicts.
-- **Customizable Controls:** Fully integrate mirror controls (Start / Stop / Freeze / Viewport reset) directly as buttons onto your custom MacroPad layouts, or use the always-present controls in the Quick Menu overlay.
-- **See it in Action:** Watch the [screen mirroring demonstration by dylosama](https://www.youtube.com/shorts/v_UhWzfCbRQ) on YouTube Shorts.
-
-### 2. MacroPad Central Mode
-
-- **Configurable Button Pad:** Create named profiles with multiple custom layouts, featuring free-placement buttons of varying size, shape, and actions.
-- **Rich Action Mapping:** Bind buttons to standard keyboard keys, gamepad buttons, mouse buttons, scroll wheels, or trackpoints (relative mouse movement/virtual touch).
-- **Robust Layout Editor:** Drag-to-place button layout canvas with rectangular or radial snap grids, and an integrated grid picker backed by the Material Symbols library with over 4,000 icons.
-- **App-Aware Profile Auto-Switching:** Bind profiles to specific Android applications. When a mapped app is launched on the primary screen, Megingiard instantly switches to its associated MacroPad profile on the secondary screen. This event-driven feature uses a dedicated, highly efficient **Accessibility Service** (with system UI exclusions to prevent focus loops) and offers a live connection status dot in settings.
-- **Visual Macro Editor & Recorder:** Hand-craft or record and edit timed sequences of key, mouse, and gamepad events. Record macros from on-screen taps or, in Privileged Mode, directly from your physical controller. Includes **timing & duration randomizers** (dynamic random offsets between 10ms and 100ms added per-step) to simulate natural, human-like variation.
-
-### 3. Virtual Keyboard
-
-- **On-Screen Custom Layouts:** Full virtual keyboard offering **QWERTZ / QWERTY / AZERTY** layouts, number row, F1–F12, arrow keys, and standard modifiers.
-- **Smart Modifiers:** Tap modifier keys (Shift, Ctrl, Alt, Meta) to make them sticky (one-shot), or long-press to hold.
-- **Integrated Trackpoint:** Navigate the mouse cursor on the primary screen directly using a visual trackpoint on the keyboard layout.
-- **Kernel Repeat Controls:** Configurable key repeat rate; with repeat disabled, key-up is sent immediately to suppress the kernel's auto-repeat.
-
-### 4. Virtual Touchpad
-
-- **Kernel-Level Mouse Emulation:** Turn the secondary display into a relative trackpad controlling a physical system mouse recognized by Android.
-- **Sub-Millisecond Response:** Touch events are injected straight into the kernel input stream via native binaries (`/dev/uinput`) with less than 1ms latency.
-- **Multi-Tap Gestures:** Simple and reliable gestures: single tap for Left Mouse Button, double tap for Right Mouse Button, and triple tap for Middle Mouse Button.
-
-### 5. Quick Menu & Immersive UI
-
-- **Always-Visible Edge Quick Menu Bar:** A tiny swipe affordance overlay on the bottom secondary display. Inward swipe opens the Quick Menu, letting you switch profiles/tools, toggle mirroring, or open settings without ever leaving your current layout.
-- **Dark Gaming Aesthetics:** Borderless immersive fullscreen styling designed to respect the dark environment of secondary display gaming and prevent distraction from the main screen.
+- **[功能需求規格書 (Requirements)](docs/REQUIREMENTS.md)：** 功能規範與架構設計限制。
+- **[系統技術架構 (Technical Architecture)](docs/ARCHITECTURE.md)：** 深入探討繞過 DRM 限制、在原生 Presentation 系統視窗上渲染 Jetpack Compose，以及硬體視訊畫面凍結架構。
+- **[安全架構概念 (Security Concept)](SECURITY_CONCEPT.md)：** 威脅模型、防護層級、特權模式雙向驗證、原生二進位檔完整性驗證。
+- **[AI 代理開發指引 (Agent Guidelines)](AGENTS.md)：** 專案架構規範、程式碼風格約束與開發守則。
+- **[貢獻者指引 (Contributing Guidelines)](CONTRIBUTING.md)：** 貢獻流程、程式庫風格與開源合規指南。
+- **[手動驗證檢查清單 (Manual Verification Guide)](docs/MANUAL_VERIFICATION.md)：** 回歸測試步驟與 PR 檢查清單。
 
 ---
 
-## Screenshots
+## 核心功能
 
-### Dual-Screen Companion Setup
+### 1. 零延遲多區域畫面鏡像 (Screen Mirroring)
 
-|                               Primary screen                               |                                              Secondary screen                                              |
+- **直接硬體管道：** 結合 Android 的 `MediaProjection` 與原生 `VirtualDisplay`，直接輸出至 `SurfaceView`，徹底繞過所有軟體合成與像素複製步驟。
+- **多區域裁剪配置編輯器：** 最多可設定 10 個主螢幕裁剪區域（Cutouts），並在副螢幕上自由拖曳縮放與排版；採用單一 Surface 多重複製架構，杜絕 Token 衝突與畫面卡死。
+- **寬高比鎖定模式：** 支援多種長寬比鎖定方式 —— _自由調整 (Free)_、_鎖定來源比例 (Top)_ 等比例縮放，以及 _鎖定目標視窗比例 (Bottom)_ 自動適配來源。
+- **邊緣漸變與圓形遮罩：** 支援最高 100 dp 的邊緣羽化漸變，消除不同視窗拼接處的黑邊與硬邊；亦可一鍵切換為正圓形鏡像視窗。
+- **時間動態平滑化 (Temporal Motion Smoothing)：** 提供關閉、輕微、中度、強力四段 EMA 移動平均濾波，有效穩定特定遊戲 UI 震顫。
+- **跟隨觸控模式 (Follow Touch Mode)：** 即時追蹤主螢幕觸控點，副螢幕鏡像視窗會自動以當前縮放倍率平滑跟隨最後觸摸的位置。可設定在執行巨集期間暫時停用，避免鏡像畫面與巨集觸控發生移動衝突。
+- **靈活鏡像控制：** 可將鏡像控制鍵（啟動 / 停止 / 畫面凍結 / 視角重設）直接以按鈕形式擺放在自訂巨集板上，或透過隨時呼出的懸浮快速選單進行操作。
+
+### 2. 巨集板控制中心 (MacroPad Central Mode)
+
+- **高度自訂按鈕面板：** 建立多個具名設定檔與版面配置，自由擺放不同大小、形狀與動作的按鈕。
+- **多元動作綁定：** 按鈕可對應標準鍵盤按鍵、控制器按鈕、滑鼠按鈕、滾輪，或虛擬小紅點搖桿（相對滑鼠移動/虛擬觸控）。
+- **強大版面編輯器：** 支援拖曳擺放按鈕、矩形或放射狀磁吸格線，內建收錄超過 4,000 個圖示的 Material Symbols 向量圖示庫。
+- **應用程式自動感知切換：** 將特定設定檔與 Android 應用程式綁定。當主螢幕啟動該遊戲或應用時，副螢幕會透過高效率的專屬**無障礙服務 (Accessibility Service)** 立即無縫切換至對應的巨集板。
+- **視覺化巨集錄製與編輯：** 直覺編排或實時錄製鍵盤、滑鼠、搖桿按鍵的時間序列事件。可直接錄製螢幕點擊，或在特權模式下直接記錄實體手把按鍵。內建**隨機延遲模擬器**（每一步驟動態增加 10ms 至 100ms 隨機位移），模擬人類真實按鍵行為。
+
+### 3. 虛擬鍵盤 (Virtual Keyboard)
+
+- **多種螢幕鍵盤配置：** 提供 **QWERTY / QWERTZ / AZERTY** 完整鍵盤配置、數字鍵列、F1–F12 功能鍵、方向鍵及標準修飾鍵。
+- **智慧修飾鍵：** 輕觸修飾鍵（Shift、Ctrl、Alt、Meta）即可啟用單次黏滯功能，長按則可鎖定按住。
+- **整合式虛擬小紅點 (Trackpoint)：** 直接透過鍵盤中央的虛擬搖桿操控主螢幕上的滑鼠游標。
+- **核心層級連打控制：** 可自訂按鍵連打頻率；停用連打時，放開按鍵會立即傳送 key-up 訊號以壓制系統核心自動連打。
+
+### 4. 虛擬觸控板 (Virtual Touchpad)
+
+- **核心層級滑鼠模擬：** 將副螢幕轉化為精準的相對座標觸控板，由 Android 系統直接辨識為實體滑鼠裝置。
+- **亞毫秒級反應速度：** 觸控事件透過原生二進位程式（`/dev/uinput`）直通 Linux 核心輸入串流，延遲低於 1ms。
+- **多指手勢支援：** 單指輕觸代表滑鼠左鍵、雙指輕觸代表滑鼠右鍵、三指輕觸代表滑鼠中鍵。
+
+### 5. 懸浮快速選單 (Quick Menu)
+
+- **常駐邊緣呼出手把：** 副螢幕邊緣常駐極簡手勢指示條，向內輕滑即可呼出懸浮快速選單，無需離開當前畫面即可隨時切換工具、變更設定檔、控制畫面鏡像或開啟設定。
+- **沉浸式深色遊戲美學：** 專為雙螢幕遊戲環境打造的無邊框全螢幕深色主題，避免副螢幕過亮干擾主螢幕遊戲體驗。
+
+---
+
+## 畫面截圖
+
+### 雙螢幕協同運作展示
+
+|                               主螢幕（上方螢幕）                               |                                              副螢幕（下方螢幕）                                              |
 | :------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------: |
-| ![Primary Screen on the AYN Thor](./assets/screenshots/primary_screen.png) | ![Secondary Screen with custom MacroPad layout on the AYN Thor](./assets/screenshots/secondary_screen.png) |
+| ![AYN Thor 主螢幕](./assets/screenshots/primary_screen.png) | ![AYN Thor 副螢幕自訂巨集板配置](./assets/screenshots/secondary_screen.png) |
 
-_Dual-screen companion experience in action. The primary screen displays your target game or app, while the secondary screen hosts your custom MacroPad layout or active companion tool._
-
----
-
-### Welcome Tour & Onboarding
-
-![The built-in interactive welcome tour tutorial](./assets/screenshots/welcome_tour.png)
-
-_The step-by-step interactive welcome tour that guides new users through Megingiard's features, gestures, Quick Menu navigation, and initial configuration._
+_雙螢幕伴侶體驗：主螢幕運行遊戲或模擬器，副螢幕隨時顯示自訂巨集板或輔助工具。_
 
 ---
 
-### Virtual Keyboards & Touchpads
+### 新手上路與互動導覽
 
-|                               Compact Full Keyboard                               |                             Ergonomic Split Keyboard                              |
+![內建互動式新手導覽教程](./assets/screenshots/welcome_tour.png)
+
+_逐步引導新手使用者認識 Megingiard 功能、手勢操作、懸浮選單與基礎設定。_
+
+---
+
+### 虛擬鍵盤與虛擬觸控板
+
+|                               緊湊型全鍵盤                               |                             人體工學分離式鍵盤                              |
 | :-------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------: |
-|  ![Compact Full Keyboard Layout](./assets/screenshots/compact_full_keyboard.png)  |  ![Ergonomic Split Keyboard Layout](./assets/screenshots/ergonomic_keyboard.png)  |
-|                            **Relative Mouse Touchpad**                            |                            **Absolute Touch Touchpad**                            |
-| ![Relative Mouse Touchpad Mode](./assets/screenshots/relative_mouse_touchpad.png) | ![Absolute Touch Touchpad Mode](./assets/screenshots/absolute_touch_touchpad.png) |
-
-_Virtual input modes designed for the secondary screen. Top row: Full Compact and Ergonomic Split on-screen keyboards with sticky modifiers and trackpoints. Bottom row: Kernel-level Relative Mouse Trackpad and Absolute Touch direct digitizer emulation modes._
+|  ![緊湊型全鍵盤配置](./assets/screenshots/compact_full_keyboard.png)  |  ![分離式鍵盤配置](./assets/screenshots/ergonomic_keyboard.png)  |
+|                            **相對座標滑鼠觸控板**                            |                            **絕對座標手寫觸控板**                            |
+| ![相對座標滑鼠觸控板模式](./assets/screenshots/relative_mouse_touchpad.png) | ![絕對座標觸控板模式](./assets/screenshots/absolute_touch_touchpad.png) |
 
 ---
 
-### Layout Editor
+### 版面編輯器
 
-![The MacroPad layout editor with snap grid active](./assets/screenshots/layout_editor.png)
+![啟用對齊磁吸格線的版面編輯器](./assets/screenshots/layout_editor.png)
 
-_The built-in layout editor with rectangular snap grid enabled. Buttons can be placed freely, resized, and snapped to grid for precise alignment._
-
----
-
-### Button Editor
-
-![The per-button configuration screen](./assets/screenshots/button_editor.png)
-
-_Per-button configuration: choose the action type (keyboard key, gamepad button, mouse button, scroll wheel, or trackpoint), pick an icon from the Material Symbols library, and set the button size and shape._
+_內建強大編輯器：自由擺放按鈕、調整尺寸並精準對齊格線。_
 
 ---
 
-### Macro Editor
+### 特權模式與無線偵錯設定
 
-![The macro editor showing a timed sequence of key and gamepad events](./assets/screenshots/macro_editor.png)
+![特權模式設定與無線偵錯狀態卡片](./assets/screenshots/privd_setup.png)
 
-_The macro editor lets you inspect and fine-tune recorded or hand-crafted event sequences, complete with precise timing control for each step._
-
----
-
-### Macro Recording
-
-![The macro recording overlay active on the secondary screen, capturing button presses in real time](./assets/screenshots/Macro_Recording-BOTTOM.png)
-
-_Macro recording in progress. Tap buttons on the secondary screen (or use your physical controller in Privileged Mode) and Megingiard captures the full event sequence with timing._
+_特權模式設定卡片：免電腦、本機一鍵透過「無線偵錯」自動配對部署背景守護程式，並可獨立開啟手把合併、巨集實體手把錄製、特權免提示鏡像等強大功能。_
 
 ---
 
-### Quick Menu
+## 安裝方式
 
-![The edge quick menu expanded in dark theme](./assets/screenshots/quick_menu.png)
+1. 從 GitHub 倉庫的 [Releases](../../releases) 頁面下載最新簽名之 `Megingiard-vX.Y.Z-zh.apk`。
+2. 在 AYN Thor 上，允許瀏覽器或檔案管理員安裝未知來源應用程式（Android 設定 → 應用程式 → <您的檔案管理員> → 「安裝未知應用程式」）。
+3. 點選 APK 進行安裝。
+4. 啟動 Megingiard 開始設定！
 
-_The Quick Menu — swipe the edge quick menu bar inward to switch between Mirror, MacroPad, Keyboard, and Touchpad, change profiles, control the mirror, or open settings. Everything accessible without leaving your current screen._
-
----
-
-### Privileged Mode & Wireless Debugging Setup
-
-![The Privileged Mode setup card showing Wireless Debugging configuration and status](./assets/screenshots/privd_setup.png)
-
-_The Privileged Mode setup & settings card. Easily pair on-device via Wireless Debugging, deploy the helper daemon, and toggle individual privileged capabilities (Gamepad Merge, Gamepad Recording, Privileged Mirror)._
+本應用程式未上架 Google Play 商店，直接下載 APK 安裝為唯一官方發行管道。
 
 ---
 
-## Installation
+## 初次啟動與快速上手
 
-1. Download the latest signed `Megingiard-vX.Y.Z.apk` from the [Releases](../../releases) tab on GitHub.
-2. On the AYN Thor, allow your browser or file manager to install unknown apps (Android Settings → Apps → \<your file manager\> → "Install unknown apps").
-3. Open the APK to install.
-4. Launch the app and start configuring!
-
-There is no Google Play Store listing; APK side-loading is the official distribution channel.
-
-### Automated Updates with Obtainium
-
-To automatically track releases and install updates directly on your device, you can add Megingiard to **[Obtainium](https://github.com/ImranR98/Obtainium)**.
-
-- In the app, click on **Settings → Configuration → Add to Obtainium**.
-
----
-
-## First Launch / Quick Start
-
-1. **Launch the App:** Open Megingiard from your launcher. It only works on the secondary display, so make sure to start it from there or configure your launcher to pin/run it on the bottom screen.
-2. **Configure Accessibility Service (Optional):** If you want to use **App-Aware Automatic Profile Switching**, you must activate Megingiard's Accessibility Service:
-   - Go to Android Settings → Accessibility → Installed Apps / Downloaded Services.
-   - Select **Megingiard Accessibility Service** and enable it.
-   - Toggle **Auto-switch profiles** in Megingiard's Global Settings.
-3. **Access Quick Menu:** **Swipe the edge quick menu bar** (visible on the bottom edge of the secondary screen) inward. From here, you can:
-   - Switch active tools (Mirror, MacroPad, Keyboard, Touchpad).
-   - Pick layouts and profiles.
-   - Start, freeze, or stop the screen mirror.
-   - Open global settings.
-4. **Exit App:** Close Megingiard via the standard Android Recents view — there is no in-app exit button to keep your screen completely clear of clutter.
+1. **啟動應用程式：** 請由副螢幕（下方螢幕）啟動 Megingiard，或將桌面啟動器設定為預設在副螢幕開啟本程式。
+2. **設定無障礙服務（選用）：** 若需使用**應用程式自動感知切換設定檔**功能：
+   - 進入 Android 系統設定 → 無障礙 → 已下載的服務 / 已安裝的應用程式。
+   - 找到 **Megingiard Accessibility Service** 並將其啟用。
+   - 在 Megingiard 全域設定中開啟「自動切換設定檔」選項。
+3. **呼出懸浮快速選單：** 在副螢幕底部的邊緣指示條向內滑動，即可：
+   - 切換使用中的工具（鏡像、巨集板、鍵盤、觸控板）。
+   - 切換巨集板設定檔與版面配置。
+   - 啟動、凍結或停止畫面鏡像。
+   - 開啟全域設定頁面。
+4. **結束應用程式：** 透過 Android 系統「最近使用的應用程式（Recents）」列表滑掉關閉即可。應用程式內未設置離開按鈕，以維持副螢幕介面極簡乾淨。
 
 ---
 
-## Privileged Mode
+## 特權模式 (Privileged Mode)
 
-Privileged Mode is an **opt-in feature** that unlocks advanced features that the regular Android sandbox cannot deliver due to security constraints. It is **disabled by default** and can be toggled on or off at any time in Global Settings.
+特權模式是一項**自由選擇啟用的進階功能**，能突破 Android 標準應用程式沙盒的安全限制。本功能**預設為關閉**，隨時可在全域設定中自由開啟或關閉。
 
-### What it is (Technical Details)
+### 原理與技術細節
 
-Megingiard packages a lightweight, native on-device helper daemon (`megingiard_privd`) inside the APK. When you activate Privileged Mode, the in-app setup wizard leverages Android's built-in **Wireless Debugging** facility (available since Android 11) to deploy the daemon to `/data/local/tmp` and run it under the **shell user** (UID 2000) — the same security domain used by an `adb shell` session. The app then establishes a secure process-local Unix socket connection to communicate with the daemon.
+Megingiard 在 APK 內打包了極為輕量的原生輔助守護程式（`megingiard_privd`）。啟用特權模式時，內建精靈會利用 Android 11+ 原生的**無線偵錯 (Wireless Debugging)** 機制，將程式部署至 `/data/local/tmp`，並以 **Shell 使用者 (UID 2000)** 身分在背景運行（等同於執行 `adb shell`）。應用程式接著透過安全的本機 Unix Domain Socket 與守護程式建立通訊。
 
-This architecture requires **no root, no USB cables, no PC, and no external servers**. The entire bootstrap runs completely on the device itself through the wizard at the bottom of Global Settings.
+**全程無需 Root 權限、無需連接電腦、無需傳輸線、亦無需外部伺服器**，所有配對皆在本機內部迴路（Loopback）完成。
 
-### What it unlocks
+### 特權功能解鎖對比
 
-| Feature               | What you gain with Privileged Mode                                                                                    | Fallback without it                                                                                                     |
-| :-------------------- | :-------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| **Gamepad Merge**     | Games see only **one** controller, seamlessly blending MacroPad virtual inputs on top of your physical controller.    | A second virtual controller appears alongside the physical one. Some games might ignore inputs from one of the devices. |
-| **Gamepad Recording** | Record macros from your **real, physical controller** in real-time while the target game continues to receive inputs. | Use the on-screen virtual-controller recording overlay.                                                                 |
-| **Privileged Mirror** | The screen mirror starts instantly without asking for MediaProjection consent every time.                             | Standard Android screen-recording consent dialog appears on every mirror start.                                         |
+| 功能特性 | 啟用特權模式後體驗 | 未啟用的沙盒替代方案 |
+| :--- | :--- | :--- |
+| **手把合併 (Gamepad Merge)** | 遊戲只會識別到**單一**實體控制器，巨集板的虛擬輸入無縫疊加於實體手把訊號之上。 | 系統會出現第二個虛擬手把，部分遊戲可能會忽略第二控制器的訊號。 |
+| **手把巨集實體錄製** | 遊戲正常操控的同時，直接捕捉並錄製**實體手把按鍵**的真實輸入序列與間隔。 | 需使用副螢幕上的虛擬控制器覆蓋面板進行錄製。 |
+| **特權免提示鏡像** | 畫面鏡像隨點即開，不再反覆跳出系統錄影授權對話框。 | 每次啟動鏡像時皆會跳出 Android 標準螢幕錄製確認視窗。 |
 
-### Why it is technically required
+### 守護程式生命週期提醒
 
-The standard Android application sandbox (running in the `untrusted_app` SELinux domain, with no `input` group membership) is strictly prevented from writing to `/dev/uinput` or physical `/dev/input/event*` nodes directly, and cannot initiate system `SurfaceControl` mirror paths. The Android shell UID carries the necessary `input` group permissions and a more permissive SELinux profile, enabling native input injection and projection control.
-
-### Convenience Benefits
-
-- **Auto-Connect:** Once configured, Megingiard silently reconnects to the local daemon on cold starts. No manual pairing or re-pairing is needed.
-- **No Recurring Prompts:** The Privileged Mirror skips the OS screen capture warning completely on every launch.
-- **Per-Feature Toggles:** Choose exactly which features to run under Privileged Mode and which to run in fallback.
-- **⚠️ Daemon Lifespan:** The daemon will **not** survive a device reboot because Android clears `/data/local/tmp` on startup. You will need to re-run the pairing wizard (takes less than 30 seconds) after booting.
-
-### Security and Trust
-
-Privileged Mode is powerful, and you should understand its security scope:
-
-- **Shell-Level Scope (UID 2000):** The daemon runs with the same rights as `adb shell`. It can read/write input nodes to emulate controllers and keys, but **cannot** escalate to root, modify system/read-only partitions, or read private data belonging to other applications.
-- **Trusted Sources Only:** Only run Privileged Mode if you trust the source code and signed releases. **ONLY DOWNLOAD THE APK FROM THE OFFICIAL GITHUB RELEASES PAGE.**
-- **Completely Local & Offline:** The Wireless Debugging pairing is a local loopback handshake. The daemon only listens on a process-local **abstract Unix socket** inaccessible from any external network. Megingiard makes no outbound network connections.
-- **Easy Opt-Out:** You can disable Privileged Mode at any time. All features gracefully degrade to their standard sandbox fallbacks.
-
-### Verifying the APK Download
-
-Each release includes a SHA-256 checksum file (e.g. `Megingiard-vX.Y.Z-checksum-sha256.txt`). Verify the hash of your downloaded APK before installation to ensure its integrity.
-
-**macOS**
-
-```sh
-shasum -a 256 Megingiard-vX.Y.Z.apk
-```
-
-**Linux**
-
-```sh
-sha256sum Megingiard-vX.Y.Z.apk
-```
-
-**Windows (PowerShell)**
-
-```powershell
-Get-FileHash Megingiard-vX.Y.Z.apk -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-```
-
-Ensure the output matches the checksum in the `.txt` file exactly before sideloading. For absolute authenticity, always verify the developer's signing certificate fingerprint.
-
-### Pairing Wizard Steps
-
-1. Go to Android Settings → System → Developer Options, and enable **Wireless Debugging**.
-2. Tap **"Pair device with pairing code"** — Android will show an IP address, port, and a 6-digit pairing code.
-3. Enter the port and pairing code into Megingiard's setup wizard.
-4. The wizard pairs with the local ADB service, deploys the daemon, launches it, and runs a self-test.
-5. Tap **Test Connection** in Settings at any time to verify the socket link is active.
+⚠️ 守護程式在**掌機重新開機後不會自動保留**，因為 Android 系統每次開機都會清空 `/data/local/tmp`。重新開機後只需再次開啟全域設定中的自動配對精靈（全程只需約 10~30 秒）即可恢復。
 
 ---
 
-## Privacy
+## 隱私權
 
-- **No Analytics or Telemetry:** Megingiard collects nothing, logs nothing externally, and sends nothing. Your device data is entirely yours.
-- **No Internet Required:** The local pairing stays on the device's loopback interface. Megingiard makes zero external internet calls.
-- **Local Storage:** All custom profiles, layout setups, and macros are stored strictly on-device using Jetpack DataStore.
-
----
-
-## Releases
-
-- Releases are officially tagged `vMAJOR.MINOR.PATCH` and published in the GitHub [Releases](../../releases) tab.
-- Each release bundle includes:
-  - The signed production APK (`Megingiard-vX.Y.Z.apk`)
-  - The MD5 verification checksum file
-  - Detailed changelogs organized by feature area and daemon changes
-- Pre-releases are clearly labeled and carry `-beta` or `-rc` suffixes.
+- **零遙測與資料收集：** Megingiard 完全不包含任何分析追蹤或遙測程式碼，不向外部傳送任何資料。
+- **完全離線運作：** 無線偵錯配對僅在裝置本機迴路通訊，應用程式不具有任何連網行為。
+- **本機資料儲存：** 所有自訂設定檔、巨集與排版皆以 Jetpack DataStore 儲存於裝置本機。
 
 ---
 
-## FAQ & Troubleshooting
+## 常見問題與疑難排解
 
-**The mirror screen is black.**
+**畫面鏡像呈現黑畫面？**
+> 請嘗試由懸浮快速選單停止並重新啟動鏡像。若問題持續，請確認是否啟用了保護版權（DRM）內容之應用程式。
 
-> Try stopping and restarting the mirror from the Quick Menu. If the screen remains black, open a GitHub issue specifying your current app version and replication steps.
+**每次啟動鏡像都會詢問螢幕錄製權限？**
+> 此為 Android 標準安全行為。啟用「特權模式」並開啟「特權免提示鏡像」，即可永久略過此提示。
 
-**Android requests screen recording permission on every mirror start.**
+**重開機後特權模式顯示為「關閉」？**
+> 這是 Android 系統機制。系統重開機時會清空暫存區，非 Root 應用程式無法設定開機自啟。只需進入設定重新執行配對精靈即可。
 
-> This is default Android behavior. Enable Privileged Mode and turn on the **Privileged Mirror** feature in Settings to skip this prompt permanently.
+**使用巨集板時，遊戲同時辨識到兩個控制器？**
+> 請開啟「特權模式」並啟用「手把合併 (Gamepad Merge)」，即可將虛擬輸入直接與實體手把訊號融為一體。
 
-**Privileged Mode shows "OFF" after I rebooted my Thor.**
-
-> This is expected. Android wipes `/data/local/tmp` on reboots. Sideloaded daemons cannot autostart on boot without root. Simply re-run the pairing wizard (takes ~30 seconds).
-
-**My game sees two controllers when using the MacroPad.**
-
-> Enable Privileged Mode and turn on **Gamepad Merge**. This merges the MacroPad's virtual actions onto your physical controller's stream, hiding the double controller from the game.
-
-**Only MacroPad buttons or only physical gamepad inputs are registered, not both.**
-
-> Some Android games only accept a single active input source. Enabling **Gamepad Merge** under Privileged Mode resolves this.
-
-**Wireless Debugging pairing fails.**
-
-> Ensure you enter the **pairing port** (shown in the popup pairing code dialog) and not the connection port (shown on the main Wireless Debugging screen). These are two different, dynamic five-digit numbers.
-
-**Deploying the daemon fails.**
-
-> Sometimes the local ADB loopback handshake takes a few extra seconds to initialize. Try running the test/deploy step 1 or 2 more times — this always resolves transient socket connection timeouts.
-
-**Can I run this on other dual-screen devices or phones?**
-
-> No. Megingiard targets the specific screen geometry, hardware-specific mapping paths, and physical event codes of the AYN Thor. It will not work on different hardware configurations.
-
-**Why isn't automatic profile switching working?**
-
-> 1. Ensure Megingiard's **Accessibility Service** is enabled (Android Settings → Accessibility → Megingiard Accessibility Service).
-> 2. Ensure **Auto-switch profiles** is toggled ON under Global Settings.
-> 3. Verify that your profile has a correct app mapping selected in the Profile Editor (tap "Clear App Mapping" and re-select the application if necessary).
-> 4. Remember that profile switching is ignored when Megingiard, core system overlays (`com.android.systemui`), or system dialogs (`android`) are in the foreground to prevent focus loops.
+**無線偵錯自動配對失敗？**
+> 請確認您輸入的是「使用配對碼配對裝置」彈出對話框中的 5 位數**配對通訊埠 (Pairing Port)** 與 6 位數配對碼，而非無線偵錯主畫面上的 IP 通訊埠。
 
 ---
 
-## Security
+## 授權條款
 
-Megingiard combines APK signature pinning, release-build fail-closed checks, SHA-256 verification of native assets, and mutual HMAC-SHA256 authentication for the Privileged Mode daemon socket. The concise entry point is [SECURITY_CONCEPT.md](SECURITY_CONCEPT.md); detailed daemon and native-binary behavior is documented in [Privileged Mode](docs/features/privileged-mode/FEATURE.md#security-model) and [Build Native](docs/BUILD_NATIVE.md#native-asset-integrity).
+Megingiard 為原始碼可用（Source-Available）專案，採用專有之 **Megingiard Source-Available License (Version 1.0)** 授權條款。
 
----
+- **原始碼與二進位檔案：** 僅限於**個人、非商業目的**之檢視、編譯與安裝使用。
+- **禁止條款：** 嚴禁任何商業盈利利用、未經許可重新分發修改後之二進位檔/源碼，或預先搭載於商業硬體裝置。
 
-## License
-
-Megingiard is a proprietary, source-available project. It is licensed under the custom **Megingiard Source-Available License (Version 1.0)**.
-
-- **Source Code & Binaries:** You are permitted to view the source code, compile it, and run the application solely for your own **personal, non-commercial use**.
-- **Prohibitions:** Any commercial exploitation, redistribution of modified source/binaries, and pre-installation or bundling on commercial hardware/devices without prior written consent are strictly prohibited.
-- **Open Source Transition Commitment:** The Copyright Holder commits to transitioning the entire codebase to a fully permissive, OSI-approved open-source license (such as MIT or Apache 2.0) with full redistribution rights in the event that active development is permanently discontinued without a successor.
-
-For the full terms and conditions, please refer to the [LICENSE](LICENSE) file at the root of the repository.
+詳細授權條款請參閱倉庫根目錄之 [LICENSE](LICENSE) 檔案。
 
 ---
 
-## Support This App
+## 外部連結
 
-Megingiard is completely free to use for personal, non-commercial use. If you enjoy using it and want to support its ongoing development, feel free to buy me a non-existent coffee! Your support and feedback are highly appreciated. <3
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/stormpanda)
-
----
-
-## Links
-
-📣 **Are you creating videos, guides, or posts featuring Megingiard? Reach out, and I will gladly feature your content right here!** 📣
-
-- [Megingiard Feature Overview by Rye J’s Outpost](https://youtu.be/vgs6X9piswA?si=K8TbTrWHGzLIRxe3) - A detailed general feature walkthrough and overview of Megingiard.
-- [Turn All Your Games Into Dual Screen Games by RoeTaKa](https://youtu.be/1Iksugqljj8) - A setup and configuration guide showing how to use Megingiard for different gaming layouts.
-- [Another Must Have App for the AYN Thor! by Joey's Retro Handhelds](https://youtu.be/CoagJc1Z0gQ) - A detailed (and funny!) setup walkthrough and app overview featuring Megingiard. focused on the screen mirroring aspect.
-- [Screen Mirroring Demo by dylosama](https://www.youtube.com/shorts/v_UhWzfCbRQ) - A YouTube Short highlighting the app's latency-free, multi-cutout screen mirroring functionality in action.
-- Megingiard is featured in [GAFT (Games & Apps for AYN Thor)](https://andreyvelsk.github.io/GAFT/) - A community-curated directory of dual-screen games, companion app pairings, and Android ports for the AYN Thor, created and maintained by Andrey Velsk (@andreyvelsk).
-
----
+- [Megingiard 功能總覽影片（由 Rye J’s Outpost 製作）](https://youtu.be/vgs6X9piswA?si=K8TbTrWHGzLIRxe3)
+- [雙螢幕玩法配置指南（由 RoeTaKa 製作）](https://youtu.be/1Iksugqljj8)
+- [Joey's Retro Handhelds 評測教學影片](https://youtu.be/CoagJc1Z0gQ)
+- [dylosama 製作的畫面鏡像短片展示](https://www.youtube.com/shorts/v_UhWzfCbRQ)
+- [GAFT (AYN Thor 雙螢幕遊戲與推薦軟體指南)](https://andreyvelsk.github.io/GAFT/)
