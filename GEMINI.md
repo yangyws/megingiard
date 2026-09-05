@@ -14,5 +14,7 @@ Project-specific agent skills are located in [`.agents/skills/`](./.agents/skill
 - Sync upstream: [`.agents/skills/megingiard-sync-upstream/SKILL.md`](./.agents/skills/megingiard-sync-upstream/SKILL.md)
 - Traditional Chinese audit: [`.agents/skills/megingiard-i18n-audit/SKILL.md`](./.agents/skills/megingiard-i18n-audit/SKILL.md)
 - Release ZH: [`.agents/skills/megingiard-release-zh/SKILL.md`](./.agents/skills/megingiard-release-zh/SKILL.md)
+- Branch sync: [`.agents/skills/megingiard-branch-sync/SKILL.md`](./.agents/skills/megingiard-branch-sync/SKILL.md)
+- Feature PR: [`.agents/skills/megingiard-feature-pr/SKILL.md`](./.agents/skills/megingiard-feature-pr/SKILL.md)
 - Clean uninstall: [`.agents/skills/megingiard-uninstall-clean/SKILL.md`](./.agents/skills/megingiard-uninstall-clean/SKILL.md)
 

@@ -68,6 +68,8 @@ Specialized agent workflows are codified under `.agents/skills/`. When performin
 | `megingiard-sync-upstream`           | `.agents/skills/megingiard-sync-upstream/SKILL.md`   | Sync upstream origin/main to fork/main and merge cleanly into main-zh.                         |
 | `megingiard-i18n-audit`              | `.agents/skills/megingiard-i18n-audit/SKILL.md`      | Audit Traditional Chinese (zh-TW) localization completeness and terminology against upstream. |
 | `megingiard-release-zh`              | `.agents/skills/megingiard-release-zh/SKILL.md`      | Manage Megingiard-ZH releases, GitHub Actions builds, and clean release notes.                |
+| `megingiard-branch-sync`             | `.agents/skills/megingiard-branch-sync/SKILL.md`     | Batch sync all isolated feature branches against upstream origin/main.                       |
+| `megingiard-feature-pr`              | `.agents/skills/megingiard-feature-pr/SKILL.md`      | Prepare an isolated feature branch and submit a clean Pull Request to upstream.              |
 | `megingiard-uninstall-clean`         | `.agents/skills/megingiard-uninstall-clean/SKILL.md`  | Cleanly wipe app data, backups, and daemon binaries for clean-state testing.                  |
 
 > [!IMPORTANT]
