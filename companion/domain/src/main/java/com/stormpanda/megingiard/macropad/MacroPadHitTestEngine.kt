@@ -73,22 +73,6 @@ class MacroPadHitTestEngine(
     private var lastDxSign = 0f
     private var lastDySign = 0f
 
-    private fun isPointInsideButton(
-        btn: PadButton,
-        px: Float,
-        py: Float,
-        canvasW: Float,
-        canvasH: Float,
-    ): Boolean {
-        val isTrackpoint = btn.action is PadAction.TrackpointMove
-        val mult = if (isTrackpoint) (btn.action as PadAction.TrackpointMove).size.multiplier else null
-        val chipWidthPx = buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (mult ?: btn.buttonSize.cols.toFloat()))
-        val chipHeightPx = buttonUnitDpToPx(MP_BUTTON_UNIT_DP_VALUE * (mult ?: btn.buttonSize.rows.toFloat()))
-        val bx = btn.posX * canvasW
-        val by = btn.posY * canvasH
-        return px >= bx - chipWidthPx / 2f && px <= bx + chipWidthPx / 2f &&
-            py >= by - chipHeightPx / 2f && py <= by + chipHeightPx / 2f
-    }
 
     private fun triggerHaptic(
         btn: PadButton,
