@@ -26,7 +26,7 @@ Welcome to **Megingiard**, a bespoke companion application specifically designed
 This fork (`megingiard-zh`) provides tailored enhancements specifically focused on localization and handheld usability improvements:
 
 - **Independent Package ID**: Built as `com.stormpanda.megingiard.zh`, allowing side-by-side coexistence with the official upstream app without package collisions.
-- **Traditional Chinese Localization**: Complete 100% Traditional Chinese (`zh-TW`) translations across all UI, settings, help tutorials, and AutoSetup Wireless Debugging flow, meticulously refined to Taiwanese tech conventions.
+- **Traditional Chinese Localization**: Complete 100% Traditional Chinese (`zh-TW`) translations across all UI, settings, and help tutorials, meticulously refined to Taiwanese tech conventions.
 - **MacroPad Table Mode**: Grid layout mode supporting customizable row/column counts (1×1 to 8×6), cell drag-to-swap/move, multi-cell button spanning, and full top-layer border rendering.
 - **Custom Button Images & Dual-Screen Cropping**: Pick custom button images from device storage or SteamGridDB, with dedicated enlarged cropping subpages and full-bleed image scaling.
 - **Quick Menu Enhancements**: Improved unselected chip text readability on overlays, double-click & long-press chip edit shortcuts, and duplicate selection border fixes.
