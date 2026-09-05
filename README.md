@@ -1,5 +1,7 @@
 # Megingiard for **AYN Thor**
 
+[繁體中文說明文件 (Traditional Chinese README)](README_zh-TW.md)
+
 Welcome to **Megingiard**, a bespoke companion application specifically designed for the **AYN Thor** dual-screen Android handheld. Megingiard combines deep Android hardware video stream manipulation with modern Jetpack Compose interfaces to turn your secondary display into a fully interactive tool belt: a latency-free, multi-cutout mirror of your primary screen, a virtual keyboard, a virtual touchpad, a configurable MacroPad, and a virtual gamepad — all driven by native input injection for sub-millisecond response.
 
 <p align="center">
@@ -15,7 +17,19 @@ Welcome to **Megingiard**, a bespoke companion application specifically designed
 
 ---
 
-[Device Compatibility](#device-compatibility) · [Documentation](#documentation) · [Core Features](#core-features) · [Screenshots](#screenshots) · [Installation](#installation) · [Quick Start](#first-launch--quick-start) · [Privileged Mode](#privileged-mode) · [Privacy](#privacy) · [Releases](#releases) · [FAQ & Troubleshooting](#faq--troubleshooting) · [Security](#security) · [License](#license) · [Support This App](#support-this-app) · [Links](#links)
+[Enhanced Fork Highlights](#megingiard-zh-enhanced-features) · [Device Compatibility](#device-compatibility) · [Documentation](#documentation) · [Core Features](#core-features) · [Screenshots](#screenshots) · [Installation](#installation) · [Quick Start](#first-launch--quick-start) · [Privileged Mode](#privileged-mode) · [Privacy](#privacy) · [Releases](#releases) · [FAQ & Troubleshooting](#faq--troubleshooting) · [Security](#security) · [License](#license) · [Support This App](#support-this-app) · [Links](#links)
+
+---
+
+## Megingiard-ZH Enhanced Features
+
+This fork (`megingiard-zh`) provides tailored enhancements specifically focused on localization and handheld usability improvements:
+
+- **Independent Package ID**: Built as `com.stormpanda.megingiard.zh`, allowing side-by-side coexistence with the official upstream app without package collisions.
+- **Traditional Chinese Localization**: Complete 100% Traditional Chinese (`zh-TW`) translations across all UI, settings, help tutorials, and AutoSetup Wireless Debugging flow, meticulously refined to Taiwanese tech conventions.
+- **MacroPad Table Mode**: Grid layout mode supporting customizable row/column counts (1×1 to 8×6), cell drag-to-swap/move, multi-cell button spanning, and full top-layer border rendering.
+- **Custom Button Images & Dual-Screen Cropping**: Pick custom button images from device storage or SteamGridDB, with dedicated enlarged cropping subpages and full-bleed image scaling.
+- **Quick Menu Enhancements**: Improved unselected chip text readability on overlays, double-click & long-press chip edit shortcuts, and duplicate selection border fixes.
 
 ---
 
