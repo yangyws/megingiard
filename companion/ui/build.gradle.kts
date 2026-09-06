@@ -69,6 +69,7 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix = ".debug"
             ndk {
                 abiFilters.add("arm64-v8a")
             }
