@@ -47,7 +47,7 @@ git merge origin/main
 If conflicts occur:
 1. **Never delete Traditional Chinese string keys**: Retain 100% of existing `values-zh-rTW/strings.xml` keys.
 2. **Translate new upstream keys**: For any new string keys introduced by upstream, add accurate Taiwanese Traditional Chinese translations immediately.
-3. **Preserve fork-specific features**: Protect Table Mode, button image cropping, independent package ID (`.zh`), and custom touch/mouse tweaks.
+3. **Preserve fork-specific features**: Protect Table Mode, button image cropping, independent package ID (`.zh`), app name (`Megingiard-ZH` / `Megingiard-ZH Debug`), and custom touch/mouse tweaks.
 
 ### Step 5: Verify Build Safety
 Run compile checks to confirm safe integration:

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Megingiard</string>
+    <string name="app_name">Megingiard-ZH</string>
     <string name="focus_launcher_no_apps">Keine Apps gefunden</string>
     <string name="wrong_screen_message">Megingiard muss auf dem unteren Bildschirm laufen.\nBitte verschiebe die App, um fortzufahren.</string>
     <string name="cd_wrong_screen_arrow">Pfeil zeigt zum unteren Bildschirm</string>
