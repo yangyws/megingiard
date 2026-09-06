@@ -23,13 +23,13 @@ You are a localization and internationalization (i18n) QA engineer specializing 
 
 | English Term | Taiwan Convention (Required) | Forbidden / Untranslated Phrasing |
 | :--- | :--- | :--- |
-| Secondary screen / bottom display | `副螢幕` | `次螢幕`、`下方螢幕`、`副屏` |
-| Primary screen / top display | `主螢幕` | `頂部螢幕`、`主屏` |
+| Secondary screen / bottom display | `下螢幕` (或 `副螢幕`) | `次螢幕`、`下方螢幕`、`副屏` |
+| Primary screen / top display | `上螢幕` (或 `主螢幕`) | `頂部螢幕`、`主屏` |
 | Tap / Press | `輕觸` | `點擊`、`點按` |
 | Disable / Turn off | `停用` | `禁用`、`關閉` (for states) |
 | Layout | `配置` | `佈局`、`佈署` |
 | Storage / Storage Volume | `儲存空間` | `存儲空間`、`內存` |
-| Companion Hub | `副螢幕輔助中心` | `輔助中心`、`副屏伴侶` |
+| Companion Hub | `下螢幕輔助中心` | `輔助中心`、`副屏伴侶` |
 
 ---
 
