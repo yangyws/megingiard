@@ -41,7 +41,7 @@ gh run list --repo yangyws/megingiard-zh --limit 1
 ### Step 4: Sync GitHub Release Notes
 Ensure the release notes on `https://github.com/yangyws/megingiard-zh/releases` match the clean 4 highlights using `gh release edit`:
 ```bash
-gh release edit v0.9.0-zh --repo yangyws/megingiard-zh --notes "<clean markdown body>"
+gh release edit v0.10.0-zh --repo yangyws/megingiard-zh --notes "<clean markdown body>"
 ```
 
 ### Step 5: Verify Artifact Integrity

@@ -40,8 +40,8 @@ android {
         applicationId = "com.stormpanda.megingiard.zh"
         minSdk = 33
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.10.0-SNAPSHOT"
+        versionCode = 11
+        versionName = "0.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -93,7 +93,7 @@ android {
         val variant = this
         variant.outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "megingiard-v0.9.0-zh.apk"
+            output.outputFileName = "megingiard-v0.10.0-zh.apk"
         }
     }
 
@@ -178,7 +178,7 @@ afterEvaluate {
     tasks.matching { it.name in listOf("assembleRelease", "bundleRelease", "packageRelease") }.configureEach {
         dependsOn(validateReleaseSignature)
     }
-    val rootDestFile = rootProject.layout.projectDirectory.file("megingiard-v0.9.0-zh.apk").asFile
+    val rootDestFile = rootProject.layout.projectDirectory.file("megingiard-v0.10.0-zh.apk").asFile
     val buildOutputDir = layout.buildDirectory.dir("outputs/apk").get().asFile
     tasks.matching { it.name == "packageRelease" || it.name == "packageDebug" }.configureEach {
         val isRelease = name == "packageRelease"
