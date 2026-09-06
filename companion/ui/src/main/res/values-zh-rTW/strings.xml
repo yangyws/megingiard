@@ -55,6 +55,8 @@
     <string name="settings_kb_layout">鍵盤配置</string>
     <string name="settings_kb_touchpad">鍵盤觸控板</string>
     <string name="settings_kb_touchpad_desc">在鍵盤上方顯示觸控板</string>
+    <string name="keyboard_mode_ergo">簡易</string>
+    <string name="keyboard_mode_full">完整</string>
 
     <!-- Input method (touchpad + keyboard trackpoint) -->
 
@@ -871,6 +873,8 @@
     <string name="settings_touchpad_m5_label">M5</string>
     <string name="cd_touchpad_relative_mouse_mode">相對滑鼠模式</string>
     <string name="cd_touchpad_absolute_touch_mode">絕對觸控模式</string>
+    <string name="touchpad_mode_mouse">滑鼠</string>
+    <string name="touchpad_mode_touch">觸控</string>
     <string name="cd_touchpad_toggle_mirroring">切換觸控板投影</string>
     <string name="help_touchpad_settings_mirror_dim_desc">調整觸控板內投影螢幕的亮度覆蓋層。</string>
     <string name="help_touchpad_settings_sensitivity_desc">調整相對滑鼠模式下的游標移動速度倍率。</string>

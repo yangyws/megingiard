@@ -55,6 +55,8 @@
     <string name="settings_kb_layout">Tastaturlayout</string>
     <string name="settings_kb_touchpad">Tastatur-Touchpad</string>
     <string name="settings_kb_touchpad_desc">Touchpad über der Tastatur anzeigen</string>
+    <string name="keyboard_mode_ergo">Ergo</string>
+    <string name="keyboard_mode_full">Voll</string>
 
     <!-- Input method (touchpad + keyboard trackpoint) -->
 
@@ -873,6 +875,8 @@ Open Settings to create a layout.</string>
     <string name="settings_touchpad_m5_label">M5</string>
     <string name="cd_touchpad_relative_mouse_mode">Relativer Mausmodus</string>
     <string name="cd_touchpad_absolute_touch_mode">Absoluter Touchmodus</string>
+    <string name="touchpad_mode_mouse">Maus</string>
+    <string name="touchpad_mode_touch">Touch</string>
     <string name="cd_touchpad_toggle_mirroring">Touchpad-Spiegelung umschalten</string>
     <string name="help_touchpad_settings_mirror_dim_desc">Passt die Helligkeit des gespiegelten Bildschirms im Touchpad an.</string>
     <string name="help_touchpad_settings_sensitivity_desc">Passt den Cursor-Bewegungs-Multiplikator im relativen Mausmodus an.</string>
