@@ -68,6 +68,7 @@ import com.stormpanda.megingiard.catalog.DisplayDetector
 import com.stormpanda.megingiard.catalog.SystemRoleClassifier
 import com.stormpanda.megingiard.config.ConfigManager
 import com.stormpanda.megingiard.config.MGRD_MIME_TYPE
+import com.stormpanda.megingiard.input.InjectorLifecycleManager
 import com.stormpanda.megingiard.log.LogReportManager
 import com.stormpanda.megingiard.macropad.AppLauncherManager
 import com.stormpanda.megingiard.macropad.BackgroundPickerManager
@@ -245,6 +246,33 @@ class MainActivity : ComponentActivity() {
         AppStateManager.setOnValidScreen(isValid)
     }
 
+    override fun onResume() {
+        super.onResume()
+        AppLog.i(TAG, "onResume")
+        val currentDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY
+        val isValid = DisplayDetector.isValidScreen(currentDisplayId)
+        AppStateManager.setOnValidScreen(isValid)
+        AppStateManager.setActivityResumed(true)
+        val service = MegingiardAccessibilityService.getInstance()
+        val topPkg = service?.queryTopDisplayPackage()
+        if (topPkg != null) {
+            AutoSwitchCoordinator.onPackageChanged(topPkg)
+        } else {
+            AutoSwitchCoordinator.reevaluateAutoState()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        AppLog.i(TAG, "onStop")
+        AppStateManager.setActivityResumed(false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        AppLog.i(TAG, "onDestroy")
+        InjectorLifecycleManager.stopAll()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         super.onCreate(savedInstanceState)
@@ -263,6 +291,9 @@ class MainActivity : ComponentActivity() {
         // else runs (including SignatureGuard below). SettingsManager.init() reads
         // just the log level synchronously from DataStore then continues async.
         SettingsManager.init(this)
+
+        // Centralized input injector lifecycle watching (keeps Key, Mouse, Touch active while foregrounded)
+        InjectorLifecycleManager.watch(this)
 
         // Initialize canonical home launcher and system role classifier
         SystemRoleClassifier.init(this)
@@ -772,27 +803,6 @@ class MainActivity : ComponentActivity() {
                 action = ACTION_STOP
             }
         startService(stopIntent)
-    }
-    override fun onResume() {
-        super.onResume()
-        val curDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY
-        val isValid = curDisplayId != Display.DEFAULT_DISPLAY
-        AppLog.i(TAG, "MainActivity onResume: displayId=$curDisplayId isValid=$isValid")
-        AppStateManager.setOnValidScreen(isValid)
-        AppStateManager.setActivityResumed(true)
-        val service = MegingiardAccessibilityService.getInstance()
-        val topPkg = service?.queryTopDisplayPackage()
-        if (topPkg != null) {
-            AutoSwitchCoordinator.onPackageChanged(topPkg)
-        } else {
-            AutoSwitchCoordinator.reevaluateAutoState()
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        AppLog.i(TAG, "MainActivity onStop")
-        AppStateManager.setActivityResumed(false)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

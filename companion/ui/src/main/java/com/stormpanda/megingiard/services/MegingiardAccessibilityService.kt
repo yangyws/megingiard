@@ -24,6 +24,7 @@ import android.widget.Toast
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.R
+import com.stormpanda.megingiard.keyboard.AutoKeyboardFocusCoordinator
 import com.stormpanda.megingiard.macropad.AutoSwitchCoordinator
 import com.stormpanda.megingiard.macropad.isSelfPackage
 import com.stormpanda.megingiard.privd.AutoSetupLanguageConfig
@@ -33,6 +34,7 @@ import com.stormpanda.megingiard.privd.PrivdError
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdPairScreenTextScanner
 import com.stormpanda.megingiard.privd.PrivdState
+import com.stormpanda.megingiard.settings.KeyboardSettings
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +96,20 @@ class MegingiardAccessibilityService : AccessibilityService() {
             AppLog.i(TAG, "onServiceConnected: Detected initial top screen package: $topPkg")
             AutoSwitchCoordinator.onPackageChanged(topPkg)
         }
+
+        serviceScope.launch {
+            AppStateManager.isFullscreenKeyboardActive.collect { isActive ->
+                AutoKeyboardFocusCoordinator.onKeyboardVisibilityChanged(isActive)
+            }
+        }
+
+        serviceScope.launch {
+            KeyboardSettings.kbAutoOpenOnFocus.collect { enabled ->
+                if (!enabled) {
+                    AutoKeyboardFocusCoordinator.reset()
+                }
+            }
+        }
     }
 
     fun queryTopDisplayPackage(): String? {
@@ -116,22 +132,65 @@ class MegingiardAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        val displayId = event.displayId
+        val isPrimaryDisplay = displayId == Display.DEFAULT_DISPLAY || displayId == Display.INVALID_DISPLAY
+        val eventPackage = event.packageName?.toString()
+
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val displayId = event.displayId
-            val packageName = event.packageName?.toString()
-            if (!packageName.isNullOrBlank() && !isSelfPackage(packageName)) {
-                if (displayId == Display.DEFAULT_DISPLAY || displayId == Display.INVALID_DISPLAY) {
-                    AppLog.d(TAG, "onAccessibilityEvent: Window state changed on primary display ($displayId), package=$packageName")
-                    AutoSwitchCoordinator.onPackageChanged(packageName)
+            if (isPrimaryDisplay) {
+                if (!eventPackage.isNullOrBlank() && !isSelfPackage(eventPackage)) {
+                    AppLog.d(TAG, "onAccessibilityEvent: Window state changed on primary display ($displayId), package=$eventPackage")
+                    AutoSwitchCoordinator.onPackageChanged(eventPackage)
                 }
-            } else if (packageName != null && !isSelfPackage(packageName)) {
+            } else if (eventPackage != null && !isSelfPackage(eventPackage)) {
                 AppLog.d(
                     TAG,
-                    "onAccessibilityEvent: Ignoring window state change on secondary display (displayId=$displayId, package=$packageName)",
+                    "onAccessibilityEvent: Ignoring window state change on secondary display (displayId=$displayId, package=$eventPackage)",
                 )
             }
         }
+        handleAutoKeyboardEvent(event, isPrimaryDisplay, eventPackage)
         handleAutoToggleEvent(event)
+    }
+
+    private fun handleAutoKeyboardEvent(
+        event: AccessibilityEvent,
+        isPrimaryDisplay: Boolean,
+        eventPackage: String?,
+    ) {
+        if (!isPrimaryDisplay || eventPackage == packageName) {
+            return
+        }
+
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_VIEW_CLICKED,
+            -> {
+                val source = event.source ?: return
+                try {
+                    val isEditable = source.isEditable
+                    val isFocused = source.isFocused
+                    if (isEditable && isFocused) {
+                        val windowId = source.windowId
+                        val viewResId = source.viewIdResourceName ?: "unknown"
+                        val fieldId = "$windowId:$viewResId:${source.hashCode()}"
+                        val isClicked = event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+                        AutoKeyboardFocusCoordinator.onTextFieldFocused(
+                            fieldId = fieldId,
+                            isClicked = isClicked,
+                        )
+                    } else if (event.eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED && !isEditable) {
+                        AutoKeyboardFocusCoordinator.onNonEditableFocused()
+                    }
+                } finally {
+                    // source reference GC
+                }
+            }
+
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                AutoKeyboardFocusCoordinator.onWindowStateChanged()
+            }
+        }
     }
 
     private fun handleAutoToggleEvent(event: AccessibilityEvent) {
@@ -782,6 +841,7 @@ class MegingiardAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         AppLog.w(TAG, "onUnbind: Megingiard Accessibility Service disabled")
+        AutoKeyboardFocusCoordinator.reset()
         if (instance == this) instance = null
         AppStateManager.setAccessibilityActive(false)
         return super.onUnbind(intent)
@@ -790,6 +850,7 @@ class MegingiardAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+        AutoKeyboardFocusCoordinator.reset()
         if (instance == this) instance = null
         AppLog.i(TAG, "onDestroy: Accessibility Service destroyed")
         AppStateManager.setAccessibilityActive(false)

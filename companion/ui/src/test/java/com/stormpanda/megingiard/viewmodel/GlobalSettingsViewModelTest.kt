@@ -1,7 +1,9 @@
 package com.stormpanda.megingiard.viewmodel
 
 import com.stormpanda.megingiard.AppLog
+import com.stormpanda.megingiard.keyboard.KbLayout
 import com.stormpanda.megingiard.settings.AppLanguage
+import com.stormpanda.megingiard.settings.KeyboardSettings
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.settings.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -120,5 +122,30 @@ class GlobalSettingsViewModelTest {
         vm.resetAllTutorials()
         vm.privdResetBootstrapStage()
         vm.requestSaveLogReport()
+    }
+
+    @Test
+    fun testKeyboardSettingsDelegation() {
+        val vm = GlobalSettingsViewModel()
+        vm.setKbLayout(KbLayout.AZERTY)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(KbLayout.AZERTY, vm.kbLayout.value)
+        assertEquals(KbLayout.AZERTY, KeyboardSettings.kbLayout.value)
+
+        vm.setKbTouchpadEnabled(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.kbTouchpadEnabled.value)
+        assertFalse(KeyboardSettings.kbTouchpadEnabled.value)
+
+        vm.setKbAutoOpenOnFocus(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.kbAutoOpenOnFocus.value)
+        assertFalse(KeyboardSettings.kbAutoOpenOnFocus.value)
+
+        // Reset
+        vm.setKbLayout(KbLayout.QWERTZ)
+        vm.setKbTouchpadEnabled(true)
+        vm.setKbAutoOpenOnFocus(true)
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 }

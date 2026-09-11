@@ -126,7 +126,6 @@ fun MainAppScreen() {
 
     val isFullscreenMouseActive by AppStateManager.isFullscreenMouseActive.collectAsStateWithLifecycle()
     val isFullscreenKeyboardActive by AppStateManager.isFullscreenKeyboardActive.collectAsStateWithLifecycle()
-    val fullscreenKeyboardLayout by AppStateManager.fullscreenKeyboardLayout.collectAsStateWithLifecycle()
     val isEditorActive by AppStateManager.isEditorActive.collectAsStateWithLifecycle()
     val isBackgroundSettingsActive by AppStateManager.isBackgroundSettingsActive.collectAsStateWithLifecycle()
 
@@ -407,7 +406,6 @@ fun MainAppScreen() {
             ) {
                 KeyboardScreen(
                     modifier = Modifier.fillMaxSize(),
-                    forcedLayout = fullscreenKeyboardLayout,
                 )
             }
 

@@ -55,8 +55,8 @@
     <string name="settings_kb_layout">鍵盤配置</string>
     <string name="settings_kb_touchpad">鍵盤觸控板</string>
     <string name="settings_kb_touchpad_desc">在鍵盤上方顯示觸控板</string>
-    <string name="keyboard_mode_ergo">簡易</string>
-    <string name="keyboard_mode_full">完整</string>
+    <string name="settings_kb_auto_open_on_focus">文字焦點時自動開啟</string>
+    <string name="settings_kb_auto_open_on_focus_desc">當上螢幕聚焦文字輸入框時，自動於下螢幕展開 Megingiard 虛擬鍵盤</string>
 
     <!-- Input method (touchpad + keyboard trackpoint) -->
 
@@ -112,6 +112,7 @@
     <string name="macropad_device_disabled_mouse">此配置已停用滑鼠</string>
     <string name="macropad_device_disabled_touch">此配置已停用觸控</string>
     <string name="macropad_device_disabled_macro_privd">巨集需要特權模式。請在設定中啟用特權模式。</string>
+    <string name="macropad_device_disabled_gamepad_privd">手把按鍵需要特權模式。請在設定中啟用特權模式。</string>
     <string name="macropad_macro_privd_required_banner">建立、編輯、測試及執行巨集需要特權模式。請在設定中啟用特權模式。</string>
     <string name="macropad_editor_delete_profile">刪除設定檔</string>
     <string name="macropad_editor_delete_layout">刪除配置</string>
@@ -840,6 +841,10 @@
     <string name="focus_change_artwork_title">更換封面圖</string>
 
     <!-- Touchpad settings -->
+    <string name="keyboard_mode_ergo">簡易</string>
+    <string name="keyboard_mode_full">完整</string>
+    <string name="touchpad_mode_mouse">滑鼠</string>
+    <string name="touchpad_mode_touch">觸控</string>
     <string name="settings_touchpad_title">觸控板設定</string>
     <string name="settings_section_relative_mouse">手勢與點擊設定</string>
     <string name="settings_section_absolute_touch">絕對觸控模式</string>
@@ -873,8 +878,6 @@
     <string name="settings_touchpad_m5_label">M5</string>
     <string name="cd_touchpad_relative_mouse_mode">相對滑鼠模式</string>
     <string name="cd_touchpad_absolute_touch_mode">絕對觸控模式</string>
-    <string name="touchpad_mode_mouse">滑鼠</string>
-    <string name="touchpad_mode_touch">觸控</string>
     <string name="cd_touchpad_toggle_mirroring">切換觸控板投影</string>
     <string name="help_touchpad_settings_mirror_dim_desc">調整觸控板內投影螢幕的亮度覆蓋層。</string>
     <string name="help_touchpad_settings_sensitivity_desc">調整相對滑鼠模式下的游標移動速度倍率。</string>

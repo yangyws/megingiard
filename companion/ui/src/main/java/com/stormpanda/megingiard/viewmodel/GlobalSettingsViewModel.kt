@@ -7,6 +7,7 @@ import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.BuildConfig
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.config.InternalBackup
+import com.stormpanda.megingiard.keyboard.KbLayout
 import com.stormpanda.megingiard.log.LogReportManager
 import com.stormpanda.megingiard.media.SteamGridDbClient
 import com.stormpanda.megingiard.media.SteamGridDbException
@@ -16,6 +17,7 @@ import com.stormpanda.megingiard.privd.PrivdError
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdState
 import com.stormpanda.megingiard.settings.AppLanguage
+import com.stormpanda.megingiard.settings.KeyboardSettings
 import com.stormpanda.megingiard.settings.MacroPadSettings
 import com.stormpanda.megingiard.settings.SettingsManager
 import com.stormpanda.megingiard.settings.ThemeMode
@@ -77,6 +79,9 @@ class GlobalSettingsViewModel : ViewModel() {
 
     val excludeFromRecents: StateFlow<Boolean> = SettingsManager.excludeFromRecents
     val gamepadSwapFaceButtons: StateFlow<Boolean> = MacroPadSettings.gamepadSwapFaceButtons
+    val kbLayout: StateFlow<KbLayout> = KeyboardSettings.kbLayout
+    val kbTouchpadEnabled: StateFlow<Boolean> = KeyboardSettings.kbTouchpadEnabled
+    val kbAutoOpenOnFocus: StateFlow<Boolean> = KeyboardSettings.kbAutoOpenOnFocus
 
     // Update checks
     val autoUpdateCheckEnabled: StateFlow<Boolean> = UpdateManager.autoUpdateCheckEnabled
@@ -149,6 +154,12 @@ class GlobalSettingsViewModel : ViewModel() {
     fun setExcludeFromRecents(value: Boolean) = SettingsManager.setExcludeFromRecents(value)
 
     fun setGamepadSwapFaceButtons(value: Boolean) = MacroPadSettings.setGamepadSwapFaceButtons(value)
+
+    fun setKbLayout(value: KbLayout) = KeyboardSettings.setKbLayout(value)
+
+    fun setKbTouchpadEnabled(value: Boolean) = KeyboardSettings.setKbTouchpadEnabled(value)
+
+    fun setKbAutoOpenOnFocus(value: Boolean) = KeyboardSettings.setKbAutoOpenOnFocus(value)
 
     fun setAutoUpdateCheckEnabled(value: Boolean) = UpdateManager.setAutoUpdateCheckEnabled(value)
 

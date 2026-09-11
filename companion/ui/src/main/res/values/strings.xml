@@ -55,8 +55,8 @@
     <string name="settings_kb_layout">Keyboard layout</string>
     <string name="settings_kb_touchpad">Keyboard Touchpad</string>
     <string name="settings_kb_touchpad_desc">Show touchpad on top of the keyboard</string>
-    <string name="keyboard_mode_ergo">Ergo</string>
-    <string name="keyboard_mode_full">Full</string>
+    <string name="settings_kb_auto_open_on_focus">Auto-open on text focus</string>
+    <string name="settings_kb_auto_open_on_focus_desc">Automatically open Megingiard\'s keyboard on the bottom screen when a text field is focused on the top screen</string>
 
     <!-- Input method (touchpad + keyboard trackpoint) -->
 
@@ -102,7 +102,6 @@ Open Settings to create a layout.</string>
     <string name="macropad_haptic_custom_duration">Duration</string>
     <string name="macropad_haptic_custom_amplitude">Amplitude</string>
     <string name="macropad_device_disabled_keyboard">Keyboard has been disabled for this layout</string>
-    <string name="macropad_device_disabled_gamepad">Gamepad has been disabled for this layout</string>
 
     <!-- Keyboard trackpoint virtual mouse buttons -->
     <string name="kb_mouse_btn_left">LMB</string>
@@ -114,6 +113,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_device_disabled_mouse">Mouse has been disabled for this layout</string>
     <string name="macropad_device_disabled_touch">Touch has been disabled for this layout</string>
     <string name="macropad_device_disabled_macro_privd">Macros require Privileged Mode. Please activate Privileged Mode in Settings.</string>
+    <string name="macropad_device_disabled_gamepad_privd">Gamepad buttons require Privileged Mode. Please activate Privileged Mode in Settings.</string>
     <string name="macropad_macro_privd_required_banner">Privileged Mode is required to create, edit, test, and execute macros. Please activate Privileged Mode in Settings.</string>
     <string name="macropad_editor_delete_profile">Delete Profile</string>
     <string name="macropad_editor_delete_layout">Delete Layout</string>
@@ -842,6 +842,10 @@ Open Settings to create a layout.</string>
     <string name="focus_change_artwork_title">Change Artwork</string>
 
     <!-- Touchpad settings -->
+    <string name="keyboard_mode_ergo">Ergo</string>
+    <string name="keyboard_mode_full">Full</string>
+    <string name="touchpad_mode_mouse">Mouse</string>
+    <string name="touchpad_mode_touch">Touch</string>
     <string name="settings_touchpad_title">Touchpad Settings</string>
     <string name="settings_section_relative_mouse">Relative Mouse Mode</string>
     <string name="settings_section_absolute_touch">Absolute Touch Mode</string>
@@ -875,8 +879,6 @@ Open Settings to create a layout.</string>
     <string name="settings_touchpad_m5_label">M5</string>
     <string name="cd_touchpad_relative_mouse_mode">Relative Mouse Mode</string>
     <string name="cd_touchpad_absolute_touch_mode">Absolute Touch Mode</string>
-    <string name="touchpad_mode_mouse">Mouse</string>
-    <string name="touchpad_mode_touch">Touch</string>
     <string name="cd_touchpad_toggle_mirroring">Toggle Touchpad Mirroring</string>
     <string name="help_touchpad_settings_mirror_dim_desc">Adjusts the brightness overlay of the mirrored screen inside the touchpad.</string>
     <string name="help_touchpad_settings_sensitivity_desc">Adjusts the cursor movement speed multiplier in relative mouse mode.</string>

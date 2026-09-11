@@ -89,8 +89,10 @@ The Virtual Keyboard feature turns the secondary display into a full hardware ke
 ### FR-K9: Keyboard Settings Toolbar Button & Screen
 
 - Tapping this button MUST open a Keyboard Settings screen overlay on the primary (top) display while the virtual keyboard remains active, visible, and fully interactive on the secondary (bottom) display without closing or tearing down input injection.
-- The settings screen MUST include a dropdown to select between **QWERTZ**, **QWERTY**, and **AZERTY** regional layouts.
-- Switching layout via this dropdown MUST only impact the alphabetic (`LETTERS` / ABC) keyboard layout, leaving symbol and numeric layouts unaffected.
+- The settings screen MUST include a choice card to select between **QWERTZ**, **QWERTY**, and **AZERTY** regional layouts and a toggle for the Keyboard Touchpad, matching 100% parity with the identical options available in Global Settings (under the Input category).
+- Switching layout via this card MUST only impact the alphabetic (`LETTERS` / ABC) keyboard layout, leaving symbol and numeric layouts unaffected.
+- The overlay button (`PadAction.FullScreenKeyboard`) always activates the keyboard with whatever regional layout is configured globally in `KeyboardSettings` with zero per-button or per-layout overrides.
+- Closing or collapsing the virtual keyboard while the Keyboard Settings overlay is open MUST automatically close the Keyboard Settings overlay.
 
 ### FR-K10: Keyboard-Top Touchpad
 
@@ -112,6 +114,16 @@ The Virtual Keyboard feature turns the secondary display into a full hardware ke
 - Special character keys in Compact Full Keyboard Mode MUST show both their unshifted and shifted symbols simultaneously, stacked vertically on the key cap. The currently active symbol (determined by the state of the Shift/CapsLock modifiers) is highlighted, and the inactive symbol is dimmed.
 - Holding a character key in Compact Full Keyboard Mode MUST NOT trigger any secondary options popup; only its standard character preview popup is displayed.
 - Moving the finger while holding down a character key in Compact Full Keyboard Mode MUST perform slide-to-correct: it dynamically updates the hovered key and its corresponding preview popup. The final character is injected upon finger release.
+
+### FR-K12: Auto-Open on Top-Screen Text Focus (Accessibility-Driven)
+
+- The virtual keyboard MUST support an optional **Auto-Open on Text Focus** mode, configurable via Settings (`KeyboardSettings.kbAutoOpenOnFocus`, enabled by default).
+- When enabled, `MegingiardAccessibilityService` monitors `AccessibilityEvent.TYPE_VIEW_FOCUSED` and `TYPE_VIEW_CLICKED` on the primary display (`Display.DEFAULT_DISPLAY`).
+- Focusing or tapping any editable text input field (`AccessibilityNodeInfo.isEditable == true`) on the primary display MUST automatically open Megingiard's virtual keyboard on the secondary display via `AppStateManager.setFullscreenKeyboardActive(true)`.
+- The mechanism MUST function system-wide across all Android applications without requiring Megingiard to be registered or configured as a system Input Method Editor (IME).
+- Focusing a non-editable element or changing the active window on the primary display MUST automatically dismiss the virtual keyboard.
+- If the user manually collapses or dismisses the virtual keyboard while an editable field remains focused, the system MUST record hysteresis (`userDismissedFieldId`) to avoid aggressively re-opening the keyboard until focus changes to another field or the user explicitly taps the field again.
+- Megingiard relies on Android's native hardware keyboard detection (`show_ime_with_hard_keyboard = 0`) to keep the top-screen soft keyboard (Gboard) hidden without tearing down or finishing the application's active `InputConnection`. Forced suppression via `SHOW_MODE_HIDDEN` MUST NOT be used, as it causes Chromium and other input-connection engines to suspend text rendering until the IME session is restored.
 
 ---
 
@@ -150,10 +162,7 @@ The pre-built `keyinjector_arm64` binary is bundled in `companion/ui/src/main/as
 
 The binary signals readiness by writing `"R\n"` to stdout. `start()` blocks waiting for this signal with a 5-second timeout; startup fails if the signal does not arrive or the process exits prematurely.
 
-The binary opens `/dev/uinput` using the standard `uinput` protocol (register a virtual keyboard device, then inject `EV_KEY` events). Injector start and stop lifecycle is centrally managed by `InjectorLifecycleManager`, which evaluates app UI state (`AppStateManager.companionSurfaceMode`), active MacroPad layout keyboard controls, and blocking modals to determine when `KeyInjector` should be active:
-
-* **ON**: When `CompanionSurfaceMode.KEYBOARD` is active, or when an active MacroPad layout has keyboard buttons and no blocking editor/modal is open.
-* **OFF**: When no keyboard controls are needed, or when any editor modal, settings screen, quick menu, or prompt is active (ensuring Android's standard soft IME operates without hardware keyboard conflicts).
+The binary opens `/dev/uinput` using the standard `uinput` protocol (register a virtual keyboard device, then inject `EV_KEY` events). Injector start and stop lifecycle is centrally managed by `InjectorLifecycleManager`, which maintains active `KeyInjector`, `MouseInjector`, and `TouchInjector` instances whenever Megingiard is in the foreground (`AppStateManager.isActivityResumed`), stopping them when backgrounded (`onStop`) or during active software keyboard input in the Privileged Mode setup wizard (`AppStateManager.isPrivdSetupWizardActive`) so that Android's software IME can operate without hardware keyboard conflicts.
 
 ```kotlin
 InjectorLifecycleManager.watch(context)
@@ -262,6 +271,7 @@ When a full-screen UI overlay is visible:
 | Fullscreen Mode    | `kb_fullscreen`         | `false`  | Expand keyboard to use full screen area                   |
 | Button Position    | `kb_mouse_btn_pos`      | `LEFT`   | Mouse button overlay placement (`LEFT`, `RIGHT`, or `BOTH`) |
 | Keyboard Touchpad  | `kb_touchpad_enabled`   | `true`   | Show touchpad on top of the keyboard layout              |
+| Auto-Open on Focus | `kb_auto_open_on_focus` | `true`   | Auto-open bottom keyboard when top text field is focused  |
 
 ### Source Files
 
@@ -272,6 +282,7 @@ When a full-screen UI overlay is visible:
 | **`:companion:ui`** | [KeyboardKeyCap.kt](../../../companion/ui/src/main/java/com/stormpanda/megingiard/keyboard/KeyboardKeyCap.kt) | KeyCap Composable: rendering, highlighting, and bounds reporting |
 | **`:companion:ui`** | [KeyboardMouseOverlay.kt](../../../companion/ui/src/main/java/com/stormpanda/megingiard/keyboard/KeyboardMouseOverlay.kt) | Mouse Overlay: renders columns for mouse buttons (LMB/MMB/RMB/M4/M5) and scroll wheel |
 | **`:companion:ui`** | [KeyboardViewModel.kt](../../../companion/ui/src/main/java/com/stormpanda/megingiard/viewmodel/KeyboardViewModel.kt) | VM coordinating keyboard state, repeat controller scope, and injector startup/shutdown |
+| **`:companion:domain`** | [AutoKeyboardFocusCoordinator.kt](../../../companion/domain/src/main/java/com/stormpanda/megingiard/keyboard/AutoKeyboardFocusCoordinator.kt) | Coordinates auto-open/close on text focus and manual dismiss hysteresis |
 | **`:companion:domain`** | [KeyboardState.kt](../../../companion/domain/src/main/java/com/stormpanda/megingiard/keyboard/KeyboardState.kt) | Modifier key state machine (INACTIVE / STICKY / HELD) per modifier key |
 | **`:companion:domain`** | [KeyRepeatController.kt](../../../companion/domain/src/main/java/com/stormpanda/megingiard/keyboard/KeyRepeatController.kt) | Coordinated timing: repeat triggers, modifier holds, pointer maps, and trackpoint relative movement |
 | **`:companion:domain`** | [KeyInjector.kt](../../../companion/domain/src/main/java/com/stormpanda/megingiard/keyboard/KeyInjector.kt) | Public business logic facade for keyboard event injection |

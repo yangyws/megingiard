@@ -55,8 +55,8 @@
     <string name="settings_kb_layout">Tastaturlayout</string>
     <string name="settings_kb_touchpad">Tastatur-Touchpad</string>
     <string name="settings_kb_touchpad_desc">Touchpad über der Tastatur anzeigen</string>
-    <string name="keyboard_mode_ergo">Ergo</string>
-    <string name="keyboard_mode_full">Voll</string>
+    <string name="settings_kb_auto_open_on_focus">Automatisch öffnen bei Textfokus</string>
+    <string name="settings_kb_auto_open_on_focus_desc">Öffnet Megingiards Tastatur automatisch auf dem unteren Bildschirm, wenn ein Textfeld auf dem oberen Bildschirm fokussiert wird</string>
 
     <!-- Input method (touchpad + keyboard trackpoint) -->
 
@@ -102,7 +102,6 @@ Open Settings to create a layout.</string>
     <string name="macropad_haptic_custom_duration">Dauer</string>
     <string name="macropad_haptic_custom_amplitude">Stärke</string>
     <string name="macropad_device_disabled_keyboard">Tastatur ist für dieses Layout deaktiviert</string>
-    <string name="macropad_device_disabled_gamepad">Gamepad ist für dieses Layout deaktiviert</string>
 
     <!-- Keyboard trackpoint virtual mouse buttons -->
     <string name="kb_mouse_btn_left">LMT</string>
@@ -114,6 +113,7 @@ Open Settings to create a layout.</string>
     <string name="macropad_device_disabled_mouse">Maus ist für dieses Layout deaktiviert</string>
     <string name="macropad_device_disabled_touch">Touch-Eingabe ist für dieses Layout deaktiviert</string>
     <string name="macropad_device_disabled_macro_privd">Makros erfordern den Privilegierten Modus. Bitte aktiviere den Privilegierten Modus in den Einstellungen.</string>
+    <string name="macropad_device_disabled_gamepad_privd">Gamepad-Tasten erfordern den Privilegierten Modus. Bitte aktiviere den Privilegierten Modus in den Einstellungen.</string>
     <string name="macropad_macro_privd_required_banner">Der Privilegierte Modus ist erforderlich, um Makros zu erstellen, zu bearbeiten, zu testen und auszuführen. Bitte aktiviere ihn in den Einstellungen.</string>
     <string name="macropad_editor_delete_profile">Profil löschen</string>
     <string name="macropad_editor_delete_layout">Layout löschen</string>
@@ -842,6 +842,10 @@ Open Settings to create a layout.</string>
     <string name="focus_change_artwork_title">Cover-Artwork ändern</string>
 
     <!-- Touchpad settings -->
+    <string name="keyboard_mode_ergo">Ergo</string>
+    <string name="keyboard_mode_full">Voll</string>
+    <string name="touchpad_mode_mouse">Maus</string>
+    <string name="touchpad_mode_touch">Touch</string>
     <string name="settings_touchpad_title">Touchpad-Einstellungen</string>
     <string name="settings_section_relative_mouse">Relative-Maus-Modus</string>
     <string name="settings_section_absolute_touch">Absolut-Touch-Modus</string>
@@ -874,9 +878,7 @@ Open Settings to create a layout.</string>
     <string name="settings_touchpad_m4_label">M4</string>
     <string name="settings_touchpad_m5_label">M5</string>
     <string name="cd_touchpad_relative_mouse_mode">Relativer Mausmodus</string>
-    <string name="cd_touchpad_absolute_touch_mode">Absoluter Touchmodus</string>
-    <string name="touchpad_mode_mouse">Maus</string>
-    <string name="touchpad_mode_touch">Touch</string>
+    <string name="cd_touchpad_absolute_touch_mode">Absoluter Touch-Modus</string>
     <string name="cd_touchpad_toggle_mirroring">Touchpad-Spiegelung umschalten</string>
     <string name="help_touchpad_settings_mirror_dim_desc">Passt die Helligkeit des gespiegelten Bildschirms im Touchpad an.</string>
     <string name="help_touchpad_settings_sensitivity_desc">Passt den Cursor-Bewegungs-Multiplikator im relativen Mausmodus an.</string>
