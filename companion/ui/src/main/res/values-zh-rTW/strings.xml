@@ -12,7 +12,7 @@
 
     <!-- Settings screen -->
     <string name="settings_close">關閉</string>
-    <string name="settings_support_app">支持此應用程式</string>
+    <string name="settings_support_app">贊助此應用程式</string>
     <string name="cd_drag_reorder">拖曳以重新排序</string>
     <string name="settings_section_appearance">外觀</string>
     <string name="settings_global_title">設定</string>
@@ -33,8 +33,8 @@
     <string name="mirror_edge_blend_label">邊緣融合</string>
     <string name="mirror_edge_blend_strength_off">關閉</string>
 
-    <string name="settings_exclude_from_recents">從最近任務中排除</string>
-    <string name="settings_exclude_from_recents_desc">切換到其他程式時，在最近任務列表中隱藏此應用程式</string>
+    <string name="settings_exclude_from_recents">從最近使用的應用程式中排除</string>
+    <string name="settings_exclude_from_recents_desc">切換到其他程式時，在最近使用的應用程式清單中隱藏此應用程式</string>
     <string name="settings_accessibility_status">無障礙服務</string>
     <string name="settings_accessibility_setup">前往設定</string>
     <string name="settings_color_brightness">亮度</string>
@@ -62,8 +62,8 @@
 
     <!-- Mirror session state persistence -->
     <!-- MacroPad tool -->
-    <string name="macropad_no_profile">No profile configured.
-Open Settings to create a layout.</string>
+    <string name="macropad_no_profile">尚未設定設定檔。
+請開啟「設定」以建立版面配置。</string>
     <string name="macropad_empty_layout_pill_title">輕觸任意處自訂配置</string>
     <string name="macropad_empty_layout_pill_hint">滑動邊緣開啟快捷選單</string>
 
@@ -234,7 +234,7 @@ Open Settings to create a layout.</string>
     <string name="settings_language_en">English</string>
     <string name="settings_language_de">Deutsch</string>
     <string name="settings_language_zh_tw">繁體中文</string>
-    <string name="settings_log_level">日誌級別</string>
+    <string name="settings_log_level">記錄檔層級</string>
     <string name="settings_gamepad_swap_face_buttons">交換面按鈕標籤 (A/B 與 X/Y)</string>
     <string name="settings_gamepad_swap_face_buttons_desc">在手把選擇器中顯示任天堂風格標籤 (A↔B 且 X↔Y)。注入的鍵碼保持不變。</string>
 
@@ -543,16 +543,16 @@ Open Settings to create a layout.</string>
     <string name="macropad_action_group_layout_desc">切換配置或開啟設定檔切換器</string>
     <string name="macropad_action_group_mirror">投影選單</string>
     <string name="macropad_action_group_mirror_desc">控制螢幕鏡像串流、凍結或觸控投影</string>
-    <string name="macropad_action_group_app_launcher">App Quick-Switch</string>
+    <string name="macropad_action_group_app_launcher">應用程式快速切換</string>
     <string name="macropad_action_group_app_launcher_desc">在 Megingiard 與其他應用程式之間快速切換</string>
     <string name="macropad_action_group_other">全螢幕工具</string>
     <string name="macropad_action_group_other_desc">開啟全螢幕滑鼠與鍵盤覆蓋層</string>
     <string name="macropad_editor_button_type">按鈕類型</string>
 
     <!-- Log report export -->
-    <string name="settings_save_log_report">儲存日誌報告</string>
-    <string name="log_report_save_success">日誌報告已儲存。</string>
-    <string name="log_report_save_error">儲存日誌報告失敗。</string>
+    <string name="settings_save_log_report">儲存記錄檔報告</string>
+    <string name="log_report_save_success">記錄檔報告已儲存。</string>
+    <string name="log_report_save_error">儲存記錄檔報告失敗。</string>
 
     <!-- Restore backup selection dialog -->
     <string name="config_restore_dialog_title">還原備份</string>
@@ -590,7 +590,7 @@ Open Settings to create a layout.</string>
     <string name="mirror_editor_cutout_name_hint">區塊名稱</string>
     <string name="mirror_editor_adjust_top_cutout">調整上螢幕區塊</string>
     <string name="mirror_editor_adjust_bottom_cutout">調整下螢幕區塊</string>
-    <string name="mirror_editor_saved_badge">SAVED</string>
+    <string name="mirror_editor_saved_badge">已儲存</string>
     <string name="mirror_editor_adjust_toast">使用方向鍵移動。按住 R2 縮放。按住 L2 進行微調。</string>
     <string name="mirror_editor_no_cutouts">無區塊</string>
     <string name="mirror_editor_save_changes">儲存變更</string>
@@ -667,8 +667,8 @@ Open Settings to create a layout.</string>
     <string name="help_settings_add_to_obtainium_desc">開啟 Obtainium (如果已安裝) 並預填 Megingiard 儲存庫連結。如果未安裝 Obtainium，則會在瀏覽器中開啟 Obtainium 的 GitHub 版本發佈頁面。</string>
     <string name="help_settings_privd_desc">透過無線偵錯建立背景助手連線，以寫入一般應用程式無法存取的系統輸入裝置。這將啟用：\n\n• 手把合併：結合虛擬與實體手把，使遊戲僅看到一個控制器 (提高相容性)。\n• 實體手把錄製：錄製來自實體控制器的巨集輸入。\n• 特權螢幕投影：無需在每次啟動時提示螢幕擷取權限即可開始投影。\n• 螢幕截圖：在未開啟螢幕投影的情況下，直接從快速選單覆蓋層儲存上螢幕截圖。</string>
     <string name="help_settings_deadzone_desc">確保類比搖桿錄製不會捕捉到漂移或雜訊。將這些百分比與 Thor 系統設定中的死區設定匹配以獲得最佳準確性。</string>
-    <string name="help_settings_log_level_desc">正常遊戲時請保持在 Warn 或 Info。僅在重現問題以收集詳細日誌以供錯誤報告時才設定為 Debug 或 Verbose。</string>
-    <string name="help_settings_save_log_desc">匯出最新的系統日誌。在遇到錯誤或當機後立即產生此日誌，並將其附加到 GitHub 議題或開發者報告中。</string>
+    <string name="help_settings_log_level_desc">正常遊戲時請保持在 Warn 或 Info。僅在重現問題以收集詳細記錄檔以供錯誤回報時才設定為 Debug 或 Verbose。</string>
+    <string name="help_settings_save_log_desc">匯出最新的系統記錄檔。在遇到錯誤或當機後立即產生此記錄檔，並將其附加到 GitHub 議題或開發者回報中。</string>
     <!-- Keyboard settings help -->
     <string name="help_keyboard_settings_layout_desc">選擇您偏好的字母排列 (QWERTY、QWERTZ 或 AZERTY)。請注意，此配置僅影響字母 (ABC) 鍵盤配置模式。數字與符號配置層在不同區域格式間保持相同。</string>
 
@@ -717,7 +717,7 @@ Open Settings to create a layout.</string>
     <!-- Welcome Tutorial & Reset -->
     <string name="welcome_title">歡迎使用 Megingiard！</string>
     <string name="welcome_desc">Megingiard 是 AYN Thor 雙螢幕掌機的助手應用程式。它讓您能配置自訂 MacroPad 設定檔、虛擬鍵盤對應、虛擬觸控板以及螢幕間的投影。</string>
-    <string name="welcome_help_title">如何獲取幫助</string>
+    <string name="welcome_help_title">如何取得說明</string>
     <string name="welcome_help_intro">尋找各個螢幕右上角的說明圖示 (?)，以查看該功能的詳細指南與最佳實踐。</string>
     <string name="welcome_btn_got_it">了解</string>
     <string name="settings_reset_tutorials">重設教學</string>
