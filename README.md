@@ -1,5 +1,9 @@
 # Megingiard for **AYN Thor**
 
+**English** | [台灣繁體中文](README.zh-TW.md)
+
+---
+
 Welcome to **Megingiard**, a bespoke companion application specifically designed for the **AYN Thor** dual-screen Android handheld. Megingiard combines deep Android hardware video stream manipulation with modern Jetpack Compose interfaces to turn your secondary display into a fully interactive tool belt: a latency-free, multi-cutout mirror of your primary screen, a virtual keyboard, a virtual touchpad, a configurable MacroPad, and a virtual gamepad — all driven by native input injection for sub-millisecond response.
 
 <p align="center">
