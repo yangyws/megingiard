@@ -994,6 +994,7 @@ internal fun EditButtonSubPageContent(
             onConfirm = { onDelete(button) },
         )
     }
+}
 
 @Composable
 internal fun ButtonColorSubPageContent(

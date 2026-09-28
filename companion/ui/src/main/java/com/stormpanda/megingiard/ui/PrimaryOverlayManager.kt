@@ -34,6 +34,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.catalog.DisplayDetector
+import com.stormpanda.megingiard.macropad.EditorSection
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
 import com.stormpanda.megingiard.services.MegingiardAccessibilityService
 import com.stormpanda.megingiard.settings.AppLanguage
