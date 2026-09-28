@@ -3447,7 +3447,6 @@ private fun ButtonsDeck(
                     },
                     itemKey = btn.id,
                     onClick = { onEditButton(btn) },
-                    itemKey = btn.id,
                     onFocusChanged = { isFocused ->
                         if (isFocused) {
                             MacroPadState.setSelectedButtonId(btn.id)

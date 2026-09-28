@@ -420,7 +420,7 @@ internal fun EditButtonSubPageContent(
     val currentBorder = resolveColorOption(effectiveBorderOpt, globalAccentColor, MP_AMBIENT_NEUTRAL_BORDER)
     val currentBg = resolveBgColorOption(effectiveBgOpt, globalAccentColor)
 
-    val showLabel = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove
+    val canHaveLabel = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove
     val showIconPicker = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher
 
     val promptState =
@@ -436,7 +436,7 @@ internal fun EditButtonSubPageContent(
         )
 
     // Label & Icon input
-    if (showLabel) {
+    if (canHaveLabel) {
         GamepadTextFieldCard(
             title = stringResource(R.string.macropad_editor_button_label),
             description = stringResource(R.string.macropad_editor_button_label_desc),
@@ -585,7 +585,7 @@ internal fun EditButtonSubPageContent(
 
     ActionPicker(
         current = action,
-        isFirstItem = !showLabel,
+        isFirstItem = !canHaveLabel,
         onOpenMacroPicker = {
             onOpenMacroPicker?.invoke(currentButton)
         },
@@ -780,7 +780,6 @@ internal fun EditButtonSubPageContent(
                 },
             )
         }
-    }
 
     GamepadSectionHeader(
         text = stringResource(R.string.macropad_editor_section_button_colors),

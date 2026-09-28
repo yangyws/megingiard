@@ -274,13 +274,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if ((display?.displayId ?: Display.DEFAULT_DISPLAY) != Display.DEFAULT_DISPLAY) {
-            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
-        }
-        return super.dispatchKeyEvent(event)
-    }
-
     override fun onStop() {
         super.onStop()
         AppLog.i(TAG, "onStop")
@@ -838,6 +831,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if ((display?.displayId ?: Display.DEFAULT_DISPLAY) != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
         if (isExternalPickerActive) {
             return super.dispatchKeyEvent(event)
         }
