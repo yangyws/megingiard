@@ -171,6 +171,12 @@ internal sealed interface MacroPadSubPage {
         override val parentSection = EditorSection.MIRROR
     }
 
+    data class CutoutAdvancedSettings(
+        val cutoutId: String,
+    ) : MacroPadSubPage {
+        override val parentSection = EditorSection.MIRROR
+    }
+
     data class MirrorAdvancedSettings(
         val layoutId: String,
     ) : MacroPadSubPage {
@@ -181,6 +187,13 @@ internal sealed interface MacroPadSubPage {
         val layoutId: String,
     ) : MacroPadSubPage {
         override val parentSection = EditorSection.LAYOUTS
+    }
+
+    data class AutomaticLayoutSwitching(
+        val layoutId: String,
+        val section: EditorSection = EditorSection.AUTOMATION,
+    ) : MacroPadSubPage {
+        override val parentSection = section
     }
 
     data class CopyLayout(
@@ -342,8 +355,34 @@ internal sealed interface MacroPadSubPage {
         val draftMacro: Macro? = null,
         val macroId: String = draftMacro?.id ?: macro?.id ?: "",
         val stepIndex: Int? = null,
+        val draftStep: MacroStep? = null,
     ) : MacroPadSubPage {
-        constructor(macroId: String, stepIndex: Int?) : this(macro = null, draftMacro = null, macroId = macroId, stepIndex = stepIndex)
+        constructor(
+            macroId: String,
+            stepIndex: Int?,
+        ) : this(macro = null, draftMacro = null, macroId = macroId, stepIndex = stepIndex, draftStep = null)
+
+        val effectiveMacro: Macro? get() = draftMacro ?: macro
+        override val parentSection = EditorSection.MACROS
+    }
+
+    data class ChooseKeyboardKeyForStep(
+        val macro: Macro? = null,
+        val draftMacro: Macro? = null,
+        val macroId: String = draftMacro?.id ?: macro?.id ?: "",
+        val stepIndex: Int? = null,
+        val draftStep: MacroStep.KeyboardKeyTap? = null,
+    ) : MacroPadSubPage {
+        val effectiveMacro: Macro? get() = draftMacro ?: macro
+        override val parentSection = EditorSection.MACROS
+    }
+
+    data class TextSequenceGenerator(
+        val macro: Macro? = null,
+        val draftMacro: Macro? = null,
+        val macroId: String = draftMacro?.id ?: macro?.id ?: "",
+    ) : MacroPadSubPage {
+        constructor(macroId: String) : this(macro = null, draftMacro = null, macroId = macroId)
 
         val effectiveMacro: Macro? get() = draftMacro ?: macro
         override val parentSection = EditorSection.MACROS

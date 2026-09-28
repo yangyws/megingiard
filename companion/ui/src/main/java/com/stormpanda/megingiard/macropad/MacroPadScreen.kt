@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
@@ -74,6 +75,7 @@ import com.stormpanda.megingiard.BitmapUtils
 import com.stormpanda.megingiard.R
 import com.stormpanda.megingiard.math.ViewportMath
 import com.stormpanda.megingiard.mirror.EmbeddedMirrorView
+import com.stormpanda.megingiard.mirror.InteractiveCutoutController
 import com.stormpanda.megingiard.mirror.MasterSurfaceRegistry
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
 import com.stormpanda.megingiard.mirror.TouchProjectionController
@@ -159,6 +161,7 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
     val isViewportEditActive by AppStateManager.isViewportEditActive.collectAsStateWithLifecycle()
     val isEditingPositions by MacroPadState.isEditingButtonPositions.collectAsStateWithLifecycle()
     val isCroppingBackground by MacroPadState.isCroppingBackground.collectAsStateWithLifecycle()
+    val isCroppingMask by MacroPadState.isCroppingMask.collectAsStateWithLifecycle()
     val gridMode by MacroPadState.gridMode.collectAsStateWithLifecycle()
     val colors = LocalAppColors.current
     var lastFeedbackAtMs by remember { mutableLongStateOf(0L) }
@@ -176,9 +179,7 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
     }
 
     val isCapturing by ScreenCaptureManager.isCapturing.collectAsStateWithLifecycle()
-    val cutouts by ScreenCaptureManager.cutouts.collectAsStateWithLifecycle()
-    val hasCutouts = cutouts.isNotEmpty()
-    val showEmbeddedMirror = isCapturing && hasCutouts
+    val showEmbeddedMirror = isCapturing
 
     // Plain canvas background of MacroPad is strictly theme-invariant and always pitch black (Color.Black).
     Box(
@@ -211,7 +212,8 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
                 accentColor = colors.accent,
                 gridMode = gridMode,
                 isLocked = !isEditingPositions,
-                isCropping = isCroppingBackground,
+                isCroppingBackground = isCroppingBackground,
+                isCroppingMask = isCroppingMask,
                 transparentBackground = showEmbeddedMirror,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -234,6 +236,8 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
             )
         }
 
+        LayoutTransitionSnapshotOverlay()
+
         val activeToast by DialogToastManager.currentToast.collectAsStateWithLifecycle()
         if (!isEditorActive && !isViewportEditActive) {
             DialogToastPill(
@@ -244,6 +248,26 @@ fun MacroPadScreen(modifier: Modifier = Modifier) {
                         .padding(top = 12.dp, start = 24.dp, end = 24.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun LayoutTransitionSnapshotOverlay() {
+    val transitionSnapshot by LayoutTransitionManager.transitionSnapshot.collectAsStateWithLifecycle()
+    val transitionAlpha by LayoutTransitionManager.transitionAlpha.collectAsStateWithLifecycle()
+    val activeSnapshot = transitionSnapshot
+    if (activeSnapshot != null && !activeSnapshot.isRecycled && transitionAlpha > 0f) {
+        Image(
+            bitmap = activeSnapshot.asImageBitmap(),
+            contentDescription = null,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clip(MP_SCREEN_SHAPE)
+                    .graphicsLayer {
+                        alpha = transitionAlpha
+                    },
+        )
     }
 }
 
@@ -284,9 +308,30 @@ internal fun PadSurface(
         }
     }
 
+    var maskBitmap by remember(layout.maskImagePath, layout.maskImageVersion) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(layout.maskImagePath, layout.maskImageVersion) {
+        val path = layout.maskImagePath
+        if (path != null) {
+            try {
+                val decoded = MacroPadMediaRepository.loadScaledBitmap(context, path)
+                maskBitmap = decoded?.asImageBitmap()
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Failed to decode mask image $path", e)
+                maskBitmap = null
+            }
+        } else {
+            maskBitmap = null
+        }
+    }
+
     val bgImageDimFilter =
         remember(layout.backgroundImageDim) {
             dimColorFilter(layout.backgroundImageDim)
+        }
+
+    val maskImageDimFilter =
+        remember(layout.maskImageDim) {
+            dimColorFilter(layout.maskImageDim)
         }
 
     // Create hit-test engine with density-aware dp→px converter and haptic callback
@@ -353,9 +398,16 @@ internal fun PadSurface(
         }
     }
 
+    LaunchedEffect(vibrator) {
+        InteractiveCutoutController.onHapticFeedback = {
+            triggerHaptic(vibrator, HapticStrength.LIGHT, 0, 0)
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             TouchScreenObserver.stop("MacroPadScreen_FollowMode")
+            InteractiveCutoutController.onHapticFeedback = null
         }
     }
 
@@ -446,6 +498,9 @@ internal fun PadSurface(
                                         if (!change.pressed && change.previousPressed) {
                                             if (activeEngine.isPointerTracked(id)) {
                                                 activeEngine.onRelease(id, activeLayout.buttons, activeProfile)
+                                                change.consume()
+                                            } else if (InteractiveCutoutController.isPointerTracked(id)) {
+                                                InteractiveCutoutController.onRelease(id, activeLayout.mirrorCutouts)
                                                 change.consume()
                                             } else if (activeTouchProjection) {
                                                 projectionController.onRelease(
@@ -553,6 +608,16 @@ internal fun PadSurface(
                                                                 pointerCount = event.changes.size,
                                                             )
                                                         }
+                                                    } else if (InteractiveCutoutController.onPress(
+                                                            pointerId = id,
+                                                            xPx = change.position.x,
+                                                            yPx = change.position.y,
+                                                            boxW = w,
+                                                            boxH = h,
+                                                            cutouts = activeLayout.mirrorCutouts,
+                                                        )
+                                                    ) {
+                                                        change.consume()
                                                     } else if (activeBgTouchpad) {
                                                         bgTouchpadProcessor.onPress(
                                                             id,
@@ -578,6 +643,16 @@ internal fun PadSurface(
                                                         delta.y,
                                                         activeLayout.buttons,
                                                         activeProfile,
+                                                    )
+                                                    change.consume()
+                                                } else if (InteractiveCutoutController.isPointerTracked(id)) {
+                                                    InteractiveCutoutController.onMove(
+                                                        pointerId = id,
+                                                        xPx = change.position.x,
+                                                        yPx = change.position.y,
+                                                        boxW = w,
+                                                        boxH = h,
+                                                        cutouts = activeLayout.mirrorCutouts,
                                                     )
                                                     change.consume()
                                                 } else if (activeTouchProjection) {
@@ -613,6 +688,7 @@ internal fun PadSurface(
                             }
                         } finally {
                             currentEngine.releaseAll(currentLayout.buttons)
+                            InteractiveCutoutController.cancelAllAnimations()
                             if (currentIsTouchProjectionActive) {
                                 projectionController.reset()
                             }
@@ -622,50 +698,27 @@ internal fun PadSurface(
                         }
                     },
         ) {
-            if (bgBitmap != null && !transparentBackground) {
+            if ((bgBitmap != null || maskBitmap != null) && !transparentBackground) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val cw = size.width
-                    val ch = size.height
-                    val bitmap = bgBitmap ?: return@Canvas
-                    val iw = bitmap.width.toFloat()
-                    val ih = bitmap.height.toFloat()
-                    if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                        val (dstOffset, dstSize) =
-                            when (layout.bgScaleMode) {
-                                BackgroundScaleMode.STRETCH -> {
-                                    IntOffset.Zero to IntSize(cw.toInt().coerceAtLeast(1), ch.toInt().coerceAtLeast(1))
-                                }
-
-                                BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
-                                    val userScale = layout.bgImageScale.coerceAtLeast(0.01f)
-                                    val scaleBase =
-                                        if (layout.bgScaleMode == BackgroundScaleMode.FIT) {
-                                            ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
-                                        } else {
-                                            ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
-                                        }
-                                    val ws = iw * scaleBase
-                                    val hs = ih * scaleBase
-                                    val targetW = (ws * userScale).toInt().coerceAtLeast(1)
-                                    val targetH = (hs * userScale).toInt().coerceAtLeast(1)
-                                    val maxTx = ((targetW - cw) / 2f).coerceAtLeast(0f)
-                                    val maxTy = ((targetH - ch) / 2f).coerceAtLeast(0f)
-                                    val clampedX = if (maxTx > 0f) (layout.bgImageOffsetX * cw).coerceIn(-maxTx, maxTx) else 0f
-                                    val clampedY = if (maxTy > 0f) (layout.bgImageOffsetY * ch).coerceIn(-maxTy, maxTy) else 0f
-                                    IntOffset(
-                                        ((cw - targetW) / 2f + clampedX).toInt(),
-                                        ((ch - targetH) / 2f + clampedY).toInt(),
-                                    ) to IntSize(targetW, targetH)
-                                }
-                            }
-                        if (dstSize.width > 0 && dstSize.height > 0) {
-                            drawImage(
-                                image = bitmap,
-                                dstOffset = dstOffset,
-                                dstSize = dstSize,
-                                colorFilter = bgImageDimFilter,
-                            )
-                        }
+                    if (bgBitmap != null) {
+                        drawAdjustedBitmap(
+                            bitmap = bgBitmap!!,
+                            scaleMode = layout.bgScaleMode,
+                            userScale = layout.bgImageScale,
+                            offsetX = layout.bgImageOffsetX,
+                            offsetY = layout.bgImageOffsetY,
+                            colorFilter = bgImageDimFilter,
+                        )
+                    }
+                    if (maskBitmap != null) {
+                        drawAdjustedBitmap(
+                            bitmap = maskBitmap!!,
+                            scaleMode = layout.maskScaleMode,
+                            userScale = layout.maskImageScale,
+                            offsetX = layout.maskImageOffsetX,
+                            offsetY = layout.maskImageOffsetY,
+                            colorFilter = maskImageDimFilter,
+                        )
                     }
                 }
             }

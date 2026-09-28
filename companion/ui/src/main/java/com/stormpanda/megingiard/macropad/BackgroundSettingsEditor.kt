@@ -109,7 +109,6 @@ internal fun LayoutBackgroundSubPageContent(
     onDiscard: () -> Unit = {},
     onConfirm: (
         backgroundImagePath: String?,
-        useAsMask: Boolean,
         bgImageChanged: Boolean,
         bgScale: Float,
         bgOffsetX: Float,
@@ -122,15 +121,14 @@ internal fun LayoutBackgroundSubPageContent(
     val colors = LocalAppColors.current
     val scope = rememberCoroutineScope()
 
-    var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingImageUri by remember(layout) { mutableStateOf<Uri?>(null) }
     var currentBgPath by remember(layout) { mutableStateOf(layout.backgroundImagePath) }
-    var useAsMask by remember(layout) { mutableStateOf(layout.useBackgroundImageAsMask) }
     var bgScale by remember(layout) { mutableFloatStateOf(layout.bgImageScale) }
     var bgOffsetX by remember(layout) { mutableFloatStateOf(layout.bgImageOffsetX) }
     var bgOffsetY by remember(layout) { mutableFloatStateOf(layout.bgImageOffsetY) }
     var bgImageDim by remember(layout) { mutableFloatStateOf(layout.backgroundImageDim) }
     var bgScaleMode by remember(layout) { mutableStateOf(layout.bgScaleMode) }
-    var isCropActive by remember { mutableStateOf(false) }
+    var isCropActive by remember(layout) { mutableStateOf(false) }
 
     var previewBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var isSaving by remember { mutableStateOf(false) }
@@ -212,13 +210,12 @@ internal fun LayoutBackgroundSubPageContent(
     }
 
     // Stream in-flight background settings to bottom-screen preview in real-time
-    LaunchedEffect(pendingImageUri, currentBgPath, useAsMask, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode, isCropActive) {
+    LaunchedEffect(pendingImageUri, currentBgPath, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode, isCropActive) {
         if (isCropActive) return@LaunchedEffect
         val effectivePath = pendingImageUri?.toString() ?: currentBgPath
         val inFlightLayout =
-            layout.copy(
+            (MacroPadState.previewLayout.value ?: layout).copy(
                 backgroundImagePath = effectivePath,
-                useBackgroundImageAsMask = useAsMask,
                 bgImageScale = bgScale,
                 bgImageOffsetX = bgOffsetX,
                 bgImageOffsetY = bgOffsetY,
@@ -392,14 +389,6 @@ internal fun LayoutBackgroundSubPageContent(
                 bgImageDim = (newVal * BSE_PERCENT_DIVISOR).roundToInt() / BSE_PERCENT_DIVISOR
             },
         )
-
-        GamepadToggleCard(
-            title = stringResource(R.string.layout_settings_bg_image_use_as_mask),
-            description = stringResource(R.string.layout_settings_bg_image_use_as_mask_desc),
-            checked = useAsMask,
-            icon = Icons.Rounded.Layers,
-            onCheckedChange = { useAsMask = it },
-        )
     }
 
     // ── Save & Delete Section ─────────────────────────────────────────
@@ -411,7 +400,6 @@ internal fun LayoutBackgroundSubPageContent(
     val hasChanges =
         pendingImageUri != null ||
             currentBgPath != layout.backgroundImagePath ||
-            useAsMask != layout.useBackgroundImageAsMask ||
             bgScaleMode != layout.bgScaleMode ||
             kotlin.math.abs(bgScale - layout.bgImageScale) > 0.001f ||
             kotlin.math.abs(bgOffsetX - layout.bgImageOffsetX) > 0.001f ||
@@ -440,7 +428,9 @@ internal fun LayoutBackgroundSubPageContent(
                             } else {
                                 currentBgPath
                             }
-                        onConfirm(finalBgPath, useAsMask, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode)
+                        pendingImageUri = null
+                        currentBgPath = finalBgPath
+                        onConfirm(finalBgPath, bgChanged, bgScale, bgOffsetX, bgOffsetY, bgImageDim, bgScaleMode)
                         isSaving = false
                     }
                 }
@@ -450,7 +440,6 @@ internal fun LayoutBackgroundSubPageContent(
                 MacroPadState.setCroppingBackground(false)
                 pendingImageUri = null
                 currentBgPath = layout.backgroundImagePath
-                useAsMask = layout.useBackgroundImageAsMask
                 bgScale = layout.bgImageScale
                 bgOffsetX = layout.bgImageOffsetX
                 bgOffsetY = layout.bgImageOffsetY

@@ -148,6 +148,9 @@ class TouchProjectionController(
                             srcWidth = cutout.srcWidth,
                             srcHeight = cutout.srcHeight,
                             clampToEdge = false,
+                            rotation = cutout.rotation,
+                            flipHorizontal = cutout.flipHorizontal,
+                            flipVertical = cutout.flipVertical,
                         )
                     if (projected != null) {
                         matchedProjected = projected
@@ -250,6 +253,9 @@ class TouchProjectionController(
                 srcWidth = cutout.srcWidth,
                 srcHeight = cutout.srcHeight,
                 clampToEdge = false,
+                rotation = cutout.rotation,
+                flipHorizontal = cutout.flipHorizontal,
+                flipVertical = cutout.flipVertical,
             )
 
         if (coords == null) {
@@ -267,6 +273,9 @@ class TouchProjectionController(
                     srcWidth = cutout.srcWidth,
                     srcHeight = cutout.srcHeight,
                     clampToEdge = true,
+                    rotation = cutout.rotation,
+                    flipHorizontal = cutout.flipHorizontal,
+                    flipVertical = cutout.flipVertical,
                 ) ?: Pair(touch.lastNx, touch.lastNy)
 
             activeTouches.remove(pointerId)
@@ -328,6 +337,9 @@ class TouchProjectionController(
                     srcWidth = cutout.srcWidth,
                     srcHeight = cutout.srcHeight,
                     clampToEdge = true,
+                    rotation = cutout.rotation,
+                    flipHorizontal = cutout.flipHorizontal,
+                    flipVertical = cutout.flipVertical,
                 )
             val nx = coords?.first ?: touch.lastNx
             val ny = coords?.second ?: touch.lastNy

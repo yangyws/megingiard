@@ -54,6 +54,9 @@ private fun cutout(
     aspectRatioMode: AspectRatioMode = AspectRatioMode.TOP,
     motionSmoothing: Boolean = false,
     motionSmoothingStrength: Int = 85,
+    rotation: Int = 0,
+    flipHorizontal: Boolean = false,
+    flipVertical: Boolean = false,
 ) = ScreenCutout(
     id = id,
     name = name,
@@ -69,6 +72,9 @@ private fun cutout(
     aspectRatioMode = aspectRatioMode,
     motionSmoothing = motionSmoothing,
     motionSmoothingStrength = motionSmoothingStrength,
+    rotation = rotation,
+    flipHorizontal = flipHorizontal,
+    flipVertical = flipVertical,
 )
 
 private fun assertProject(
@@ -382,6 +388,29 @@ class MirrorCoordinateTransformTest {
     }
 
     @Test
+    fun `clampCutoutDrag handles width or height exceeding 1f without crashing on empty coerce range`() {
+        val allCutouts =
+            listOf(
+                cutout("1", destX = 0f, destY = 0f, destWidth = 1.0000178f, destHeight = 0.5f),
+            )
+        // Must not throw IllegalArgumentException: Cannot coerce value to an empty range
+        val (x, y) = clampCutoutDrag("1", 0f, 0f, 0.1f, 0.2f, 1.0000178f, 0.5f, allCutouts)
+        assertEquals(0f, x, EPS)
+        assertEquals(0.2f, y, EPS)
+    }
+
+    @Test
+    fun `clampCutoutDrag handles full screen cutout without crashing`() {
+        val allCutouts =
+            listOf(
+                cutout("1", destX = 0f, destY = 0f, destWidth = 1f, destHeight = 1f),
+            )
+        val (x, y) = clampCutoutDrag("1", 0f, 0f, 0.1f, 0.2f, 1f, 1f, allCutouts)
+        assertEquals(0f, x, EPS)
+        assertEquals(0f, y, EPS)
+    }
+
+    @Test
     fun `adjustDestSizeToAspectRatio fits destination size correctly`() {
         val (w, h) =
             adjustDestSizeToAspectRatio(
@@ -395,6 +424,26 @@ class MirrorCoordinateTransformTest {
             )
         assertEquals(0.3f, w, EPS)
         assertEquals(0.19375f, h, EPS)
+    }
+
+    @Test
+    fun `adjustDestSizeToAspectRatio inverts aspect ratio for quarter-turn rotated cutouts`() {
+        val (w, h) =
+            adjustDestSizeToAspectRatio(
+                destX = 0f,
+                destY = 0f,
+                destWidth = 0.3f,
+                destHeight = 0.3f,
+                cropRatio = 16f / 9f,
+                screenW = 1240f,
+                screenH = 1080f,
+                rotation = 90,
+            )
+        assertEquals(0.3f, w, EPS)
+        // With rotation 90, effective crop ratio is 9/16 instead of 16/9.
+        // normRatio = (9/16) * (1080/1240) = 0.48991935f
+        // targetH = 0.3f / 0.48991935f = 0.612348f
+        assertEquals(0.612348f, h, 0.0001f)
     }
 
     @Test
@@ -421,6 +470,41 @@ class MirrorCoordinateTransformTest {
             cropRatio = 1f,
             eps = 0.002f,
         )
+    }
+
+    @Test
+    fun `clampCutoutResize inverts aspect ratio for rotated cutouts`() {
+        val allCutouts =
+            listOf(
+                cutout("1", destX = 0.1f, destY = 0.1f, destWidth = 0.2f, destHeight = 0.2f, rotation = 90),
+            )
+        // With rotation 90, cropRatio = 2f (landscape 2:1 on top screen) becomes 0.5f (portrait 1:2 on secondary display)
+        // screenW = 1000, screenH = 1000, so normRatio = 0.5f
+        // Dragging BOTTOM_RIGHT from 0.2, 0.2 to target 0.4, 0.4:
+        // dx = 0.2, dy = 0.2
+        // abs(dx) >= abs(dy * 0.5) (0.2 >= 0.1), so finalW = 0.4, finalH = 0.4 / 0.5 = 0.8
+        val geom =
+            clampCutoutResize(
+                cutoutId = "1",
+                handle = ResizeHandle.BOTTOM_RIGHT,
+                originalX = 0.1f,
+                originalY = 0.1f,
+                originalWidth = 0.2f,
+                originalHeight = 0.2f,
+                targetX = 0.1f,
+                targetY = 0.1f,
+                targetWidth = 0.4f,
+                targetHeight = 0.4f,
+                allCutouts = allCutouts,
+                keepAspectRatio = true,
+                cropRatio = 2f,
+                screenW = 1000f,
+                screenH = 1000f,
+            )
+        assertEquals(0.1f, geom.x, EPS)
+        assertEquals(0.1f, geom.y, EPS)
+        assertEquals(0.4f, geom.w, EPS)
+        assertEquals(0.8f, geom.h, EPS)
     }
 
     @Test
@@ -1282,6 +1366,33 @@ class MirrorCoordinateTransformTest {
     }
 
     @Test
+    fun `clampCropResizeProportional inverts cutout ratio for rotated cutouts`() {
+        val topW = 1920f
+        val topH = 1080f
+        val cutoutRatio = 16f / 9f // physical ratio 16:9 on secondary display
+        // With rotation = 90, effective cutout ratio is 9/16
+        val expectedNormRatio = (9f / 16f) * (topH / topW) // (9/16) * (1080/1920) = 0.31640625f
+
+        val br =
+            clampCropResizeProportional(
+                handle = ResizeHandle.BOTTOM_RIGHT,
+                originalX = 0.1f,
+                originalY = 0.1f,
+                originalWidth = 0.2f,
+                originalHeight = 0.2f,
+                totalDx = 192f, // +0.1 in screen fraction
+                totalDy = 108f, // +0.1 in screen fraction
+                topScreenW = topW,
+                topScreenH = topH,
+                cutoutRatio = cutoutRatio,
+                rotation = 90,
+            )
+        assertEquals(0.1f, br.x, EPS)
+        assertEquals(0.1f, br.y, EPS)
+        assertEquals(expectedNormRatio, br.w / br.h, EPS)
+    }
+
+    @Test
     fun `clampCropResizeProportional clamps at display boundaries without deforming ratio`() {
         val topW = 1920f
         val topH = 1080f
@@ -1405,5 +1516,596 @@ class MirrorCoordinateTransformTest {
                 targetNormRatio = normRatio,
             )
         assertTrue(expanded10Steps.w > singleStep.w)
+    }
+
+    @Test
+    fun `calculateResizedBounds supports custom minSizeRatio for visual anchor scaling`() {
+        val screenW = 1000f
+        val screenH = 1000f
+        val minAnchorRatio = 0.04f
+
+        // Starting at exactly minAnchorRatio: 40px out of 1000px
+        val atMin =
+            calculateResizedBounds(
+                normX = 0.500f,
+                normY = 0.500f,
+                normW = 0.040f,
+                normH = 0.040f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                dx = -10,
+                dy = 10,
+                minSizeRatio = minAnchorRatio,
+            )
+        // Must clamp to 0.040f (40px)
+        assertEquals(0.040f, atMin.width, EPS)
+        assertEquals(0.040f, atMin.height, EPS)
+
+        // D-Pad UP (dy < 0) expands height symmetrically from center
+        val expandedUp =
+            calculateResizedBounds(
+                normX = 0.500f,
+                normY = 0.500f,
+                normW = 0.040f,
+                normH = 0.040f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                dx = 0,
+                dy = -2,
+                minSizeRatio = minAnchorRatio,
+            )
+        // Expanded by 2px: top border -1px (0.499f), height 0.042f
+        assertEquals(0.499f, expandedUp.y, EPS)
+        assertEquals(0.042f, expandedUp.height, EPS)
+    }
+
+    @Test
+    fun `calculateResizedBounds shrinks down to 1 percent default minimum`() {
+        val screenW = 1000f
+        val screenH = 1000f
+
+        // Shrinking past 0.05f succeeds and clamps at MIN_GAMEPAD_CUTOUT_SIZE (0.010f / 10px)
+        val shrunk =
+            calculateResizedBounds(
+                normX = 0.500f,
+                normY = 0.500f,
+                normW = 0.030f,
+                normH = 0.030f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                dx = -100,
+                dy = 100,
+            )
+        assertEquals(MIN_GAMEPAD_CUTOUT_SIZE, shrunk.width, EPS)
+        assertEquals(MIN_GAMEPAD_CUTOUT_SIZE, shrunk.height, EPS)
+    }
+
+    @Test
+    fun `calculateProportionalResizedBounds shrinks down to 1 percent default minimum`() {
+        val screenW = 1000f
+        val screenH = 1000f
+
+        val shrunk =
+            calculateProportionalResizedBounds(
+                normX = 0.500f,
+                normY = 0.500f,
+                normW = 0.030f,
+                normH = 0.030f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                stepDelta = -100,
+                targetNormRatio = 1f,
+            )
+        assertEquals(MIN_GAMEPAD_CUTOUT_SIZE, shrunk.w, EPS)
+        assertEquals(MIN_GAMEPAD_CUTOUT_SIZE, shrunk.h, EPS)
+    }
+
+    @Test
+    fun `isCutoutGeometryValid allows 1 percent size by default and rejects below 1 percent`() {
+        val others = emptyList<ScreenCutout>()
+        // 1% (0.010f) is valid
+        assertTrue(isCutoutGeometryValid(x = 0.100f, y = 0.100f, w = 0.010f, h = 0.010f, others = others))
+        // 0.5% (0.005f) is below default minimum
+        assertFalse(isCutoutGeometryValid(x = 0.100f, y = 0.100f, w = 0.005f, h = 0.010f, others = others))
+        assertFalse(isCutoutGeometryValid(x = 0.100f, y = 0.100f, w = 0.010f, h = 0.005f, others = others))
+    }
+
+    @Test
+    fun `clampCutoutResize enforces 5 percent touch minimum by default`() {
+        val others = emptyList<ScreenCutout>()
+        val shrunk =
+            clampCutoutResize(
+                cutoutId = "test",
+                handle = ResizeHandle.BOTTOM,
+                originalX = 0.100f,
+                originalY = 0.100f,
+                originalWidth = 0.200f,
+                originalHeight = 0.200f,
+                targetX = 0.100f,
+                targetY = 0.100f,
+                targetWidth = 0.200f,
+                targetHeight = 0.020f,
+                allCutouts = others,
+            )
+        assertEquals(MIN_TOUCH_CUTOUT_SIZE, shrunk.h, EPS)
+    }
+
+    @Test
+    fun `adjustSourceCropToAspectRatio clamps to 1 percent minimum for extremely flat target cutout`() {
+        // Flat destination cutout: destWidth = 0.8f, destHeight = 0.015f
+        val cutout =
+            ScreenCutout(
+                id = "test",
+                srcX = 0.2f,
+                srcY = 0.2f,
+                srcWidth = 0.2f,
+                srcHeight = 0.2f,
+                destX = 0.1f,
+                destY = 0.1f,
+                destWidth = 0.8f,
+                destHeight = 0.015f,
+                aspectRatioMode = AspectRatioMode.BOTTOM,
+            )
+        val adjusted =
+            adjustSourceCropToAspectRatio(
+                cutout = cutout,
+                screenW = 1080f,
+                screenH = 1240f,
+                srcW = 1920f,
+                srcH = 1080f,
+            )
+        // Height must not collapse below MIN_GAMEPAD_CUTOUT_SIZE (0.01f)
+        assertTrue(adjusted.srcHeight >= MIN_GAMEPAD_CUTOUT_SIZE)
+        assertTrue(adjusted.srcWidth >= MIN_GAMEPAD_CUTOUT_SIZE)
+        assertTrue(adjusted.srcWidth <= 1f)
+        assertTrue(adjusted.srcHeight <= 1f)
+        assertTrue(adjusted.srcX >= 0f && adjusted.srcX + adjusted.srcWidth <= 1f)
+        assertTrue(adjusted.srcY >= 0f && adjusted.srcY + adjusted.srcHeight <= 1f)
+
+        // Verify ratio matches expected factor
+        val targetRatio = (0.8f * 1080f) / (0.015f * 1240f)
+        val factor = targetRatio * (1080f / 1920f)
+        assertEquals(factor, adjusted.srcWidth / adjusted.srcHeight, 0.01f)
+    }
+
+    @Test
+    fun `adjustSourceCropToAspectRatio clamps to 1 percent minimum for extremely tall target cutout`() {
+        // Tall destination cutout: destWidth = 0.015f, destHeight = 0.8f
+        val cutout =
+            ScreenCutout(
+                id = "test",
+                srcX = 0.2f,
+                srcY = 0.2f,
+                srcWidth = 0.2f,
+                srcHeight = 0.2f,
+                destX = 0.1f,
+                destY = 0.1f,
+                destWidth = 0.015f,
+                destHeight = 0.8f,
+                aspectRatioMode = AspectRatioMode.BOTTOM,
+            )
+        val adjusted =
+            adjustSourceCropToAspectRatio(
+                cutout = cutout,
+                screenW = 1080f,
+                screenH = 1240f,
+                srcW = 1920f,
+                srcH = 1080f,
+            )
+        // Width must not collapse below MIN_GAMEPAD_CUTOUT_SIZE (0.01f)
+        assertTrue(adjusted.srcWidth >= MIN_GAMEPAD_CUTOUT_SIZE)
+        assertTrue(adjusted.srcHeight >= MIN_GAMEPAD_CUTOUT_SIZE)
+        assertTrue(adjusted.srcWidth <= 1f)
+        assertTrue(adjusted.srcHeight <= 1f)
+        assertTrue(adjusted.srcX >= 0f && adjusted.srcX + adjusted.srcWidth <= 1f)
+        assertTrue(adjusted.srcY >= 0f && adjusted.srcY + adjusted.srcHeight <= 1f)
+
+        // Verify ratio matches expected factor
+        val targetRatio = (0.015f * 1080f) / (0.8f * 1240f)
+        val factor = targetRatio * (1080f / 1920f)
+        assertEquals(factor, adjusted.srcWidth / adjusted.srcHeight, 0.01f)
+    }
+
+    @Test
+    fun `calculateProportionalResizedBounds heals and expands from sub-minimum size`() {
+        val screenW = 1920f
+        val screenH = 1080f
+        val targetNormRatio = 20f // wide ratio: w / h = 20
+        // minW = max(0.01f, 0.01f * 20f) = 0.20f, minH = 0.01f
+        // Start from sub-minimum dimensions (e.g. w = 0.05f, h = 0.0025f)
+        val healed =
+            calculateProportionalResizedBounds(
+                normX = 0.4f,
+                normY = 0.4f,
+                normW = 0.05f,
+                normH = 0.0025f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                stepDelta = 1,
+                targetNormRatio = targetNormRatio,
+            )
+        // Expanding must immediately heal up to minW (0.20f) instead of locking up
+        assertEquals(0.20f, healed.w, EPS)
+        assertEquals(0.01f, healed.h, EPS)
+        assertEquals(targetNormRatio, healed.w / healed.h, EPS)
+    }
+
+    @Test
+    fun `calculateProportionalResizedBounds resizes wide aspect ratio cutouts smoothly down to 1 percent height`() {
+        val screenW = 1920f
+        val screenH = 1080f
+        val targetNormRatio = 25f // w / h = 25
+        // Start at w = 0.50f, h = 0.02f
+        val expanded =
+            calculateProportionalResizedBounds(
+                normX = 0.2f,
+                normY = 0.2f,
+                normW = 0.50f,
+                normH = 0.02f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                stepDelta = 5,
+                targetNormRatio = targetNormRatio,
+            )
+        assertTrue(expanded.w > 0.50f)
+        assertTrue(expanded.h > 0.02f)
+        assertEquals(targetNormRatio, expanded.w / expanded.h, 0.01f)
+
+        // Shrink all the way down: minH is 0.01f, minW is 0.25f
+        val clampedShrunk =
+            calculateProportionalResizedBounds(
+                normX = 0.2f,
+                normY = 0.2f,
+                normW = 0.50f,
+                normH = 0.02f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                stepDelta = -1000,
+                targetNormRatio = targetNormRatio,
+            )
+        assertEquals(0.25f, clampedShrunk.w, EPS)
+        assertEquals(0.01f, clampedShrunk.h, EPS)
+    }
+
+    @Test
+    fun `adjustDestSizeToAspectRatio clamps to 1 percent minimum`() {
+        // High cropRatio (very flat) with small destWidth
+        val (targetW, targetH) =
+            adjustDestSizeToAspectRatio(
+                destX = 0.1f,
+                destY = 0.1f,
+                destWidth = 0.05f,
+                destHeight = 0.05f,
+                cropRatio = 30f,
+                screenW = 1080f,
+                screenH = 1240f,
+            )
+        assertTrue(targetH >= MIN_GAMEPAD_CUTOUT_SIZE)
+        assertTrue(targetW >= MIN_GAMEPAD_CUTOUT_SIZE)
+    }
+
+    @Test
+    fun `calculateResizedBounds allows expanding from below minW and minH`() {
+        val screenW = 1000f
+        val screenH = 1000f
+        // Start with width below minW (e.g. 5px / 0.005f where minW is 10px / 0.01f)
+        val expandedW =
+            calculateResizedBounds(
+                normX = 0.5f,
+                normY = 0.5f,
+                normW = 0.005f,
+                normH = 0.005f,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                dx = 5,
+                dy = 0,
+            )
+        // Must expand 5px to 10px (0.010f) rather than being blocked
+        assertEquals(0.010f, expandedW.width, EPS)
+    }
+
+    @Test
+    fun `projectCutoutCoordinates transforms coordinates correctly across all 90 degree rotation steps`() {
+        val destLeft = 0.2f
+        val destTop = 0.3f
+        val destW = 0.4f
+        val destH = 0.2f
+        val srcX = 0.1f
+        val srcY = 0.1f
+        val srcW = 0.8f
+        val srcH = 0.6f
+
+        // Center touch: (0.2 + 0.2, 0.3 + 0.1) -> rx=0.5, ry=0.5 -> center of source for any rotation
+        val center =
+            projectCutoutCoordinates(
+                touchX = 0.4f,
+                touchY = 0.4f,
+                destLeft = destLeft,
+                destTop = destTop,
+                destWidth = destW,
+                destHeight = destH,
+                srcX = srcX,
+                srcY = srcY,
+                srcWidth = srcW,
+                srcHeight = srcH,
+                rotation = 90,
+            )
+        assertNotNull(center)
+        assertEquals(srcX + 0.5f * srcW, center!!.first, EPS)
+        assertEquals(srcY + 0.5f * srcH, center.second, EPS)
+
+        // Top-left touch on screen: touchX = destLeft, touchY = destTop (rx=0, ry=0)
+        // 0 deg: (srcX, srcY)
+        val deg0 =
+            projectCutoutCoordinates(
+                touchX = destLeft,
+                touchY = destTop,
+                destLeft = destLeft,
+                destTop = destTop,
+                destWidth = destW,
+                destHeight = destH,
+                srcX = srcX,
+                srcY = srcY,
+                srcWidth = srcW,
+                srcHeight = srcH,
+                rotation = 0,
+            )
+        assertEquals(srcX, deg0!!.first, EPS)
+        assertEquals(srcY, deg0.second, EPS)
+
+        // 90 deg clockwise: rx=0, ry=0 -> normU=0, normV=1 -> (srcX, srcY + srcH) [bottom-left of source]
+        val deg90 =
+            projectCutoutCoordinates(
+                touchX = destLeft,
+                touchY = destTop,
+                destLeft = destLeft,
+                destTop = destTop,
+                destWidth = destW,
+                destHeight = destH,
+                srcX = srcX,
+                srcY = srcY,
+                srcWidth = srcW,
+                srcHeight = srcH,
+                rotation = 90,
+            )
+        assertEquals(srcX, deg90!!.first, EPS)
+        assertEquals(srcY + srcH, deg90.second, EPS)
+
+        // 180 deg: rx=0, ry=0 -> normU=1, normV=1 -> (srcX + srcW, srcY + srcH) [bottom-right of source]
+        val deg180 =
+            projectCutoutCoordinates(
+                touchX = destLeft,
+                touchY = destTop,
+                destLeft = destLeft,
+                destTop = destTop,
+                destWidth = destW,
+                destHeight = destH,
+                srcX = srcX,
+                srcY = srcY,
+                srcWidth = srcW,
+                srcHeight = srcH,
+                rotation = 180,
+            )
+        assertEquals(srcX + srcW, deg180!!.first, EPS)
+        assertEquals(srcY + srcH, deg180.second, EPS)
+
+        // 270 deg: rx=0, ry=0 -> normU=1, normV=0 -> (srcX + srcW, srcY) [top-right of source]
+        val deg270 =
+            projectCutoutCoordinates(
+                touchX = destLeft,
+                touchY = destTop,
+                destLeft = destLeft,
+                destTop = destTop,
+                destWidth = destW,
+                destHeight = destH,
+                srcX = srcX,
+                srcY = srcY,
+                srcWidth = srcW,
+                srcHeight = srcH,
+                rotation = 270,
+            )
+        assertEquals(srcX + srcW, deg270!!.first, EPS)
+        assertEquals(srcY, deg270.second, EPS)
+    }
+
+    @Test
+    fun `projectCutoutCoordinates applies horizontal and vertical flipping`() {
+        val destLeft = 0f
+        val destTop = 0f
+        val destW = 1f
+        val destH = 1f
+        val srcX = 0f
+        val srcY = 0f
+        val srcW = 1f
+        val srcH = 1f
+
+        // Touch at (0.2, 0.3)
+        // Normal: (0.2, 0.3)
+        val normal =
+            projectCutoutCoordinates(
+                0.2f,
+                0.3f,
+                destLeft,
+                destTop,
+                destW,
+                destH,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                rotation = 0,
+                flipHorizontal = false,
+                flipVertical = false,
+            )
+        assertEquals(0.2f, normal!!.first, EPS)
+        assertEquals(0.3f, normal.second, EPS)
+
+        // Horizontal flip: normU = 1 - 0.2 = 0.8
+        val flipH =
+            projectCutoutCoordinates(
+                0.2f,
+                0.3f,
+                destLeft,
+                destTop,
+                destW,
+                destH,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                rotation = 0,
+                flipHorizontal = true,
+                flipVertical = false,
+            )
+        assertEquals(0.8f, flipH!!.first, EPS)
+        assertEquals(0.3f, flipH.second, EPS)
+
+        // Vertical flip: normV = 1 - 0.3 = 0.7
+        val flipV =
+            projectCutoutCoordinates(
+                0.2f,
+                0.3f,
+                destLeft,
+                destTop,
+                destW,
+                destH,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                rotation = 0,
+                flipHorizontal = false,
+                flipVertical = true,
+            )
+        assertEquals(0.2f, flipV!!.first, EPS)
+        assertEquals(0.7f, flipV.second, EPS)
+
+        // Both: (0.8, 0.7)
+        val flipBoth =
+            projectCutoutCoordinates(
+                0.2f,
+                0.3f,
+                destLeft,
+                destTop,
+                destW,
+                destH,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                rotation = 0,
+                flipHorizontal = true,
+                flipVertical = true,
+            )
+        assertEquals(0.8f, flipBoth!!.first, EPS)
+        assertEquals(0.7f, flipBoth.second, EPS)
+    }
+
+    @Test
+    fun `calculateRotatedCutoutBounds swaps dimensions and centers without overlap`() {
+        val cutout =
+            ScreenCutout(
+                id = "cutout_1",
+                srcX = 0f,
+                srcY = 0f,
+                srcWidth = 1f,
+                srcHeight = 1f,
+                destX = 0.2f,
+                destY = 0.2f,
+                destWidth = 0.4f,
+                destHeight = 0.2f,
+                rotation = 0,
+            )
+        // Center is (0.2 + 0.2 = 0.4, 0.2 + 0.1 = 0.3)
+        // On 90 deg rotation: newW = 0.2, newH = 0.4
+        // targetX = 0.4 - 0.1 = 0.3, targetY = 0.3 - 0.2 = 0.1
+        val rotated = calculateRotatedCutoutBounds(cutout, targetRotation = 90, allCutouts = listOf(cutout))
+        assertNotNull(rotated)
+        assertEquals(90, rotated!!.rotation)
+        assertEquals(0.2f, rotated.destWidth, EPS)
+        assertEquals(0.4f, rotated.destHeight, EPS)
+        assertEquals(0.3f, rotated.destX, EPS)
+        assertEquals(0.1f, rotated.destY, EPS)
+    }
+
+    @Test
+    fun `calculateRotatedCutoutBounds swaps physical pixel dimensions on non-square screens`() {
+        // Cutout sitting at 0.3 x 0.3 on a 1920 x 1080 screen (physical 576 x 324 px)
+        val cutout =
+            ScreenCutout(
+                id = "cutout_square_norm",
+                srcX = 0f,
+                srcY = 0f,
+                srcWidth = 1f,
+                srcHeight = 1f,
+                destX = 0.3f,
+                destY = 0.3f,
+                destWidth = 0.3f,
+                destHeight = 0.3f,
+                rotation = 0,
+            )
+        val screenW = 1920f
+        val screenH = 1080f
+
+        // 90 deg rotation should swap physical pixels to 324 x 576 px
+        // newW = 324 / 1920 = 0.16875f, newH = 576 / 1080 = 0.53333f
+        val rotated90 =
+            calculateRotatedCutoutBounds(
+                cutout = cutout,
+                targetRotation = 90,
+                allCutouts = listOf(cutout),
+                screenW = screenW,
+                screenH = screenH,
+            )
+        assertNotNull(rotated90)
+        assertEquals(90, rotated90!!.rotation)
+        assertEquals(0.16875f, rotated90.destWidth, EPS)
+        assertEquals(0.53333f, rotated90.destHeight, 0.001f)
+
+        // 180 deg rotation should return to horizontal orientation (0.3 x 0.3)
+        val rotated180 =
+            calculateRotatedCutoutBounds(
+                cutout = rotated90,
+                targetRotation = 180,
+                allCutouts = listOf(rotated90),
+                screenW = screenW,
+                screenH = screenH,
+            )
+        assertNotNull(rotated180)
+        assertEquals(180, rotated180!!.rotation)
+        assertEquals(0.3f, rotated180.destWidth, EPS)
+        assertEquals(0.3f, rotated180.destHeight, EPS)
+    }
+
+    @Test
+    fun `calculateRotatedCutoutBounds blocks rotation on collision with neighbor`() {
+        val cutout1 =
+            ScreenCutout(
+                id = "cutout_1",
+                srcX = 0f,
+                srcY = 0f,
+                srcWidth = 1f,
+                srcHeight = 1f,
+                destX = 0.2f,
+                destY = 0.2f,
+                destWidth = 0.4f,
+                destHeight = 0.2f,
+                rotation = 0,
+            )
+        // Neighbor right above cutout1's target bounds (Y=0.1 to 0.5)
+        val neighbor =
+            ScreenCutout(
+                id = "neighbor",
+                srcX = 0f,
+                srcY = 0f,
+                srcWidth = 1f,
+                srcHeight = 1f,
+                destX = 0.25f,
+                destY = 0.05f,
+                destWidth = 0.2f,
+                destHeight = 0.15f,
+            )
+        val blocked = calculateRotatedCutoutBounds(cutout1, targetRotation = 90, allCutouts = listOf(cutout1, neighbor))
+        assertNull(blocked)
     }
 }

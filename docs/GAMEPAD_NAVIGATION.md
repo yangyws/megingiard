@@ -138,23 +138,46 @@ Modifier.focusProperties {
 When entering or leaving a sub-page, `GamepadTwoPaneScaffold` observes changes to `effectiveNavKey`:
 
 ```kotlin
-fun performFocus(): Boolean {
+fun performFocus(allowFallback: Boolean = false): Boolean {
     inputModeManager.requestInputMode(InputMode.Keyboard)
     if (isBackTransition) {
-        val parentKey = savedFocusKeyByDepth[newDepth]
-        val parentRequester = if (parentKey != null) activeDeckCardRequesters[parentKey] else null
-        if (parentRequester != null) {
-            try {
-                parentRequester.requestFocus()
-                return true
-            } catch (_: IllegalStateException) {
-                savedFocusKeyByDepth.remove(newDepth)
+        val parentKey = savedFocusKeys?.get(newDepth) ?: savedFocusKeyByDepth[newDepth]
+        if (parentKey != null) {
+            val parentRequester = activeDeckCardRequesters[parentKey]
+            if (parentRequester != null) {
+                try {
+                    parentRequester.requestFocus()
+                    return true
+                } catch (_: IllegalStateException) {
+                    savedFocusKeyByDepth.remove(newDepth)
+                    onRemoveFocusedKey?.invoke(newDepth)
+                }
+            }
+            if (!allowFallback) {
+                return false
             }
         }
         try {
             firstContentRequester.requestFocus()
             return true
         } catch (_: IllegalStateException) {
+            if (allowFallback) {
+                val fallbackRequester = activeDeckCardRequesters.values.firstOrNull()
+                if (fallbackRequester != null) {
+                    try {
+                        fallbackRequester.requestFocus()
+                        return true
+                    } catch (_: IllegalStateException) {
+                    }
+                }
+                if (newDepth == 0) {
+                    try {
+                        activeCategoryRequester.requestFocus()
+                        return true
+                    } catch (_: IllegalStateException) {
+                    }
+                }
+            }
             return false
         }
     } else {
@@ -162,16 +185,26 @@ fun performFocus(): Boolean {
             firstContentRequester.requestFocus()
             return true
         } catch (_: IllegalStateException) {
+            if (allowFallback) {
+                val fallbackRequester = activeDeckCardRequesters.values.firstOrNull()
+                if (fallbackRequester != null) {
+                    try {
+                        fallbackRequester.requestFocus()
+                        return true
+                    } catch (_: IllegalStateException) {
+                    }
+                }
+            }
             return false
         }
     }
 }
 
 // Attempt immediate synchronous focus on frame 0; fallback to delay only if unattached
-if (!performFocus()) {
+if (!performFocus(allowFallback = false)) {
     delay(GS_INITIAL_FOCUS_DELAY_MS)
     try {
-        performFocus()
+        performFocus(allowFallback = true)
     } catch (_: IllegalStateException) {
         AppLog.d(TAG, "GamepadTwoPaneScaffold: focus requester unattached on auto focus restore")
     }
@@ -258,12 +291,13 @@ In addition to physical gamepad `Button B` and Android hardware `Back` events, `
 
 Tapping or clicking with a touch screen or mouse pointer automatically sets `InputMode.Touch` and shifts 2D focus to the touched item via `interactionSource`.
 
-### 5.2 Universal Focus Recovery Dispatcher
+### 5.2 Universal Focus Recovery Dispatcher & Window Attachment
 
-If pointer interaction or dialog dismissal leaves Compose without an active focused node:
+If pointer interaction, empty dynamic items, or dialog dismissal leaves Compose without an active focused node:
 1. Subsequent hardware inputs (D-Pad, Stick motion, Button A) fail standard view consumption.
-2. `PrimaryOverlayManager` / `PrimaryOverlayActivity` catches the unhandled event and invokes `PrimaryOverlayInputBridge.sendFocusRecovery(keyCode)`.
-3. `GamepadTwoPaneScaffold` receives the recovery trigger, requests `InputMode.Keyboard`, and immediately restores focus to `activeCategoryRequester` (or the last recorded deck card).
+2. `PrimaryOverlayManager` / `PrimaryOverlayActivity` catches the unhandled event and invokes `PrimaryOverlayInputBridge.sendFocusRecovery(keyCode)`. Additionally, `PrimaryOverlayManager` dispatches an initial focus recovery event upon `WindowManager.addView()` attachment to guarantee Display 0 window focus.
+3. Overlays (`GamepadTwoPaneScaffold`, `MirrorEditorTopOverlay`, `AnchorSelectorOverlay`) receive the recovery trigger, request `InputMode.Keyboard`, and immediately restore focus to the primary focus requester.
+4. Modal switches on Display 0 use atomic transitions (`AppStateManager.suspendCurrentAndOpen`) and debounced window tear-down (32 ms) to eliminate window churn and OS focus drop during multi-modal flows.
 
 ---
 

@@ -73,6 +73,7 @@ import com.stormpanda.megingiard.log.LogReportManager
 import com.stormpanda.megingiard.macropad.AppLauncherManager
 import com.stormpanda.megingiard.macropad.BackgroundPickerManager
 import com.stormpanda.megingiard.macropad.ButtonImagePickerManager
+import com.stormpanda.megingiard.macropad.LayoutTransitionManager
 import com.stormpanda.megingiard.macropad.MacroExecutor
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadLayout
@@ -260,6 +261,24 @@ class MainActivity : ComponentActivity() {
         } else {
             AutoSwitchCoordinator.reevaluateAutoState()
         }
+        if (currentDisplayId != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
+    }
+
+    override fun onTopResumedActivityChanged(isTopResumedActivity: Boolean) {
+        super.onTopResumedActivityChanged(isTopResumedActivity)
+        AppLog.d(TAG, "onTopResumedActivityChanged: isTopResumedActivity=$isTopResumedActivity")
+        if (isTopResumedActivity && (display?.displayId ?: Display.DEFAULT_DISPLAY) != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if ((display?.displayId ?: Display.DEFAULT_DISPLAY) != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onStop() {
@@ -271,11 +290,13 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         AppLog.i(TAG, "onDestroy")
+        LayoutTransitionManager.unregisterWindowProvider()
         InjectorLifecycleManager.stopAll()
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         super.onCreate(savedInstanceState)
+        LayoutTransitionManager.registerWindowProvider { window }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runCatching {
@@ -283,7 +304,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (savedInstanceState == null && display?.displayId != Display.DEFAULT_DISPLAY) {
+        if (display?.displayId != Display.DEFAULT_DISPLAY) {
             PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
         }
 
@@ -498,6 +519,8 @@ class MainActivity : ComponentActivity() {
                     AppStateManager.promptInFlight,
                     ScreenCaptureManager.isCapturing,
                     MacroPadState.activeLayout,
+                    MacroPadState.activeProfile,
+                    AppStateManager.companionViewMode,
                     AppStateManager.isOnValidScreen,
                     OnboardingWizardManager.isWizardActive,
                     AppStateManager.isFullscreenMouseActive,
@@ -507,11 +530,19 @@ class MainActivity : ComponentActivity() {
                     val promptInFlight = values[0] as Boolean
                     val capturing = values[1] as Boolean
                     val currentLayout = values[2] as? PadLayout
-                    val onValidScreen = values[3] as Boolean
-                    val wizardActive = values[4] as Boolean
-                    val isFullscreenMouseActive = values[5] as Boolean
-                    val isFullscreenKeyboardActive = values[6] as Boolean
-                    val wasMirroringStartedByTouchpad = values[7] as Boolean
+                    val profile = values[3] as? PadProfile
+                    val viewMode = values[4] as CompanionViewMode
+                    val onValidScreen = values[5] as Boolean
+                    val wizardActive = values[6] as Boolean
+                    val isFullscreenMouseActive = values[7] as Boolean
+                    val isFullscreenKeyboardActive = values[8] as Boolean
+                    val wasMirroringStartedByTouchpad = values[9] as Boolean
+
+                    val isAutoSwitchEligible =
+                        viewMode == CompanionViewMode.AUTO &&
+                            profile?.autoLayoutSwitching == true
+                    val hasAnyAnchoredLayout =
+                        profile?.layouts?.any { it.visualAnchor.enabled } == true
 
                     MirrorRuntimePolicyState(
                         promptInFlight = promptInFlight,
@@ -519,6 +550,7 @@ class MainActivity : ComponentActivity() {
                         isCapturing = capturing,
                         layoutId = currentLayout?.id,
                         layoutWantsMirror = currentLayout?.mirrorAutoStart == true,
+                        autoSwitchWantsMirror = isAutoSwitchEligible && hasAnyAnchoredLayout,
                         tutorialsActive = wizardActive,
                         isFullscreenMouseActive = isFullscreenMouseActive,
                         isFullscreenKeyboardActive = isFullscreenKeyboardActive,
@@ -883,6 +915,9 @@ class MainActivity : ComponentActivity() {
         val isValid = DisplayDetector.isValidScreen(currentDisplayId)
         AppLog.i(TAG, "onNewIntent: displayId=$currentDisplayId isValid=$isValid action=${intent.action}")
         AppStateManager.setOnValidScreen(isValid)
+        if (currentDisplayId != Display.DEFAULT_DISPLAY) {
+            PrimaryFocusAnchorActivity.anchorPrimaryFocus(this)
+        }
         handleIncomingIntent(intent)
     }
 

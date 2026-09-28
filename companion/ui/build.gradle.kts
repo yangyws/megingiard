@@ -40,8 +40,8 @@ android {
         applicationId = "com.stormpanda.megingiard.zh"
         minSdk = 33
         targetSdk = 35
-        versionCode = 12
-        versionName = "0.10.0-SNAPSHOT"
+        versionCode = 13
+        versionName = "0.11.0-SNAPSHOT"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

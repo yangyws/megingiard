@@ -51,6 +51,7 @@ import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.CompanionViewMode
 import com.stormpanda.megingiard.R
+import com.stormpanda.megingiard.macropad.LayoutTransitionManager
 import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadProfile
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
@@ -147,7 +148,10 @@ fun QuickMenu(
                             enter = slideInVertically { -it },
                             exit = slideOutVertically { -it },
                         ),
-                onStart = AppStateManager::requestMirrorStart,
+                onStart = {
+                    AppStateManager.requestMirrorStart()
+                    onDismiss()
+                },
                 onStop = {
                     AppStateManager.requestMirrorStop()
                     onDismiss()
@@ -200,7 +204,7 @@ fun QuickMenu(
                     onProfileSelected = { profile ->
                         AppLog.d(TAG, "profile selected: ${profile.id}")
                         MacroPadState.setActiveProfileId(profile.id)
-                        ensureMacroPadModeForProfile(profile)
+                        AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                     },
                 )
 
@@ -215,8 +219,8 @@ fun QuickMenu(
                     colors = colors,
                     onLayoutSelected = { layoutId ->
                         AppLog.d(TAG, "layout selected: $layoutId")
-                        MacroPadState.setActiveLayoutId(layoutId)
-                        ensureMacroPadModeForProfile(MacroPadState.activeProfile.value)
+                        LayoutTransitionManager.switchLayout(layoutId)
+                        AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
                     },
                 )
 

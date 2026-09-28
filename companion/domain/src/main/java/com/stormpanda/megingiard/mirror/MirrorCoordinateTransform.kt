@@ -8,6 +8,9 @@ import kotlin.math.roundToInt
 private const val OVERLAP_TOLERANCE: Float = 0.0001f
 private const val BINARY_SEARCH_STEPS = 10
 private const val MIN_RESIZE_PX = 8
+private const val ROTATION_90 = 90
+private const val ROTATION_180 = 180
+private const val ROTATION_270 = 270
 
 /**
  * Maps a raw touch position on the mirror surface back through the current zoom/pan
@@ -94,6 +97,9 @@ fun projectCutoutCoordinates(
     srcWidth: Float,
     srcHeight: Float,
     clampToEdge: Boolean = false,
+    rotation: Int = 0,
+    flipHorizontal: Boolean = false,
+    flipVertical: Boolean = false,
 ): Pair<Float, Float>? {
     if (destWidth <= 0f || destHeight <= 0f) return null
 
@@ -106,8 +112,31 @@ fun projectCutoutCoordinates(
     val rx = ((touchX - destLeft) / destWidth).coerceIn(0f, 1f)
     val ry = ((touchY - destTop) / destHeight).coerceIn(0f, 1f)
 
-    val px = srcX + rx * srcWidth
-    val py = srcY + ry * srcHeight
+    var normU =
+        when (rotation) {
+            ROTATION_90 -> ry
+            ROTATION_180 -> 1f - rx
+            ROTATION_270 -> 1f - ry
+            else -> rx
+        }
+
+    var normV =
+        when (rotation) {
+            ROTATION_90 -> 1f - rx
+            ROTATION_180 -> 1f - ry
+            ROTATION_270 -> rx
+            else -> ry
+        }
+
+    if (flipHorizontal) {
+        normU = 1f - normU
+    }
+    if (flipVertical) {
+        normV = 1f - normV
+    }
+
+    val px = srcX + normU * srcWidth
+    val py = srcY + normV * srcHeight
 
     return Pair(px.coerceIn(0f, 1f), py.coerceIn(0f, 1f))
 }
@@ -130,7 +159,9 @@ data class ScreenCutoutGeometry(
     val h: Float,
 )
 
-private const val MIN_CUTOUT_SIZE = 0.05f
+const val MIN_TOUCH_CUTOUT_SIZE = 0.05f
+const val MIN_GAMEPAD_CUTOUT_SIZE = 0.01f
+const val MIN_CUTOUT_SIZE = MIN_GAMEPAD_CUTOUT_SIZE
 
 private fun intervalsOverlap(
     min1: Float,
@@ -157,7 +188,8 @@ fun clampMoveX(
     height: Float,
     others: List<ScreenCutout>,
 ): Float {
-    val clampedTargetX = targetX.coerceIn(0f, 1f - width)
+    val maxX = (1f - width).coerceAtLeast(0f)
+    val clampedTargetX = targetX.coerceIn(0f, maxX)
     if (clampedTargetX == originalX) return originalX
 
     var limitX = clampedTargetX
@@ -176,7 +208,7 @@ fun clampMoveX(
             }
         }
     }
-    return limitX.coerceIn(0f, 1f - width)
+    return limitX.coerceIn(0f, maxX)
 }
 
 fun clampMoveY(
@@ -187,7 +219,8 @@ fun clampMoveY(
     height: Float,
     others: List<ScreenCutout>,
 ): Float {
-    val clampedTargetY = targetY.coerceIn(0f, 1f - height)
+    val maxY = (1f - height).coerceAtLeast(0f)
+    val clampedTargetY = targetY.coerceIn(0f, maxY)
     if (clampedTargetY == originalY) return originalY
 
     var limitY = clampedTargetY
@@ -206,7 +239,7 @@ fun clampMoveY(
             }
         }
     }
-    return limitY.coerceIn(0f, 1f - height)
+    return limitY.coerceIn(0f, maxY)
 }
 
 fun clampCutoutDrag(
@@ -221,8 +254,10 @@ fun clampCutoutDrag(
 ): Pair<Float, Float> {
     val others = allCutouts.filter { it.id != cutoutId }
 
-    val clampedX = targetX.coerceIn(0f, 1f - width)
-    val clampedY = targetY.coerceIn(0f, 1f - height)
+    val maxX = (1f - width).coerceAtLeast(0f)
+    val maxY = (1f - height).coerceAtLeast(0f)
+    val clampedX = targetX.coerceIn(0f, maxX)
+    val clampedY = targetY.coerceIn(0f, maxY)
 
     if (others.none { rectsOverlap(clampedX, clampedY, width, height, it) }) {
         return Pair(clampedX, clampedY)
@@ -266,6 +301,75 @@ fun clampCutoutDrag(
     return Pair(originalX, originalY)
 }
 
+fun adjustSourceCropToAspectRatio(
+    cutout: ScreenCutout,
+    screenW: Float,
+    screenH: Float,
+    srcW: Float,
+    srcH: Float,
+    baseSrcX: Float = cutout.srcX,
+    baseSrcY: Float = cutout.srcY,
+    baseSrcW: Float = cutout.srcWidth,
+    baseSrcH: Float = cutout.srcHeight,
+    minSize: Float = MIN_GAMEPAD_CUTOUT_SIZE,
+): ScreenCutout {
+    if (screenW <= 0f || screenH <= 0f || srcW <= 0f || srcH <= 0f ||
+        cutout.destWidth <= 0f || cutout.destHeight <= 0f
+    ) {
+        return cutout
+    }
+
+    val rawTargetRatio = (cutout.destWidth * screenW) / (cutout.destHeight * screenH)
+    if (rawTargetRatio <= 0f) return cutout
+    val isQuarter = (cutout.rotation == ROTATION_90 || cutout.rotation == ROTATION_270)
+    val targetRatio = if (isQuarter) (1f / rawTargetRatio) else rawTargetRatio
+    val factor = targetRatio * (srcH / srcW)
+    if (factor <= 0f) return cutout
+
+    val safeBaseW = baseSrcW.coerceIn(minSize, 1f)
+    val safeBaseH = baseSrcH.coerceIn(minSize, 1f)
+    val centerX = baseSrcX + safeBaseW / 2f
+    val centerY = baseSrcY + safeBaseH / 2f
+
+    var candW: Float
+    var candH: Float
+
+    if (factor > safeBaseW / safeBaseH) {
+        candW = safeBaseW
+        candH = candW / factor
+    } else {
+        candH = safeBaseH
+        candW = candH * factor
+    }
+
+    if (candH < minSize) {
+        candH = minSize
+        candW = (candH * factor).coerceIn(minSize, 1f)
+    }
+    if (candW < minSize) {
+        candW = minSize
+        candH = (candW / factor).coerceIn(minSize, 1f)
+    }
+    if (candW > 1f) {
+        candW = 1f
+        candH = (candW / factor).coerceIn(minSize, 1f)
+    }
+    if (candH > 1f) {
+        candH = 1f
+        candW = (candH * factor).coerceIn(minSize, 1f)
+    }
+
+    val newX = (centerX - candW / 2f).coerceIn(0f, (1f - candW).coerceAtLeast(0f))
+    val newY = (centerY - candH / 2f).coerceIn(0f, (1f - candH).coerceAtLeast(0f))
+
+    return cutout.copy(
+        srcX = newX,
+        srcY = newY,
+        srcWidth = candW,
+        srcHeight = candH,
+    )
+}
+
 fun adjustDestSizeToAspectRatio(
     destX: Float,
     destY: Float,
@@ -274,26 +378,119 @@ fun adjustDestSizeToAspectRatio(
     cropRatio: Float,
     screenW: Float,
     screenH: Float,
+    minCutoutSize: Float = MIN_GAMEPAD_CUTOUT_SIZE,
+    rotation: Int = 0,
 ): Pair<Float, Float> {
     if (screenW <= 0f || screenH <= 0f || cropRatio <= 0f) return Pair(destWidth, destHeight)
 
-    val normRatio = cropRatio * (screenH / screenW)
-    var targetH = destWidth / normRatio
-    var targetW = destWidth
+    val isQuarter = (rotation == ROTATION_90 || rotation == ROTATION_270)
+    val effectiveCropRatio = if (isQuarter) (1f / cropRatio) else cropRatio
 
-    val maxH = 1f - destY
+    val normRatio = effectiveCropRatio * (screenH / screenW)
+    if (normRatio <= 0f) return Pair(destWidth, destHeight)
+
+    val maxH = (1f - destY).coerceIn(minCutoutSize, 1f)
+    val maxW = (1f - destX).coerceIn(minCutoutSize, 1f)
+
+    var targetW = destWidth.coerceIn(minCutoutSize, maxW)
+    var targetH = targetW / normRatio
+
     if (targetH > maxH) {
         targetH = maxH
-        targetW = targetH * normRatio
+        targetW = (targetH * normRatio).coerceIn(minCutoutSize, maxW)
     }
 
-    val maxW = 1f - destX
+    if (targetH < minCutoutSize) {
+        targetH = minCutoutSize
+        targetW = (targetH * normRatio).coerceIn(minCutoutSize, maxW)
+    }
+
     if (targetW > maxW) {
         targetW = maxW
-        targetH = targetW / normRatio
+        targetH = (targetW / normRatio).coerceIn(minCutoutSize, maxH)
+    }
+
+    if (targetW < minCutoutSize) {
+        targetW = minCutoutSize
+        targetH = (targetW / normRatio).coerceIn(minCutoutSize, maxH)
     }
 
     return Pair(targetW, targetH)
+}
+
+/**
+ * Calculates new destination bounds for a cutout when rotating to [targetRotation].
+ *
+ * If rotating between landscape and portrait (0°/180° <-> 90°/270°), destination physical pixel
+ * dimensions are swapped (converting normalized dimensions through [screenW] and [screenH])
+ * while remaining centered around the cutout's current midpoint and clamped to screen bounds.
+ *
+ * @param cutout The cutout to rotate.
+ * @param targetRotation Target rotation angle in degrees (0, 90, 180, 270).
+ * @param allCutouts Sibling cutouts used for collision detection.
+ * @param maxDimension Maximum normalized dimension (defaults to 1.0f).
+ * @param screenW Secondary display surface width in physical pixels (used to preserve physical aspect ratio).
+ * @param screenH Secondary display surface height in physical pixels (used to preserve physical aspect ratio).
+ * @return The updated [ScreenCutout] if the rotated cutout fits without colliding with any
+ * other cutout in [allCutouts], or `null` if the rotation is blocked by collision or boundaries.
+ */
+fun calculateRotatedCutoutBounds(
+    cutout: ScreenCutout,
+    targetRotation: Int,
+    allCutouts: List<ScreenCutout>,
+    maxDimension: Float = 1.0f,
+    screenW: Float = 0f,
+    screenH: Float = 0f,
+): ScreenCutout? {
+    val currentIsQuarter = (cutout.rotation == ROTATION_90 || cutout.rotation == ROTATION_270)
+    val targetIsQuarter = (targetRotation == ROTATION_90 || targetRotation == ROTATION_270)
+    val isSwappingDimensions = currentIsQuarter != targetIsQuarter
+
+    val newW =
+        if (!isSwappingDimensions) {
+            cutout.destWidth
+        } else if (screenW > 0f && screenH > 0f) {
+            (cutout.destHeight * screenH) / screenW
+        } else {
+            cutout.destHeight
+        }
+
+    val newH =
+        if (!isSwappingDimensions) {
+            cutout.destHeight
+        } else if (screenW > 0f && screenH > 0f) {
+            (cutout.destWidth * screenW) / screenH
+        } else {
+            cutout.destWidth
+        }
+
+    if (newW > maxDimension || newH > maxDimension) {
+        return null
+    }
+
+    val centerX = cutout.destX + cutout.destWidth / 2f
+    val centerY = cutout.destY + cutout.destHeight / 2f
+
+    val targetX = (centerX - newW / 2f).coerceIn(0f, (maxDimension - newW).coerceAtLeast(0f))
+    val targetY = (centerY - newH / 2f).coerceIn(0f, (maxDimension - newH).coerceAtLeast(0f))
+
+    val others = allCutouts.filter { it.id != cutout.id }
+    val hasOverlap =
+        others.any { other ->
+            rectsOverlap(targetX, targetY, newW, newH, other)
+        }
+
+    if (hasOverlap) {
+        return null
+    }
+
+    return cutout.copy(
+        rotation = targetRotation,
+        destX = targetX,
+        destY = targetY,
+        destWidth = newW,
+        destHeight = newH,
+    )
 }
 
 fun isCutoutGeometryValid(
@@ -321,7 +518,8 @@ private fun isGeometryValid(
     w: Float,
     h: Float,
     others: List<ScreenCutout>,
-): Boolean = isCutoutGeometryValid(x, y, w, h, others)
+    minCutoutSize: Float = MIN_TOUCH_CUTOUT_SIZE,
+): Boolean = isCutoutGeometryValid(x, y, w, h, others, minCutoutSize)
 
 fun getTargetGeometryWithAspectRatio(
     handle: ResizeHandle,
@@ -336,10 +534,14 @@ fun getTargetGeometryWithAspectRatio(
     cropRatio: Float,
     screenW: Float,
     screenH: Float,
+    minCutoutSize: Float = MIN_TOUCH_CUTOUT_SIZE,
+    rotation: Int = 0,
 ): ScreenCutoutGeometry {
     val dx = targetWidth - originalWidth
     val dy = targetHeight - originalHeight
-    val normRatio = cropRatio * (screenH / screenW)
+    val isQuarter = (rotation == ROTATION_90 || rotation == ROTATION_270)
+    val effectiveCropRatio = if (isQuarter && cropRatio > 0f) (1f / cropRatio) else cropRatio
+    val normRatio = effectiveCropRatio * (screenH / screenW)
 
     val originalRight = originalX + originalWidth
     val originalBottom = originalY + originalHeight
@@ -350,10 +552,10 @@ fun getTargetGeometryWithAspectRatio(
     var finalY = targetY
 
     if (abs(dx) >= abs(dy * normRatio)) {
-        finalW = targetWidth.coerceIn(MIN_CUTOUT_SIZE, 1f)
+        finalW = targetWidth.coerceIn(minCutoutSize, 1f)
         finalH = finalW / normRatio
     } else {
-        finalH = targetHeight.coerceIn(MIN_CUTOUT_SIZE, 1f)
+        finalH = targetHeight.coerceIn(minCutoutSize, 1f)
         finalW = finalH * normRatio
     }
 
@@ -438,6 +640,8 @@ fun clampCutoutResize(
     cropRatio: Float = 0f,
     screenW: Float = 0f,
     screenH: Float = 0f,
+    minCutoutSize: Float = MIN_TOUCH_CUTOUT_SIZE,
+    rotation: Int = allCutouts.find { it.id == cutoutId }?.rotation ?: 0,
 ): ScreenCutoutGeometry {
     val others = allCutouts.filter { it.id != cutoutId }
 
@@ -456,6 +660,8 @@ fun clampCutoutResize(
                 cropRatio = cropRatio,
                 screenW = screenW,
                 screenH = screenH,
+                minCutoutSize = minCutoutSize,
+                rotation = rotation,
             )
 
         val origGeom = ScreenCutoutGeometry(originalX, originalY, originalWidth, originalHeight)
@@ -513,7 +719,7 @@ fun clampCutoutResize(
                 }
             }
 
-            if (isGeometryValid(x, y, w, h, others)) {
+            if (isGeometryValid(x, y, w, h, others, minCutoutSize)) {
                 bestGeom = ScreenCutoutGeometry(x, y, w, h)
                 low = mid
             } else {
@@ -531,8 +737,8 @@ fun clampCutoutResize(
     val prevRight = prevX + prevW
     val prevBottom = prevY + prevH
 
-    val clampedWidth = targetWidth.coerceIn(MIN_CUTOUT_SIZE, 1f)
-    val clampedHeight = targetHeight.coerceIn(MIN_CUTOUT_SIZE, 1f)
+    val clampedWidth = targetWidth.coerceIn(minCutoutSize, 1f)
+    val clampedHeight = targetHeight.coerceIn(minCutoutSize, 1f)
 
     val originalRight = originalX + originalWidth
     val originalBottom = originalY + originalHeight
@@ -543,7 +749,8 @@ fun clampCutoutResize(
     var finalHeight = clampedHeight
     when (handle) {
         ResizeHandle.TOP -> {
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            val maxTop = (originalBottom - minCutoutSize).coerceAtLeast(0f)
+            clampedY = clampedY.coerceIn(0f, maxTop)
             for (other in others) {
                 val xOverlaps = intervalsOverlap(originalX, originalRight, other.destX, other.destX + other.destWidth)
                 val yOverlaps = intervalsOverlap(clampedY, originalBottom, other.destY, other.destY + other.destHeight)
@@ -551,14 +758,15 @@ fun clampCutoutResize(
                     clampedY = maxOf(clampedY, other.destY + other.destHeight)
                 }
             }
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            clampedY = clampedY.coerceIn(0f, maxTop)
             clampedX = originalX
             finalWidth = originalWidth
             finalHeight = originalBottom - clampedY
         }
 
         ResizeHandle.BOTTOM -> {
-            var clampedBottom = (originalY + clampedHeight).coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            val minBottom = (originalY + minCutoutSize).coerceAtMost(1f)
+            var clampedBottom = (originalY + clampedHeight).coerceIn(minBottom, 1f)
             for (other in others) {
                 val xOverlaps = intervalsOverlap(originalX, originalRight, other.destX, other.destX + other.destWidth)
                 val yOverlaps = intervalsOverlap(originalY, clampedBottom, other.destY, other.destY + other.destHeight)
@@ -566,7 +774,7 @@ fun clampCutoutResize(
                     clampedBottom = minOf(clampedBottom, other.destY)
                 }
             }
-            clampedBottom = clampedBottom.coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            clampedBottom = clampedBottom.coerceIn(minBottom, 1f)
             clampedX = originalX
             clampedY = originalY
             finalWidth = originalWidth
@@ -574,7 +782,8 @@ fun clampCutoutResize(
         }
 
         ResizeHandle.LEFT -> {
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
+            val maxLeft = (originalRight - minCutoutSize).coerceAtLeast(0f)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
             for (other in others) {
                 val xOverlaps = intervalsOverlap(clampedX, originalRight, other.destX, other.destX + other.destWidth)
                 val yOverlaps = intervalsOverlap(originalY, originalBottom, other.destY, other.destY + other.destHeight)
@@ -582,14 +791,15 @@ fun clampCutoutResize(
                     clampedX = maxOf(clampedX, other.destX + other.destWidth)
                 }
             }
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
             clampedY = originalY
             finalWidth = originalRight - clampedX
             finalHeight = originalHeight
         }
 
         ResizeHandle.RIGHT -> {
-            var clampedRight = (originalX + clampedWidth).coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
+            val minRight = (originalX + minCutoutSize).coerceAtMost(1f)
+            var clampedRight = (originalX + clampedWidth).coerceIn(minRight, 1f)
             for (other in others) {
                 val xOverlaps = intervalsOverlap(originalX, clampedRight, other.destX, other.destX + other.destWidth)
                 val yOverlaps = intervalsOverlap(originalY, originalBottom, other.destY, other.destY + other.destHeight)
@@ -597,7 +807,7 @@ fun clampCutoutResize(
                     clampedRight = minOf(clampedRight, other.destX)
                 }
             }
-            clampedRight = clampedRight.coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
+            clampedRight = clampedRight.coerceIn(minRight, 1f)
             clampedX = originalX
             clampedY = originalY
             finalWidth = clampedRight - originalX
@@ -605,8 +815,10 @@ fun clampCutoutResize(
         }
 
         ResizeHandle.TOP_LEFT -> {
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            val maxLeft = (originalRight - minCutoutSize).coerceAtLeast(0f)
+            val maxTop = (originalBottom - minCutoutSize).coerceAtLeast(0f)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
+            clampedY = clampedY.coerceIn(0f, maxTop)
 
             for (other in others) {
                 val xOverlaps = intervalsOverlap(clampedX, originalRight, other.destX, other.destX + other.destWidth)
@@ -630,15 +842,17 @@ fun clampCutoutResize(
                     clampedY = resY
                 }
             }
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
+            clampedY = clampedY.coerceIn(0f, maxTop)
             finalWidth = originalRight - clampedX
             finalHeight = originalBottom - clampedY
         }
 
         ResizeHandle.TOP_RIGHT -> {
-            var clampedRight = (originalX + clampedWidth).coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            val minRight = (originalX + minCutoutSize).coerceAtMost(1f)
+            val maxTop = (originalBottom - minCutoutSize).coerceAtLeast(0f)
+            var clampedRight = (originalX + clampedWidth).coerceIn(minRight, 1f)
+            clampedY = clampedY.coerceIn(0f, maxTop)
 
             for (other in others) {
                 val xOverlaps = intervalsOverlap(originalX, clampedRight, other.destX, other.destX + other.destWidth)
@@ -662,16 +876,18 @@ fun clampCutoutResize(
                     clampedY = resY
                 }
             }
-            clampedRight = clampedRight.coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
-            clampedY = clampedY.coerceIn(0f, originalBottom - MIN_CUTOUT_SIZE)
+            clampedRight = clampedRight.coerceIn(minRight, 1f)
+            clampedY = clampedY.coerceIn(0f, maxTop)
             clampedX = originalX
             finalWidth = clampedRight - originalX
             finalHeight = originalBottom - clampedY
         }
 
         ResizeHandle.BOTTOM_LEFT -> {
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
-            var clampedBottom = (originalY + clampedHeight).coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            val maxLeft = (originalRight - minCutoutSize).coerceAtLeast(0f)
+            val minBottom = (originalY + minCutoutSize).coerceAtMost(1f)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
+            var clampedBottom = (originalY + clampedHeight).coerceIn(minBottom, 1f)
 
             for (other in others) {
                 val xOverlaps = intervalsOverlap(clampedX, originalRight, other.destX, other.destX + other.destWidth)
@@ -695,16 +911,18 @@ fun clampCutoutResize(
                     clampedBottom = resBottom
                 }
             }
-            clampedX = clampedX.coerceIn(0f, originalRight - MIN_CUTOUT_SIZE)
-            clampedBottom = clampedBottom.coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            clampedX = clampedX.coerceIn(0f, maxLeft)
+            clampedBottom = clampedBottom.coerceIn(minBottom, 1f)
             clampedY = originalY
             finalWidth = originalRight - clampedX
             finalHeight = clampedBottom - originalY
         }
 
         ResizeHandle.BOTTOM_RIGHT -> {
-            var clampedRight = (originalX + clampedWidth).coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
-            var clampedBottom = (originalY + clampedHeight).coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            val minRight = (originalX + minCutoutSize).coerceAtMost(1f)
+            val minBottom = (originalY + minCutoutSize).coerceAtMost(1f)
+            var clampedRight = (originalX + clampedWidth).coerceIn(minRight, 1f)
+            var clampedBottom = (originalY + clampedHeight).coerceIn(minBottom, 1f)
 
             for (other in others) {
                 val xOverlaps = intervalsOverlap(originalX, clampedRight, other.destX, other.destX + other.destWidth)
@@ -728,8 +946,8 @@ fun clampCutoutResize(
                     clampedBottom = resBottom
                 }
             }
-            clampedRight = clampedRight.coerceIn(originalX + MIN_CUTOUT_SIZE, 1f)
-            clampedBottom = clampedBottom.coerceIn(originalY + MIN_CUTOUT_SIZE, 1f)
+            clampedRight = clampedRight.coerceIn(minRight, 1f)
+            clampedBottom = clampedBottom.coerceIn(minBottom, 1f)
             clampedX = originalX
             clampedY = originalY
             finalWidth = clampedRight - originalX
@@ -771,7 +989,7 @@ fun calculateResizedBounds(
     dy: Int,
     hToggle: Int = 0,
     vToggle: Int = 0,
-    minSizeRatio: Float = MIN_CUTOUT_SIZE,
+    minSizeRatio: Float = MIN_GAMEPAD_CUTOUT_SIZE,
     others: List<ScreenCutout> = emptyList(),
 ): CutoutPixelBounds {
     if (screenWidth <= 0f || screenHeight <= 0f) {
@@ -797,7 +1015,10 @@ fun calculateResizedBounds(
         if (testPxX < 0 || testPxY < 0 || testPxX + testPxW > maxW || testPxY + testPxH > maxH) {
             return false
         }
-        if (testPxW < minW || testPxH < minH) {
+        if (testPxW < minW && testPxW < pxW) {
+            return false
+        }
+        if (testPxH < minH && testPxH < pxH) {
             return false
         }
         if (others.isEmpty()) {
@@ -925,8 +1146,8 @@ fun calculateResizedBounds(
 
     val finalNormX = (pxX.toFloat() / screenWidth).coerceIn(0f, 1f)
     val finalNormY = (pxY.toFloat() / screenHeight).coerceIn(0f, 1f)
-    val finalNormW = (pxW.toFloat() / screenWidth).coerceIn(0f, 1f - finalNormX)
-    val finalNormH = (pxH.toFloat() / screenHeight).coerceIn(0f, 1f - finalNormY)
+    val finalNormW = (pxW.toFloat() / screenWidth).coerceIn(0f, (1f - finalNormX).coerceAtLeast(0f))
+    val finalNormH = (pxH.toFloat() / screenHeight).coerceIn(0f, (1f - finalNormY).coerceAtLeast(0f))
 
     return CutoutPixelBounds(
         x = finalNormX,
@@ -953,6 +1174,7 @@ fun calculateResizedBounds(
  * @param topScreenH Height in pixels of the primary screen.
  * @param cutoutRatio Physical aspect ratio of the follower/master cutout (cutoutWidthPx / cutoutHeightPx).
  * @param minSize Minimum normalized size.
+ * @param rotation Rotation angle of the cutout in degrees (0, 90, 180, 270).
  * @return The resulting clamped [ScreenCutoutGeometry].
  */
 fun clampCropResizeProportional(
@@ -966,13 +1188,16 @@ fun clampCropResizeProportional(
     topScreenW: Float,
     topScreenH: Float,
     cutoutRatio: Float,
-    minSize: Float = MIN_CUTOUT_SIZE,
+    minSize: Float = MIN_TOUCH_CUTOUT_SIZE,
+    rotation: Int = 0,
 ): ScreenCutoutGeometry {
     if (topScreenW <= 0f || topScreenH <= 0f || cutoutRatio <= 0f) {
         return ScreenCutoutGeometry(originalX, originalY, originalWidth, originalHeight)
     }
 
-    val normCropRatio = cutoutRatio * (topScreenH / topScreenW)
+    val isQuarter = (rotation == ROTATION_90 || rotation == ROTATION_270)
+    val effectiveCutoutRatio = if (isQuarter && cutoutRatio > 0f) (1f / cutoutRatio) else cutoutRatio
+    val normCropRatio = effectiveCutoutRatio * (topScreenH / topScreenW)
     if (normCropRatio <= 0f) {
         return ScreenCutoutGeometry(originalX, originalY, originalWidth, originalHeight)
     }
@@ -1061,8 +1286,8 @@ fun clampCropResizeProportional(
     return ScreenCutoutGeometry(
         x = clampedX,
         y = clampedY,
-        w = finalW.coerceIn(0f, 1f - clampedX),
-        h = finalH.coerceIn(0f, 1f - clampedY),
+        w = finalW.coerceIn(0f, (1f - clampedX).coerceAtLeast(0f)),
+        h = finalH.coerceIn(0f, (1f - clampedY).coerceAtLeast(0f)),
     )
 }
 
@@ -1091,7 +1316,7 @@ fun calculateProportionalResizedBounds(
     screenHeight: Float,
     stepDelta: Int,
     targetNormRatio: Float,
-    minSizeRatio: Float = MIN_CUTOUT_SIZE,
+    minSizeRatio: Float = MIN_GAMEPAD_CUTOUT_SIZE,
     others: List<ScreenCutout> = emptyList(),
 ): ScreenCutoutGeometry {
     if (screenWidth <= 0f || screenHeight <= 0f || targetNormRatio <= 0f || stepDelta == 0) {
@@ -1101,10 +1326,12 @@ fun calculateProportionalResizedBounds(
     val stepW = if (targetNormRatio >= 1f) (1f / screenWidth) * targetNormRatio else (1f / screenWidth)
     val stepH = stepW / targetNormRatio
 
-    val minW = max(minSizeRatio, minSizeRatio * targetNormRatio)
-    val minH = minW / targetNormRatio
-    val maxW = min(1f, targetNormRatio)
+    val rawMinW = max(minSizeRatio, minSizeRatio * targetNormRatio)
+    val rawMaxW = min(1f, targetNormRatio)
+    val maxW = max(rawMaxW, minSizeRatio)
+    val minW = min(rawMinW, maxW)
     val maxH = maxW / targetNormRatio
+    val minH = minW / targetNormRatio
 
     val singleDelta = if (stepDelta > 0) 1 else -1
     var curW = normW
@@ -1112,10 +1339,26 @@ fun calculateProportionalResizedBounds(
     var curY = normY
 
     repeat(abs(stepDelta)) {
-        val targetW = if (singleDelta > 0) curW + stepW else curW - stepW
+        val targetW =
+            if (singleDelta > 0) {
+                when {
+                    curW < minW -> minW
+                    curW < maxW && curW + stepW > maxW -> maxW
+                    else -> curW + stepW
+                }
+            } else {
+                when {
+                    curW > maxW -> maxW
+                    curW > minW && curW - stepW < minW -> minW
+                    else -> curW - stepW
+                }
+            }
         val targetH = targetW / targetNormRatio
 
-        if (targetW < minW || targetH < minH || targetW > maxW || targetH > maxH) {
+        if (singleDelta > 0 && (targetW > maxW || targetH > maxH)) {
+            return ScreenCutoutGeometry(curX, curY, curW, curW / targetNormRatio)
+        }
+        if (singleDelta < 0 && (targetW < minW || targetH < minH)) {
             return ScreenCutoutGeometry(curX, curY, curW, curW / targetNormRatio)
         }
 
@@ -1125,8 +1368,8 @@ fun calculateProportionalResizedBounds(
         val rawX = centerX - targetW / 2f
         val rawY = centerY - targetH / 2f
 
-        val clampedX = rawX.coerceIn(0f, 1f - targetW)
-        val clampedY = rawY.coerceIn(0f, 1f - targetH)
+        val clampedX = rawX.coerceIn(0f, (1f - targetW).coerceAtLeast(0f))
+        val clampedY = rawY.coerceIn(0f, (1f - targetH).coerceAtLeast(0f))
 
         if (others.isNotEmpty() && !isCutoutGeometryValid(clampedX, clampedY, targetW, targetH, others, minSizeRatio)) {
             return ScreenCutoutGeometry(curX, curY, curW, curW / targetNormRatio)

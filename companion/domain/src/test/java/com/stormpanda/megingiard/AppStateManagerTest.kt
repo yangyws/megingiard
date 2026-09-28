@@ -11,6 +11,7 @@ import com.stormpanda.megingiard.macropad.MacroPadState
 import com.stormpanda.megingiard.macropad.PadLayout
 import com.stormpanda.megingiard.macropad.PadProfile
 import com.stormpanda.megingiard.macropad.ProfileAssociation
+import com.stormpanda.megingiard.mirror.ScreenCutout
 import com.stormpanda.megingiard.navigation.NavDestination
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdState
@@ -63,6 +64,11 @@ class AppStateManagerTest {
             focusedApp = null,
         )
         AppStateManager.setStandaloneForegroundState(null, null)
+        AppStateManager.consumeMirrorStartRequest()
+        AppStateManager.consumeMirrorStopRequest()
+        AppStateManager.consumeShutOffRequest()
+        AppStateManager.setViewportEditActive(false)
+        AppStateManager.setShowEmptyCutoutsDialog(false)
     }
 
     @After
@@ -76,6 +82,11 @@ class AppStateManagerTest {
             focusedApp = null,
         )
         AppStateManager.setStandaloneForegroundState(null, null)
+        AppStateManager.consumeMirrorStartRequest()
+        AppStateManager.consumeMirrorStopRequest()
+        AppStateManager.consumeShutOffRequest()
+        AppStateManager.setViewportEditActive(false)
+        AppStateManager.setShowEmptyCutoutsDialog(false)
         Dispatchers.resetMain()
     }
 
@@ -544,6 +555,64 @@ class AppStateManagerTest {
             assertEquals(0, emittedEvents.size)
 
             job.cancel()
+        }
+
+    @Test
+    fun `wasAutoSwitchDeactivatedInEditor lifecycle and mode transitions`() =
+        runTest {
+            AppStateManager.setCompanionViewMode(CompanionViewMode.AUTO)
+            AppStateManager.closePrimaryModal()
+            testScheduler.advanceUntilIdle()
+
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Open editor while AUTO is active
+            AppStateManager.setEditorActive(true)
+            testScheduler.advanceUntilIdle()
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Deactivate AUTO in editor
+            AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
+            assertTrue(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Reactivate AUTO in editor
+            AppStateManager.setCompanionViewMode(CompanionViewMode.AUTO)
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Deactivate again
+            AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
+            assertTrue(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Reset method clears flag
+            AppStateManager.resetAutoSwitchDeactivatedInEditor()
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Close editor
+            AppStateManager.setEditorActive(false)
+            testScheduler.advanceUntilIdle()
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+        }
+
+    @Test
+    fun `wasAutoSwitchDeactivatedInEditor remains false if editor opened when AUTO was already off`() =
+        runTest {
+            AppStateManager.closePrimaryModal()
+            AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
+            testScheduler.advanceUntilIdle()
+
+            // Open editor while MACROPAD mode is already active
+            AppStateManager.setEditorActive(true)
+            testScheduler.advanceUntilIdle()
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Select profile/layout in editor (stays MACROPAD)
+            AppStateManager.setCompanionViewMode(CompanionViewMode.MACROPAD)
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
+
+            // Close editor
+            AppStateManager.setEditorActive(false)
+            testScheduler.advanceUntilIdle()
+            assertFalse(AppStateManager.wasAutoSwitchDeactivatedInEditor.value)
         }
 
     @Test
@@ -1029,6 +1098,67 @@ class AppStateManagerTest {
         }
 
     @Test
+    fun `suspendCurrentAndOpen transitions to new modal atomically without transient null`() =
+        runTest {
+            AppStateManager.closeActiveModal()
+            AppStateManager.clearSuspended()
+
+            val editorConfig = PrimaryModalConfig(type = PrimaryModalType.MACROPAD_EDITOR)
+            AppStateManager.openPrimaryModal(editorConfig)
+            assertEquals(PrimaryModalType.MACROPAD_EDITOR, AppStateManager.activePrimaryModal.value?.type)
+
+            val anchorConfig =
+                PrimaryModalConfig(
+                    type = PrimaryModalType.ANCHOR_SELECTOR,
+                    payload = PrimaryModalPayload.AnchorSelector(layoutId = "layout-1"),
+                )
+
+            AppStateManager.activePrimaryModal.test {
+                assertEquals(PrimaryModalType.MACROPAD_EDITOR, awaitItem()?.type)
+
+                AppStateManager.suspendCurrentAndOpen(anchorConfig)
+
+                val nextItem = awaitItem()
+                assertEquals(PrimaryModalType.ANCHOR_SELECTOR, nextItem?.type)
+                assertTrue(AppStateManager.hasSuspendedPrimaryModal.value)
+                assertEquals(PrimaryModalType.MACROPAD_EDITOR, AppStateManager.suspendedPrimaryModal.value?.type)
+
+                AppStateManager.closeActiveModal()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `setViewportEditActive sets activePrimaryModal to MIRROR_VIEWPORT_EDITOR and syncs states`() =
+        runTest {
+            AppStateManager.closeActiveModal()
+
+            AppStateManager.setViewportEditActive(true)
+            assertTrue(AppStateManager.isViewportEditActive.value)
+            assertEquals(PrimaryModalType.MIRROR_VIEWPORT_EDITOR, AppStateManager.activePrimaryModal.value?.type)
+            assertEquals(CompanionSurfaceMode.VIEWPORT_EDIT, AppStateManager.companionSurfaceMode.value)
+
+            AppStateManager.setViewportEditActive(false)
+            assertFalse(AppStateManager.isViewportEditActive.value)
+            assertNull(AppStateManager.activePrimaryModal.value)
+            assertEquals(CompanionSurfaceMode.MACROPAD, AppStateManager.companionSurfaceMode.value)
+        }
+
+    @Test
+    fun `closePrimaryModal when MIRROR_VIEWPORT_EDITOR active clears isViewportEditActive`() =
+        runTest {
+            AppStateManager.closeActiveModal()
+
+            AppStateManager.setViewportEditActive(true)
+            assertTrue(AppStateManager.isViewportEditActive.value)
+            assertEquals(PrimaryModalType.MIRROR_VIEWPORT_EDITOR, AppStateManager.activePrimaryModal.value?.type)
+
+            AppStateManager.closePrimaryModal()
+            assertFalse(AppStateManager.isViewportEditActive.value)
+            assertNull(AppStateManager.activePrimaryModal.value)
+        }
+
+    @Test
     fun `setSelectedCutoutId during viewport edit automatically syncs activeCropCutoutId`() =
         runTest {
             AppStateManager.closeActiveModal()
@@ -1063,6 +1193,24 @@ class AppStateManagerTest {
             AppStateManager.setViewportEditActive(false)
             assertEquals(null, AppStateManager.selectedCutoutId.value)
             assertEquals(null, AppStateManager.activeCropCutoutId.value)
+        }
+
+    @Test
+    fun `setViewportEditActive requests mirror start and activates layout mirrorAutoStart`() =
+        runTest {
+            AppStateManager.consumeMirrorStartRequest()
+            assertFalse(AppStateManager.mirrorStartRequested.value)
+
+            val layout = PadLayout(id = "layout_mirror_test", name = "Mirror Layout", mirrorAutoStart = false)
+            val profile = PadProfile(id = "profile_mirror_test", name = "Test Profile", layouts = listOf(layout))
+            MacroPadState.loadFrom(listOf(profile), profile.id)
+            assertFalse(MacroPadState.activeLayout.value?.mirrorAutoStart == true)
+
+            AppStateManager.setViewportEditActive(true)
+            assertTrue(AppStateManager.mirrorStartRequested.value)
+            assertTrue(MacroPadState.activeLayout.value?.mirrorAutoStart == true)
+
+            AppStateManager.setViewportEditActive(false)
         }
 
     @Test
@@ -1185,5 +1333,96 @@ class AppStateManagerTest {
 
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `requestMirrorStart triggers showEmptyCutoutsDialog when layout has no cutouts and not in viewport edit`() =
+        runTest {
+            val lId = UUID.randomUUID().toString()
+            val pId = UUID.randomUUID().toString()
+            val p = testProfile(id = pId, layouts = listOf(testLayout(id = lId).copy(mirrorCutouts = emptyList())), activeLayoutId = lId)
+            MacroPadState.loadFrom(listOf(p), pId)
+
+            AppStateManager.setViewportEditActive(false)
+            AppStateManager.setShowEmptyCutoutsDialog(false)
+
+            AppStateManager.requestMirrorStart()
+
+            assertTrue(AppStateManager.showEmptyCutoutsDialog.value)
+            assertTrue(AppStateManager.mirrorStartRequested.value)
+        }
+
+    @Test
+    fun `requestMirrorStart does not trigger showEmptyCutoutsDialog when layout has cutouts`() =
+        runTest {
+            val lId = UUID.randomUUID().toString()
+            val pId = UUID.randomUUID().toString()
+            val p =
+                testProfile(
+                    id = pId,
+                    layouts = listOf(testLayout(id = lId).copy(mirrorCutouts = listOf(ScreenCutout.FULLSCREEN))),
+                    activeLayoutId = lId,
+                )
+            MacroPadState.loadFrom(listOf(p), pId)
+
+            AppStateManager.setViewportEditActive(false)
+            AppStateManager.setShowEmptyCutoutsDialog(false)
+
+            AppStateManager.requestMirrorStart()
+
+            assertFalse(AppStateManager.showEmptyCutoutsDialog.value)
+            assertTrue(AppStateManager.mirrorStartRequested.value)
+        }
+
+    @Test
+    fun `requestMirrorStart does not trigger showEmptyCutoutsDialog when viewport edit is active`() =
+        runTest {
+            val lId = UUID.randomUUID().toString()
+            val pId = UUID.randomUUID().toString()
+            val p = testProfile(id = pId, layouts = listOf(testLayout(id = lId).copy(mirrorCutouts = emptyList())), activeLayoutId = lId)
+            MacroPadState.loadFrom(listOf(p), pId)
+
+            AppStateManager.setViewportEditActive(true)
+            AppStateManager.setShowEmptyCutoutsDialog(false)
+
+            AppStateManager.requestMirrorStart()
+
+            assertFalse(AppStateManager.showEmptyCutoutsDialog.value)
+        }
+
+    @Test
+    fun `requestMirrorStop and setViewportEditActive reset showEmptyCutoutsDialog`() =
+        runTest {
+            AppStateManager.setShowEmptyCutoutsDialog(true)
+            assertTrue(AppStateManager.showEmptyCutoutsDialog.value)
+
+            AppStateManager.requestMirrorStop()
+            assertFalse(AppStateManager.showEmptyCutoutsDialog.value)
+
+            AppStateManager.setShowEmptyCutoutsDialog(true)
+            assertTrue(AppStateManager.showEmptyCutoutsDialog.value)
+
+            AppStateManager.setViewportEditActive(true)
+            assertFalse(AppStateManager.showEmptyCutoutsDialog.value)
+        }
+
+    @Test
+    fun `clicking edit now opens viewport editor and keeps showEmptyCutoutsDialog dismissed`() =
+        runTest {
+            val lId = UUID.randomUUID().toString()
+            val pId = UUID.randomUUID().toString()
+            val p = testProfile(id = pId, layouts = listOf(testLayout(id = lId).copy(mirrorCutouts = emptyList())), activeLayoutId = lId)
+            MacroPadState.loadFrom(listOf(p), pId)
+
+            AppStateManager.setViewportEditActive(false)
+            AppStateManager.requestMirrorStart()
+            assertTrue(AppStateManager.showEmptyCutoutsDialog.value)
+
+            // User clicks "Edit now"
+            AppStateManager.setShowEmptyCutoutsDialog(false)
+            AppStateManager.setViewportEditActive(true)
+
+            assertFalse(AppStateManager.showEmptyCutoutsDialog.value)
+            assertTrue(AppStateManager.isViewportEditActive.value)
         }
 }

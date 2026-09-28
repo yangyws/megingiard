@@ -187,8 +187,15 @@ object ScreenCaptureManager {
 
     fun setFrozenBitmap(bitmap: Bitmap?) {
         AppLog.d(TAG, "setFrozenBitmap(${if (bitmap != null) "${bitmap.width}x${bitmap.height}" else "null"})")
-        _frozenBitmap.value?.recycle()
+        val old = _frozenBitmap.value
         _frozenBitmap.value = bitmap
+        if (old != null && old != bitmap) {
+            synchronized(old) {
+                if (!old.isRecycled) {
+                    old.recycle()
+                }
+            }
+        }
     }
 
     fun toggleFrozen() {
@@ -313,8 +320,9 @@ object ScreenCaptureManager {
         ny: Float,
     ) {
         val targetCutout = _cutouts.value.find { it.followTouch } ?: return
-        val targetSrcX = (nx - targetCutout.srcWidth / 2f).coerceIn(0f, 1f - targetCutout.srcWidth)
-        val targetSrcY = (ny - targetCutout.srcHeight / 2f).coerceIn(0f, 1f - targetCutout.srcHeight)
+        InteractiveCutoutController.onFollowTouchReceived(targetCutout.id)
+        val targetSrcX = (nx - targetCutout.srcWidth / 2f).coerceIn(0f, (1f - targetCutout.srcWidth).coerceAtLeast(0f))
+        val targetSrcY = (ny - targetCutout.srcHeight / 2f).coerceIn(0f, (1f - targetCutout.srcHeight).coerceAtLeast(0f))
 
         val smoothing = targetCutout.motionSmoothing
         if (!smoothing) {
@@ -379,7 +387,7 @@ object ScreenCaptureManager {
             }
     }
 
-    /** Resets all transient mirror session state (lock, projection, freeze, follow). */
+    /** Resets all transient mirror session state (lock, projection, freeze, follow, interactive cutouts). */
     fun resetMirrorSessionState() {
         AppLog.i(TAG, "resetMirrorSessionState")
         _isLocked.value = false
@@ -387,5 +395,6 @@ object ScreenCaptureManager {
         setFrozenBitmap(null)
         clearScreenshotPreview()
         if (_isFollowActive.value) setFollowActive(false)
+        InteractiveCutoutController.reset()
     }
 }

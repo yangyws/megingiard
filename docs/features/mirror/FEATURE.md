@@ -20,27 +20,30 @@ The Screen Mirror feature provides a permanent, real-time, hardware-accelerated 
 
 ### FR-M2: Cutout Layout Editor & Top-Screen Controller-Navigable Toolbox
 
-- Sizing and placement of cutouts MUST only be active when the user explicitly enters **Screen Mirroring edit mode** (`isViewportEditActive = true`) via the "Edit Screen Mirroring Layout" card in the Screen Mirroring section of the MacroPad Editor. Outside of this mode, cutout configurations are locked and interactive layout adjustments are disabled. While editing (`isViewportEditActive = true`), `MainAppScreen` always renders `MacroPadScreen` (suppressing the Companion Hub `IntegrationHomeScreen` even if `showIntegrationHome` is true) so cutouts are positioned directly over the active MacroPad layout with locked button previews (`PadCanvas`). Newly created layouts start with an empty cutout list (`mirrorCutouts = emptyList()`), leaving the canvas clean until cutouts are explicitly added.
+- Sizing and placement of cutouts MUST only be active when the user explicitly enters **Screen Mirroring edit mode** (`isViewportEditActive = true`) via the "Edit Screen Mirroring Layout" card in the Screen Mirroring section of the MacroPad Editor. Outside of this mode, cutout configurations are locked and interactive layout adjustments are disabled. Opening the Screen Mirroring editor MUST automatically activate screen mirroring capture (`requestMirrorStart()`) if it was inactive, and persist `mirrorAutoStart = true` for the active layout, behaving identically to the user explicitly turning it on. Furthermore, while Screen Mirroring edit mode is active (`isViewportEditActive = true`), all visual anchor lost effects (such as freezing and blurring) and manual freeze MUST be suppressed/inactive, displaying the live unobstructed screen capture stream so cutouts can be calibrated and positioned accurately. While editing, `MainAppScreen` always renders `MacroPadScreen` (suppressing the Companion Hub `IntegrationHomeScreen` even if `showIntegrationHome` is true) so cutouts are positioned directly over the active MacroPad layout with locked button previews (`PadCanvas`). Newly created layouts start with an empty cutout list (`mirrorCutouts = emptyList()`), leaving the canvas clean until cutouts are explicitly added.
 - While Screen Mirroring edit mode is active:
   - **Top Screen (Display 0):** `PrimaryOverlayManager` hosts `MirrorEditorTopOverlay`. It renders the live crop bounding box and handles (`CropSelectorOverlay`) for the selected cutout over the un-frozen live game stream, combined with a 2D draggable, compact vertical toolbox with unified scroll container and collapsible single-card height mode.
   - **Controller Navigation & Layout:** The top-screen vertical toolbox is 100% navigable with D-Pad and left stick, requiring no button hotkeys:
-    - **Unified Scroll Container:** Items reside in a single vertical scroll container. When collapsed, the container height constrains to a single card height (38 dp) and native 2D focus traversal smoothly scrolls focused items into view.
+    - **Unified Scroll Container:** Items reside in a single vertical scroll container with a maximum expanded height capped at 6.5 items (`TOOLBOX_MAX_CONTENT_HEIGHT = 283 dp`) so overflowing options remain partially visible as a clear scroll affordance. When collapsed, the container height constrains to a single card height (38 dp) and native 2D focus traversal smoothly scrolls focused items into view.
     - **Dynamic Viewport Boundary Clamping:** When expanded, the container automatically shifts upward if its height would exceed the bottom screen boundary, guaranteeing the entire toolbox remains 100% visible on Display 0.
     - **Bidirectional Focus Loop:** Focus smoothly wraps between the top cutout selector card and the bottom drag handle collapse button.
     - **Cutout Selector:** Pressing A enters Tier-2 selection mode (capsule illuminates with glowing accent border); D-Pad Left/Right cycles active cutout (with wrap-around); pressing A or B/Back exits selection mode.
+    - **Add Cutout:** Finds an available non-overlapping canvas slot (`CutoutPlacementHelper.findAvailableSlot`) and adds a new cutout. If no space is available, prompts user with a toast.
     - **Aspect Ratio Lock:** Cycles `FREE` → `TOP` → `BOTTOM` with D-Pad Left/Right or A.
-    - **Shape Toggle:** Toggles `RECTANGLE` ↔ `CIRCLE` with A.
     - **Adjust Top Cutout (Move & Resize Mode):** Pressing A enters Tier-2 adjustment mode with visual highlight and a top-screen toast notification informing the user ("Use D-Pad to move. Hold R2 to resize. Hold L2 for precision.").
       - In normal mode, holding D-Pad Up/Down/Left/Right moves source crop coordinates on Display 0 in 10 px increments with acceleration. Holding **L2** switches to 1 px precision micro-steps.
-      - When holding **R2** (`KEYCODE_BUTTON_R2`), D-Pad Up increases vertical size by 10 px (or 1 px holding **L2**), alternating between top border and bottom border expansion to keep the center invariant; D-Pad Down decreases vertical size by 10 px (or 1 px holding **L2**) alternating borders; D-Pad Right increases horizontal size by 10 px (or 1 px holding **L2**) alternating right and left border expansion; D-Pad Left decreases horizontal size by 10 px (or 1 px holding **L2**) alternating borders. If `AspectRatioMode.TOP` is active, destination bounds on the secondary screen adjust automatically. Pressing A/B/Back exits adjustment mode.
+      - When holding **R2** (`KEYCODE_BUTTON_R2`), D-Pad Up increases vertical size by 10 px (or 1 px holding **L2**), alternating between top border and bottom border expansion to keep the center invariant; D-Pad Down decreases vertical size by 10 px (or 1 px holding **L2**) alternating borders; D-Pad Right increases horizontal size by 10 px (or 1 px holding **L2**) alternating right and left border expansion; D-Pad Left decreases horizontal size by 10 px (or 1 px holding **L2**) alternating borders. Resizing can shrink source crop dimensions down to **1% of screen size** (`MIN_GAMEPAD_CUTOUT_SIZE = 0.01f`). If `AspectRatioMode.TOP` is active, destination bounds on the secondary screen adjust automatically. Pressing A/B/Back exits adjustment mode.
     - **Adjust Bottom Cutout (Move & Resize Mode):** Pressing A enters Tier-2 adjustment mode with visual highlight and a top-screen toast notification.
       - In normal mode, holding D-Pad Up/Down/Left/Right moves target cutout destination coordinates on the secondary screen in 10 px increments with acceleration. Holding **L2** switches to 1 px precision micro-steps.
-      - When holding **R2**, D-Pad Up/Down/Right/Left resizes destination bounds in 10 px increments (or 1 px holding **L2**) while alternating opposite borders symmetrically around the center. If `AspectRatioMode.BOTTOM` is active, source crop bounds on the primary display adjust automatically. Pressing A/B/Back exits adjustment mode.
+      - When holding **R2**, D-Pad Up/Down/Right/Left resizes destination bounds in 10 px increments (or 1 px holding **L2**) while alternating opposite borders symmetrically around the center. Resizing can shrink destination cutout dimensions down to **1% of screen size** (`MIN_GAMEPAD_CUTOUT_SIZE = 0.01f`). If `AspectRatioMode.BOTTOM` is active, source crop bounds on the primary display adjust automatically. Pressing A/B/Back exits adjustment mode.
+    - **Flip Mode:** Cycles mirror reflection mode (`NONE` → `HORIZONTAL` → `VERTICAL` → `BOTH`) with D-Pad Left/Right or Click.
+    - **Rotation Mode:** Rotates cutout in 90° increments (0°, 90°, 180°, 270°) with D-Pad Left/Right or Click, swapping physical pixel dimensions and preventing collisions.
+    - **Shape Toggle:** Toggles `RECTANGLE` ↔ `CIRCLE` with A.
     - **Hide Background (Temporary Editor Toggle):** Toggles layout background image visibility on the secondary display during editing without modifying saved layout properties. If the layout has no background image, the card is disabled displaying `None`. Toggling hidden (`Hidden`) suppresses the background in `EmbeddedMirrorView` and `PadCanvas` to provide a clean black canvas for easy cutout boundary adjustments.
-    - **Add Cutout:** Finds an available non-overlapping canvas slot (`CutoutPlacementHelper.findAvailableSlot`) and adds a new cutout. If no space is available, prompts user with a toast.
+    - **Snap to Alignment (Cutout Snapping Toggle):** Toggles magnetic alignment snapping (`MirrorSettings.cutoutAlignmentSnapping`) for cutout destination centers. When enabled, dragging or moving cutouts with gamepad magnetically snaps their centers to align with sibling cutouts.
     - **Delete Cutout:** Two-step confirmation (`[ DEL ]` → `[ CONFIRM ]`) deletes the selected cutout.
     - **Save Changes / Exit Row:** Commits cutout changes to active layout or prompts for Save/Discard on back.
-  - **Bottom Screen (Display 4):** `CutoutLayoutEditor` renders an unobstructed touch canvas with destination bounding boxes and draggable corner resize handles for direct touch manipulation without floating toolbar obstruction.
+  - **Bottom Screen (Display 4):** `CutoutLayoutEditor` renders an unobstructed touch canvas with destination bounding boxes and draggable corner/edge resize handles for direct touch manipulation without floating toolbar obstruction. To keep the active area clear when calibrating small cuts, the center name badge is omitted for the selected cutout, and for unselected cutouts it is only rendered if height is at least 24 dp. Touch resize handles enforce a 5% minimum (`MIN_TOUCH_CUTOUT_SIZE = 0.05f`); when either width or height is below 5%, touch resize handles are hidden while moving via touch remains available. It also hosts the PowerPoint-style Smart Alignment Guides overlay (`CutoutAlignmentGuidesOverlay`), dynamically displaying dashed lines and concentric rings/dots whenever the selected cutout's center aligns with any sibling cutout's center X or Y coordinate.
 
 ### FR-M3: Freeze Frame
 
@@ -92,6 +95,11 @@ The Screen Mirror feature provides a permanent, real-time, hardware-accelerated 
 - Explicitly switching to a layout whose remembered state is `false` while currently capturing MUST stop the runtime mirror session without changing any layout's persisted remembered state.
 - Switching to a layout whose remembered state is `true` while not capturing MUST trigger the capture prompt.
 - The manual "Start mirroring" button MUST bypass the auto-start gate — pressing it always launches the capture prompt regardless of the layout's remembered state.
+- **Empty Cutouts Start Hint**: When the user manually starts screen mirroring (via MacroPad button, Quick Actions, or Quick Menu) on a layout that currently has zero cutouts (`mirrorCutouts.isEmpty()`) and Viewport Edit mode is not active, screen mirroring begins immediately while an `AppAlertDialog` is presented on the secondary display informing the user that no cutouts exist in this layout.
+  - Tapping **"Edit now"** dismisses the dialog and directly enters the Cutout Layout Editor (`AppStateManager.setViewportEditActive(true)`) with the clean canvas ready for adding cutouts.
+  - Tapping **"Later"** (or dismissing the dialog via Back/scrim) closes the dialog while allowing screen mirroring capture to continue running in the background.
+  - If screen mirroring was started from the Quick Menu, the Quick Menu is automatically dismissed so the dialog is clearly visible in the foreground.
+  - Automatic mirror start (e.g. on layout switch or app launch) proceeds silently without triggering this prompt.
 
 ### FR-M9: Privileged Mirror (No-Consent Path)
 
@@ -159,11 +167,172 @@ The Screen Mirror feature provides a permanent, real-time, hardware-accelerated 
 - The user MUST be able to toggle each cutout shape individually between circular and rectangular via a shape toggle button in the layout-editor toolbar.
 - Internally, the cutout's dimensions and resize logic MUST remain rectangular to allow uniform resizing and placement operations.
 - When the shape is set to circular, the visual rendering of the cutout (both in the editor preview and on the secondary display's mirror presentation canvas) MUST be clipped to a perfect circle that fills as much space as possible inside the destination rectangle (`min(width, height)`).
-- When a circular cutout is actively selected and edited on the secondary screen (`CutoutLayoutEditor`), the underlying rectangular boundary box (which governs collision clamping and drag handle positions) MUST be rendered in the unselected cutout outline style (`Color.White.copy(alpha = 0.05f)` background, `0.15f` border) behind the highlighted circular preview, ensuring clear spatial feedback of the physical bounding box.
+- When a circular cutout is actively selected and edited on the secondary screen (`CutoutLayoutEditor`), the underlying rectangular boundary box (which governs collision clamping and drag handle positions) MUST be rendered in the unselected cutout outline style (outset 1px `Color.White.copy(alpha = 0.15f)` border with transparent interior) behind the highlighted circular preview, ensuring clear spatial feedback of the physical bounding box without obscuring video content.
 - The toggle button MUST look like the other buttons, switch between a rectangle and circle icon, and use the same active accent color in both states.
 - The Aspect Ratio lock button MUST also be updated to use the active accent color in both states.
 
-### FR-M17: Cutout Interaction Modes (Touch, Translate, Screenshot)
+### FR-M17: HUD / UI Isolation & Translucency Recovery
+
+- The user MUST be able to configure advanced cutout features on a per-cutout level in the **Advanced Cutout Settings** sub-page (`CutoutAdvancedSettingsSubPageContent`), accessed via an action card placed directly below Touch Projection in `CutoutSettingsSubPageContent`.
+- **HUD / UI Isolation Concept:**
+  - Isolates stationary on-screen UI elements (minimaps, touch controls, meters, dials, widgets) from moving background scenery and composites them with clean transparency over the companion display.
+  - Converting a cutout via **Isolate HUD / UI Elements** automatically enables **Transparent Background** (`hasTransparencyMask = true`) as core default behavior.
+- **Conversion & Calibration (`VisualAutoTuneCoordinator`, `CutoutAutoTuner`, `CutoutMaskManager`)**:
+  - Tapping this card begins an interactive calibration sampling cycle at native top-screen resolution (1920x1080).
+  - **Dual-Screen Overlay Suspension & Gamepad Freedom:** When calibration begins, `VisualAutoTuneCoordinator` automatically suspends and dismisses the primary modal overlay on Display 0 via `AppStateManager.suspendCurrentAndDismiss()`, unfreezing live mirror capture (`ScreenCaptureManager.setFrozen(false)`) and suppressing any active top-screen modal dim scrim. This leaves the primary screen 100% unobstructed, responsive to gamepad and touch inputs, and running natively at 120Hz so the user can freely move and rotate the camera in-game.
+  - **Secondary Companion Display Sheet (`AutoTuneCalibrationSheet`):** While Display 0 is unobstructed, Display 4 renders an interactive companion calibration sheet over the live video stream featuring a pulsing accent dot, live status badge ("Sampling..." or "%d frames"), live dynamic transparency preview over a checkerboard background showing dynamic background pixels turning transparent in real time as the player moves in-game, an actionable guidance prompt, an Outlined **[ Cancel ]** button, and an enabled **[ Finish ]** button allowing the user to judge isolation quality and conclude calibration when satisfied.
+  - **Pixel-Level Color Change Tracking & High-Definition Sampling:** For every pixel in the cutout crop, the engine tracks channel min/max ($R, G, B$) across time via `CalibrationPreviewTracker`. Moving scenery is identified and marked transparent; stationary UI graphics remain opaque.
+  - **Morphological Despeckling, Sub-Pixel Alpha Matting & Gaussian Anti-Aliasing:** Isolated noise specks are eliminated via morphological opening, followed by 3-zone continuous Trimap alpha matting to smoothly blend font curves without halos, and a 2-pass separable Gaussian blur (`[1, 2, 1] / 4`) producing smooth, anti-aliased edges with zero color fringing.
+  - **Pristine Reference Frame:** Saves the full-res reference frame (`mask_<cutoutId>_freeze.png`) for high-fidelity rendering.
+  - **Automated Commit & Mask Persistence:** The generated mask bitmap, variance map, and freeze frame are saved to disk under `context.filesDir/cutout_masks/`. The cutout is saved with `hasTransparencyMask = true` and `maskTranslucency = 0`.
+- **Advanced Cutout Controls (Calibrated State):**
+  - **Isolation Sensitivity Slider:** A dedicated slider (`0` to `255`, default `14`, step `1`) allowing real-time adjustment of the background detection threshold across the full 8-bit color difference range, formatted to display both percentage and raw threshold (`"<pct>% (<raw>)"`). Lower values preserve delicate faint lines; higher values aggressively cut subtle background variations.
+  - **Cutout Translucency Slider:** A dedicated slider (`0%` / Off to `100%`, step `1%`) allowing real-time adjustment of the allowed color variance threshold up to maximum variance (`255`) to recover semi-transparent elements, floating sparkles, glass backplates, and glowing icons without distance constraints.
+  - **Cavity & Gauge Healing Toggle:** An optional switch (enabled by default) applying morphological dilation on solid anchors before outer flood-filling, bridging boundary gaps to keep internal minimap radars, health meters, and changing numbers solid.
+  - **Render as Static UI Asset Toggle:** An optional switch allowing the cutout to bypass live video stream rendering and render the clean, pre-rendered 32-bit RGBA static asset directly. This completely eliminates moving background scenery bleed-through and video compression noise behind semi-transparent elements (e.g. sparkles, decorative frames, touch buttons).
+  - **Re-Calibrate HUD / UI Mask:** An action card allowing the user to re-sample screen frames to refresh the mask and freeze frame.
+  - **Remove HUD / UI Isolation:** A two-step destructive confirmation card that deletes calibration files from disk and reverts the cutout back to a standard live rectangular/circular mirror cutout (`hasTransparencyMask = false`).
+- Mask state and layering are persisted per-cutout in `ScreenCutout` (`hasTransparencyMask: Boolean`, `maskTranslucency: Int = 0`, `maskSensitivity: Int = 14`, `maskCavityHealing: Boolean = true`, `renderAsStaticAsset: Boolean = false`, `renderAboveMask: Boolean = false`).
+
+### FR-M18: Automatic Layout Switching & Layout-Level Visual Reference Anchors
+
+- The user MUST be able to manage automatic layout switching and define a **Layout-Level Visual Reference Anchor** for any MacroPad layout:
+  - **Dedicated Automation Category Deck (`EditorSection.AUTOMATION`):** A dedicated category in the MacroPad Editor sidebar placed between Layouts and Mirror, providing a centralized hub for the active profile:
+    - Master toggle for profile-level automatic layout switching (`PadProfile.autoLayoutSwitching`).
+    - Informational status banner showing how many layouts in the profile have calibrated reference anchors (or a prominent warning if 0 are calibrated).
+    - Layout list showing anchor calibration status, reference point count, and real-time live presence badges for the active layout (`PRESENT` in accent vs. `LOST` in subdued).
+    - Direct navigation into per-layout reference anchor configuration (`MacroPadSubPage.AutomaticLayoutSwitching`).
+  - **Hub & Spoke Integration with Existing Menus:**
+    - **Edit Profile:** Retains the profile-level master toggle and includes a direct action card pointing to the Automation hub ("Configure Layout Anchors →").
+    - **Edit Layout:** Retains the contextual "Visual Reference Anchor" entry card, pointing into `AutomaticLayoutSwitchingSubPageContent` while preserving layout-deck breadcrumbs and back navigation.
+- **Unified Presence Architecture & Elimination of Per-Cutout Anchor Duplication:**
+  - Cutouts mirroring top-screen UI elements (e.g. minimaps, quest widgets, sub-screens, dials) frequently disappear or change whenever the layout's intended content is not being shown on screen.
+  - Instead of configuring redundant anchors per cutout, visual anchoring is configured once per layout in `PadLayout.visualAnchor` (`LayoutVisualAnchor`).
+  - When the layout's visual reference anchor is evaluated by `AnchorPresenceManager`, the resulting presence state (`PRESENT` vs. `LOST`) is applied across all cutouts belonging to the active layout simultaneously.
+  - Advanced Cutout Settings (`CutoutAdvancedSettingsSubPageContent`) is streamlined to focus strictly on **Foreground UI / Background Separation** (HUD / UI background mask calibration, translucency slider, and mask removal).
+- **Top-Screen Anchor Positioning (`AnchorSelectorOverlay`):**
+  - Tapping **[ Position Reference Anchor ]** atomically suspends the current editor modal (`AppStateManager.suspendCurrentAndOpen(...)`) and launches `AnchorSelectorOverlay` on Display 0 via `PrimaryModalType.ANCHOR_SELECTOR` with `PrimaryModalPayload.AnchorSelector(layoutId = layout.id)`. Confirming or dismissing the overlay automatically resumes the suspended modal (`AppStateManager.resumeSuspended()`) back to the exact subpage without intermediate window destruction.
+  - Features semi-transparent scrims, an accent-colored bounding box with a clean interior, center 2D touch drag, 4 directional edge handles (top, bottom, left, right), and a reusable vertical controller toolbox (`ToolboxContainer`, `AdjustCoordinatesCard`, `ToolboxActionCard`) for 2D gamepad navigation (utilizing `calculateResizedBounds` for symmetrical alternating-border scaling and matching D-pad vertical scaling: UP to expand, DOWN to shrink) and confirmation.
+  - **1% Minimum Anchor Size & 5% Touch Handle Threshold:** Anchor bounding boxes can shrink down to 1% of screen dimensions (`MIN_ANCHOR_SIZE = 0.01f`, ~19×11 px on 1080p, matching standard cutout limits), enabling pinpoint anchoring on compact in-game UI badges and tiny HUD icons (e.g. small inventory bag icons). Like screen mirroring cutouts, touch resize handles enforce a 5% threshold (`MIN_TOUCH_CUTOUT_SIZE = 0.05f`); when either width or height drops below 5%, the 4 touch handles are omitted to prevent visual clutter, while center touch drag and gamepad D-pad/R2 resizing remain fully functional.
+  - Positioning directly updates `layout.visualAnchor` (`srcX`, `srcY`, `srcWidth`, `srcHeight`).
+  - **Secondary Display Companion Sheet (`AnchorPositioningSheet`, `AnchorPositioningCoordinator`):** While arranging the anchor on Display 0, Display 4 renders an `AnchorPositioningSheet` displaying a magnified live hardware crop of the anchor bounding box over a checkerboard background with real-time pixel dimensions (e.g. `48 × 32 px`), guidance instructions, and a synchronized **[Done]** button that immediately prompts for calibration.
+  - **Immediate Post-Positioning Calibration Prompt (`GamepadConfirmModal`):** Confirming anchor position displays a full gamepad-first `GamepadConfirmModal` conforming to the editor exit auto-switch prompt, asking *"Calibrate Reference Anchor?"* with **[Calibrate Now]** (auto-focused primary card with `Icons.Rounded.Tune`, launching live anchor presence calibration immediately) and **[Calibrate Later]** (secondary card with `Icons.Rounded.Close`, saving position and returning to Layout Settings).
+- **Layout Anchor Calibration (`VisualAutoTuneCoordinator`):**
+  - Tapping **[ Calibrate Reference Anchor ]** samples strictly the layout's visual anchor bounding box on Display 0 at native resolution (1920x1080) with live dynamic transparency preview on Display 4 while leaving the primary screen completely unobstructed and playable at 120Hz.
+  - **Settling Warmup Delay & Modal Preservation:** To prevent false positives caused by lingering UI transitions on Display 0 (e.g. dismissing `AnchorSelectorOverlay`, scrims, or the `GamepadConfirmModal` toolbar), `VisualAutoTuneCoordinator` enforces a 500ms settling warmup delay (`CALIBRATION_WARMUP_DELAY_MS = 500L`) before the frame sampling loop commences and initializes safety timers. Furthermore, if a primary modal (such as `MACROPAD_EDITOR`) was already suspended, `startLayoutAnchorCalibration` preserves that modal configuration in `AppStateManager.suspendedPrimaryModal` instead of overwriting it, ensuring seamless restoration upon calibration completion or cancellation.
+  - Operates on any layout regardless of whether mirroring cutouts have been added: `EmbeddedMirrorView` mounts whenever screen capture is active (`ScreenCaptureManager.isCapturing == true`), maintaining active `MasterSurfaceRegistry` registration and `MirrorFrameSampler` live frame feeding even on 0-cutout layouts.
+  - On Display 4, `AutoTuneCalibrationSheet` renders a live preview of the anchor crop against a transparency checkerboard. Moving scenery turns transparent in real time as the user rotates the camera or moves in-game, while stationary reference graphics remain sharp and opaque.
+  - **Calibration Pause & Multi-Scene Sampling:** `AutoTuneCalibrationSheet` features an interactive **[Pause]** / **[Resume]** button alongside **[Cancel]** and **[Finish]**. Tapping **[Pause]** freezes the sampling loop, stops the pulsing recording indicator, suspends the 3-minute safety timer, and displays a prominent **PAUSED** overlay badge on the live preview box. The instruction prompt row maintains a fixed multi-line minimum height (`INSTRUCTION_BOX_MIN_HEIGHT = 56.dp`), eliminating vertical jumping when toggling between active sampling and paused state. This enables advanced multi-scene calibration: for semi-transparent menus with blurred 3D game backgrounds (e.g. Genshin Impact inventories), the user can sample initial frames, pause calibration, close the menu to rotate or move the camera in the game world, reopen the menu, and tap **[Resume]** to ingest frames against the new background.
+  - **In-Flight Calibration Reset:** In the header row of `AutoTuneCalibrationSheet`, a circular **[Reset]** button (`Icons.Rounded.Refresh`) allows users to discard accumulated samples in real time (e.g. if calibration was initiated before navigating to the target anchor screen). Tapping Reset clears all sampled frames, resets the temporal variance tracker, clears the preview bitmap and freeze frame, resets the sample count to 0 (disabling [Finish] until $\ge 5$ new frames are collected), and resets the safety timer. If calibration was paused, the session remains paused with 0 samples until the user taps **[Resume]**; if active, sampling immediately restarts with fresh frames.
+  - The user evaluates isolation quality in the preview and taps **[ Finish ]** (enabled once $\ge 5$ frames are sampled, and fully executable even while paused) to commit the calibration, or **[ Cancel ]** to abort.
+  - `CutoutAutoTuner.analyze` extracts stable, stationary anchor pixels regardless of background motion (static menus like inventories or character details produce zero-variance stationary reference points), directly embedding `VisualAnchorSignature` into `layout.visualAnchor.signature` in `PadLayout` (persisted seamlessly within DataStore preferences and portable `.mgrd` configurations, eliminating standalone anchor `.json` files). Also saves a calibrated reference frame (with background transparent) via `CutoutMaskManager.saveMask` and `CutoutMaskManager.saveFreezeFrame` for side-by-side diagnostic verification.
+  - **Color Diversity & Spatial Gradient Tiebreaker:** During anchor point extraction across the 8×8 grid, candidate pixels with identical minimum temporal variance (e.g. $v = 0$) are scored by balancing color diversity against local spatial edge gradients: $\text{score} = \text{diversity} - (\text{spatialGradient} / 2)$. In 100% static UI crops, this penalizes anti-aliased contour and boundary pixels ($\text{spatialGradient} > 100$) in favor of solid interior plateaus ($\text{spatialGradient} \approx 0$), ensuring extracted anchor points do not drift past detection tolerance due to subpixel rasterization shifts during live mirror sampling. Simultaneously, color diversity ensures high-contrast icons and text are captured over dominant background padding, eliminating false-positive matches during monochromatic transitions (e.g. full-white loading screens).
+  - The layout is saved with `layout.visualAnchor.enabled = true` and `layout.visualAnchor.signature = signature`.
+  - `AnchorPresenceManager` pauses monitoring and candidate auto-switching while calibration or editor overlays are active, preventing background layout switching from interfering with calibration or configuration.
+  - **Embedded Anchor Portability & Zero-Cost Duplication:** Because reference anchor calibrations are embedded directly within `LayoutVisualAnchor.signature`, duplicating a layout, duplicating a profile, copying a layout to another profile, or exporting/importing `.mgrd` configuration files automatically preserves calibration without disk I/O, file synchronization, or manual re-calibration. `CutoutMaskManager` is streamlined to manage strictly binary cutout transparency masks and variance caches.
+- **Interactive Anchor Testing Mode (`AnchorTestCoordinator`, `AnchorTestingSheet`):**
+  - Tapping **[ Test Reference Anchor ]** in Layout Settings (available once calibrated) allows the player to test anchor presence in real-time under live gaming conditions.
+  - Enforces a 400ms settling warmup delay (`TEST_WARMUP_DELAY_MS = 400L`) and preserves suspended modal state to ensure clean top-screen presentation.
+  - Display 0 remains completely unobstructed with 0 overlays, ensuring 100% uninterrupted 120Hz gameplay.
+  - Display 4 hosts `AnchorTestingSheet` featuring:
+    - **Dual Preview Area:** Displays the calibrated target reference signature (`AnchorPreviewCard`, rendering the calibrated anchor with dynamic background made transparent over a checkerboard background) alongside the live screen crop in real-time.
+    - **Real-Time Match Percentage & Matched Points Counter:** Displays live match percentage (0–100%) and matched points counter badge (e.g. `54/64 pts • 84% match`) alongside a dynamic presence indicator (**ACTIVE** in green accent with active glowing border vs **INACTIVE** in dim secondary color), driven by the identical `AnchorPresenceEvaluator.transitionState` hysteresis engine used during actual gameplay.
+    - **Live Reference Probe Sample Points Overlay:**
+      - Overlays calibrated sample points directly onto both preview cards mapped with high mathematical precision to `ContentScale.Fit` fitted image coordinates.
+      - **Current Live Screen Card:** Renders high-contrast circular probe dots indicating whether each individual pixel currently matches the expected calibrated RGB values (vibrant green `#00E676` within tolerance) or mismatches (vibrant red `#FF5252`), enclosed in dark outlines for maximum contrast on all backgrounds.
+      - **Target Signature Card:** Renders subtle theme accent reference markers showing calibrated sample point locations.
+      - **Probe Points Visibility Toggle:** A dedicated circular toggle button (`Icons.Rounded.Visibility` / `Icons.Rounded.VisibilityOff`) in the header allows the user to easily show or hide probe dots across both preview cards at any time.
+    - Single **[Done]** button and Gamepad Back handler to cleanly exit testing and restore Layout Settings.
+- **Extensible Inactive Cutout Effects on Anchor Loss (`CutoutLostAnchorEffect`, `LayoutVisualAnchor.lostAnchorEffects`, `AnchorPresenceManager`, `MultiCutoutContainer`):**
+  - When visual anchoring is enabled and mirroring is active, `AnchorPresenceManager` evaluates the layout's anchor signature at ~60 Hz (16 ms interval) for 1-frame instant content absence detection.
+  - When the reference element disappears (match ratio $< 45\%$, matching `AnchorPresenceEvaluator.MATCH_THRESHOLD_LOST`), visual anchor loss is signaled layout-wide (`isLayoutAnchorLost(layoutId)`).
+  - Lost-anchor cutout behavior is structured around an extensible set of effects (`CutoutLostAnchorEffect` with `FREEZE` and `BLUR`), persisted in `LayoutVisualAnchor.lostAnchorEffects: Set<CutoutLostAnchorEffect>` (defaulting to `DEFAULT_LOST_ANCHOR_EFFECTS` containing both `FREEZE` and `BLUR`). Legacy configurations with `blurCutoutsOnLoss` are dynamically migrated and backwards-compatible.
+  - Configurable in the Layout Settings Editor via dedicated toggle cards under the Visual Reference Anchor section:
+    - **Freeze Inactive Cutouts (`CutoutLostAnchorEffect.FREEZE`):** When enabled, all cutouts in the layout freeze unconditionally on their sharp last valid delayed frames from the ring buffer upon anchor loss (zero visual flicker or transition leakage). When disabled, cutouts continue rendering live frames even when the reference anchor is lost.
+    - **Blur Inactive Cutouts (`CutoutLostAnchorEffect.BLUR`):** When enabled, each cutout renders an 8px frosted, desaturated (60% saturation), distinctly dimmed (65% brightness) inactive overlay via a hardware `RenderNode` and executes a smooth crossfade ($0.0 \to 1.0$ opacity over 300 ms via `AccelerateDecelerateInterpolator()`). When disabled, the frosted blur overlay is suppressed (`targetAlpha = 0f`), displaying the base frame crisp and unobstructed.
+  - When the anchor returns, the live video stream resumes immediately with zero-copy hardware acceleration (`TextureView`) and the frosted overlay dissolves smoothly ($1.0 \to 0.0$ opacity over 300 ms).
+  - **Editor Effect Suppression:** Whenever Screen Mirroring edit mode is active (`isViewportEditActive == true`), all lost-anchor effects (freeze, blur, and future effects) as well as manual freeze are strictly suppressed, guaranteeing that cutouts render the live, unobstructed stream while being edited or repositioned.
+- **Hardware GPU VRAM Stream Delay & Zero-Overhead Live Anchor Evaluation (`LayoutVisualAnchor.streamDelayFrames`, `GpuMotionSmoother`):**
+  - The user can configure stream delay (1 to 10 frames, ~16 to ~166 ms at 60 Hz, default 2 frames) via **Automatic Layout Switching** ("Stream Delay" slider, stored in `LayoutVisualAnchor.streamDelayFrames`).
+  - **GPU VRAM FBO Circular Queue:** `GpuMotionSmoother` manages a hardware circular FBO ring buffer (`fboCount = streamDelayFrames + 1`) allocated entirely in GPU VRAM on its dedicated OpenGL ES 2.0 background thread (`GpuMotionSmootherGL`). Incoming frames from the virtual display or mirror server are written into `fboFramebuffers[writeIndex]` with zero CPU involvement.
+  - **Live GL-Thread Anchor Sampling (Zero Main-Thread Stalls):** Before the frame is delayed or presented, `GpuMotionSmoother` samples the active visual anchor directly on the GL thread via `glReadPixels` on only the small crop bounding box ($< 0.05\text{ ms}$, ~40 KB for a $100\times100$ area). The signature points are evaluated against native memory without 1080p `TextureView.getBitmap()` readbacks or Main UI thread synchronization locks.
+  - **Hardware Delayed Presentation & Leak-Free Freeze:** The live video stream presented to `TextureView` is drawn from `fboTextureIds[delayedIndex]` (`(writeIndex - streamDelayFrames + fboCount) % fboCount`). When anchor loss is detected on the incoming frame, `GpuMotionSmoother` immediately sets `isFrozen = true`, halting buffer presentation to `TextureView`. `AnchorPresenceManager` performs a single one-shot snapshot of `TextureView` to populate `lastValidFrameBitmaps` for the frosted blur `RenderNode`. This completely eliminates transient menu flicker/leakage while maintaining pristine 60 FPS hardware playback with zero CPU software blitting during live gameplay.
+  - When visual anchoring is enabled, `streamDelayFrames` is strictly enforced to $\ge 1$, guaranteeing that delayed frames are always available in GPU VRAM when an anchor transition occurs.
+- **Profile-Level Automatic Layout Switching (`PadProfile.autoLayoutSwitching`, `AnchorPresenceManager`):**
+  - Configurable per profile via **Edit Profile → Automation → Automatic Layout Switching** (`settings_profile_auto_layout_switching_title`, stored in `PadProfile.autoLayoutSwitching`, default `false`).
+  - When enabled and autonomous mode is active (`CompanionViewMode.AUTO`), `AnchorPresenceManager` manages dynamic layout transitions across all calibrated anchored layouts within the active profile:
+    - While the active layout's anchor is `PRESENT`, monitoring runs at ~60 Hz with zero candidate probing overhead.
+      - **16-Point Stratified Rotating Sparse Probing:** In the steady `PRESENT` state (0 consecutive mismatches), `AnchorPresenceManager` executes `AnchorPresenceEvaluator.matchesSparseProbe` with a rotating 4-phase stride across a precomputed stratified $2 \times 2$ block dispersion table (`STRATIFIED_SPARSE_INDICES`). The $8 \times 8$ grid is partitioned into sixteen $2 \times 2$ blocks, and each frame evaluates one point per block (16 points total). Cycling `phase = (sparseProbePhase + 1) and 3` across frames ensures that every frame achieves uniform spatial coverage across the entire anchor bounding box, and **100% of all 64 points are verified every 4 frames (66 ms at 60 Hz)** with zero spatial blind spots and zero false positives. Pixel reads remain strictly capped at 16 per frame (75% CPU and memory bandwidth reduction). On the very first diverging pixel, it immediately falls back to a full 64-point ratio evaluation.
+    - When the active layout's anchor becomes `LOST` (or if the active layout has no visual anchor configured), `AnchorPresenceManager` evaluates all other calibrated anchored layouts in the active profile using a **tiered candidate polling back-off schedule**:
+      - **Fast Tier (0–2s):** Polling runs at ~30 Hz (33 ms interval) for instant response during quick in-game menu tabs, inventory peeks, or map toggles.
+      - **Medium Tier (2–5s):** Polling drops to ~10 Hz (100 ms interval) during dialogue boxes and short transitions.
+      - **Slow Tier (>5s):** Polling drops to ~2 Hz (500 ms interval) during long loading screens, full cutscenes, or idle menus, reducing background CPU and battery consumption to near zero.
+      - Transitioning back to `PRESENT` immediately resets the timer and restores 60 Hz active monitoring without lag.
+    - Rather than breaking early on the first match, all candidate layouts are evaluated against the current frame to detect non-mutually-exclusive anchors.
+    - **Early-Bailout Mathematical Thresholding (`matchesWithEarlyBailout`):** When scanning candidate layouts, `AnchorPresenceEvaluator` utilizes a two-sided mathematical early exit: with $M = 64$ points and a present threshold of $65\%$ (requiring $\ge 42$ matches, with max allowable mismatches $22$), sampling terminates early as soon as either $42$ matches are reached (candidate confirmed) or $23$ mismatches are reached (candidate rejected). This reduces the average candidate evaluation from 64 pixel reads down to ~20–25 reads per candidate.
+    - **First-Match Prioritization:** The first matching candidate in profile layout order is prioritized and immediately triggers the layout transition (`LayoutTransitionManager.switchLayout(primary.id)`).
+    - **Anchor Conflict Detection & Warning Toast:** If two or more candidate layout anchors match at the same time ($\ge 65\%$ match ratio), a custom error/warning toast pill is displayed via `DialogToastManager` naming the conflicting layouts (e.g. `Anchor conflict: "Inventory" and "Map" both match`) with `Icons.Rounded.Warning`, alerting the user that the anchors overlap.
+    - A 500 ms cooldown (`AUTO_SWITCH_COOLDOWN_MS`) prevents rapid thrashing between candidate layouts.
+    - Once switched, candidate scanning stops completely until the newly active layout's anchor is lost again. If no candidate layout matches, the current layout remains active and frozen.
+  - **Hardware-Layer TextureView Sampling & Zero-Copy Pipeline (`MirrorFrameSampler`, `AnchorPresenceManager`, `MultiCutoutContainer`):**
+    - High-frequency presence sampling (~60 Hz for active layout, ~30 Hz for candidate recovery) requires low-latency, battery-efficient frame extraction.
+    - Android's native `PixelCopy.request(Surface, ...)` relies on `Surface::getLastQueuedBuffer` in C++ (`libs/gui/Surface.cpp`), which returns `null` for cross-process producer surfaces (such as `masterSurface` fed across Binder by `DirectMirrorServer` / SurfaceFlinger), failing with code 3 (`ERROR_SOURCE_NO_DATA`).
+    - **Single Master Readback per Tick:** To eliminate GPU pipeline stalls and bus bandwidth saturation, `AnchorPresenceManager` captures the master frame exactly once per tick via `MirrorFrameSampler.captureFullFrame()`.
+    - **Direct Candidate Layout Probing:** In candidate scanning (`processCandidateScan`), all candidate layouts are evaluated against the single master frame by sampling normalized UV coordinates directly via `frame.getPixel(px, py)` with 0 additional GPU readbacks, 0 bitmap allocations, and 0 intermediate canvas blits.
+    - **Zero-Copy Stream Delay Ring Buffer:** Cutout delayed frames are populated by blitting directly from the master frame into `CutoutFrameRingBuffer.pushFrame(frame, cX, cY)` only when `CutoutLostAnchorEffect.FREEZE` is active, with ring capacity sized strictly to `streamDelayFrames + 2`, completely eliminating intermediate crop bitmaps and saving up to 67% buffer memory.
+    - **Hardware-Accelerated Live Rendering:** In `MultiCutoutContainer`, live video streams strictly render via native zero-copy `TextureView` layer composition (`drawChild`), completely preventing software Bitmap blitting from hijacking live gameplay.
+  - **Thread-Safe Presence Monitoring & Buffer Lifecycle (`AnchorPresenceManager`):**
+    - Ring buffers and frozen frames are kept in thread-safe collections (`cutoutRingBuffers`, `lastValidFrameBitmaps`).
+    - When mirroring stops (`isCapturing == false`), `clearAllBuffers()` is invoked, immediately recycling all historical ring buffer bitmaps and cached freeze frames to prevent background memory retention.
+    - Stale ring buffers for removed or re-dimensioned cutouts are cleaned up dynamically with zero allocation.
+  - **Zero-Allocation Rendering & Compose Decoupling (`MultiCutoutContainer`, `EmbeddedMirrorView`):**
+    - In `MultiCutoutContainer`, cutouts are pre-partitioned into `aboveMaskCutouts` and `belowMaskCutouts` upon property updates, eliminating `cutouts.partition { ... }` list allocations from the high-frequency `dispatchDraw` loop.
+    - **Pruned Stale Resource Cleanup:** Stale hardware `RenderNode` and `ValueAnimator` teardowns are decoupled from `dispatchDraw` and executed strictly within the `cutouts` property setter (`pruneStaleCutoutResources`), removing iterator and lambda allocations from the 60 Hz frame cycle.
+    - **Scoped Offscreen FBO Bounds:** Edge blending `canvas.saveLayer` operations calculate the tight bounding box encompassing only touching cutouts (`computeCutoutsBounds` expanded by `blendW`), eliminating full 1080p offscreen FBO texture allocations and saving up to 80% VRAM bandwidth and GPU fillrate during edge blending.
+    - Edge blending is encapsulated in a dedicated private member method `renderEdgeBlend`, eliminating function and lambda object allocations on every draw frame.
+    - In `EmbeddedMirrorView`, `interactiveOverrides` and `presenceRevision` are decoupled from Compose state collection (`collectAsStateWithLifecycle`), eliminating full Compose recompositions and surface re-routing during active cutout pan/pinch gestures or anchor state transitions. High-frequency invalidations invoke `postInvalidateOnAnimation()` directly on `MultiCutoutContainer`.
+  - **Quick Menu Interaction & Manual Override:** Selecting a profile or layout manually in the `QuickMenu` automatically disengages autonomous mode (`CompanionViewMode.MACROPAD`) and triggers an informational toast ("Auto Switch turned off"). Tapping the shimmering `AUTO` chip re-engages autonomous mode (`CompanionViewMode.AUTO`).
+- **Hardware-Accelerated Layout Crossfade Transitions (`LayoutTransitionManager`):**
+  - Switching between MacroPad layouts (autonomously via `AnchorPresenceManager` or in-game via gamepad/swipe shortcuts) executes a smooth 300 ms crossfade transition.
+  - Immediately prior to switching `MacroPadState.activeLayout`, `LayoutTransitionManager` captures a hardware snapshot of the outgoing layout via `PixelCopy`.
+  - The snapshot renders as a non-interactive overlay over `MacroPadScreen` and dissolves from $1.0 \to 0.0$ alpha over 300 ms using `AccelerateDecelerateInterpolator`.
+  - The incoming layout renders underneath and accepts touch inputs immediately on frame 0 with zero latency.
+  - Upon completion or cancellation, snapshot bitmaps are strictly recycled per §7.3 of `AGENTS.md`.
+  - When the Quick Menu is open, snapshot capturing is bypassed to avoid freezing Quick Menu cards into the transition frame.
+
+### FR-M19: Interactive Cutout Viewport (Pan & Pinch-to-Zoom with Snap-Back)
+
+- The user MUST be able to enable "Interactive Viewport" (`interactivePanZoom: Boolean`) on any cutout in the Screen Mirroring cutout settings sub-page (`CutoutSettingsSubPageContent`).
+- Enabling Interactive Viewport MUST automatically disable Touch Projection on that cutout (and vice versa; they are mutually exclusive).
+- When active during gameplay (live mirror or frozen frame):
+  - **1-Finger Drag (Pan):** Panning with 1 finger on the cutout shifts the source crop window inside the cutout's fixed frame on the secondary screen, moving the view across the primary display in real time.
+  - **2-Finger Pinch (Zoom & Pan):** Pinching with 2 fingers zooms in/out (magnifying or demagnifying) and pans simultaneously around the gesture focal point while preserving the cutout's configured aspect ratio.
+  - **Zoom & Pan Bounds:**
+    - Max zoom-out is strictly capped at full screen (1.0x, no zooming out into void).
+    - Max zoom-in is capped at 10x magnification.
+    - Dragging past top-screen boundaries `[0, 1]` applies elastic overscroll dampening resistance (rubber-banding).
+  - **Double-Tap Reset:** Double-tapping anywhere on an interactive cutout resets the viewport back to the layout's saved default crop via a smooth lerp animation (`SNAP_BACK_DURATION_MS = 250L`) accompanied by a light haptic tick.
+  - **Configurable Snap-Back Modes (`CutoutSnapBackMode`):**
+    - **Off (`OFF`, default):** Releasing fingers holds the panned/zoomed viewport in place. If the viewport was dragged into elastic overscroll past the screen edges, releasing fingers triggers an elastic bounce-back animation (`BOUNCE_BACK_DURATION_MS = 200L`) to the nearest valid screen boundary. The viewport remains in this state until double-tapped or overridden.
+    - **Instant (`INSTANT`):** Releasing all fingers immediately triggers a smooth lerp animation (`SNAP_BACK_DURATION_MS = 250L`) returning the source crop to its default anchor position, accompanied by a light haptic tick.
+  - **Follow Touch Precedence:** If a cutout has both Follow Touch and Interactive Viewport enabled, manual pan/zoom operates freely. Any subsequent touch received on the top screen immediately takes over and re-centers the crop on the newly touched coordinates.
+  - **Transient Viewport State:** On-the-fly gesture manipulation operates strictly on transient in-memory viewports (`InteractiveCutoutController.overrideCrops`). The saved layout profile configuration is never overwritten.
+
+### FR-M24: Mirrored Cutout Rotation and Flipping
+
+- The user MUST be able to rotate any mirrored cutout on the secondary display in 90° discrete increments (`0°`, `90°`, `180°`, `270°`) and flip it across axes (`None`, `Horizontal`, `Vertical`, `Both`).
+- Controls for rotation and flipping are hosted directly within the Screen Mirroring Editor toolbox on the primary display (`MirrorEditorTopOverlay`):
+  - **Rotation Card (`RotationCard`):** Displays current rotation angle in degrees with `Icons.AutoMirrored.Rounded.RotateRight`. D-Pad Right / Click advances $+90^\circ$, D-Pad Left advances $-90^\circ$.
+  - **Flip Card (`FlipCard`):** Compact cycle card with `Icons.Rounded.Flip`, stepping through `None` $\to$ `Horizontal` $\to$ `Vertical` $\to$ `Both`.
+- **Center-Anchored Bounding Box Swapping & Collision Prevention (`calculateRotatedCutoutBounds`):**
+  - When rotating between landscape and portrait (0°/180° $\leftrightarrow$ 90°/270°), the destination bounding box swaps physical pixel dimensions (converting normalized height and width through screen aspect ratio) around the cutout's midpoint and clamps within screen edges.
+  - If the rotated bounding box collides with another cutout or exceeds screen bounds, rotation is prevented and an informational toast notification (`"Cannot rotate: blocked by another cutout"`) is presented.
+- **Transformed Coordinate Pipeline:**
+  - **Touch Projection (`projectCutoutCoordinates`):** Touch events on rotated/flipped cutouts are mapped through rotation and flip transforms back into primary screen coordinates, guaranteeing that tapping visual elements on the secondary screen hits the exact source location.
+  - **Interactive Gestures (`InteractiveCutoutController.transformPanDelta`):** One-finger pan vectors rotate according to cutout orientation so gesture viewport movement follows finger trajectory naturally.
+  - **Aspect Ratio Locking (`adjustSourceCropToAspectRatio`, `adjustDestSizeToAspectRatio`, `clampCutoutResize`, `clampCropResizeProportional`, `CropSelectorOverlay`, and Gamepad R2+D-Pad):** Effective aspect ratios are inverted when rotated 90°/270° across both primary crop and secondary cutout touch/gamepad resizing pipelines to prevent stretching and distortion.
+
+### FR-M25: Cutout Interaction Modes (Touch, Translate, Screenshot)
 
 - Each cutout can have one of three mutually exclusive interaction modes:
   - **Touch Projection (`TOUCH`)**: Forwards touch taps and drags within the cutout bounds directly to the mapped top-screen source area using native input injection.
@@ -171,9 +340,10 @@ The Screen Mirror feature provides a permanent, real-time, hardware-accelerated 
   - **Instant Screenshot (`SCREENSHOT`)**: Tapping the cutout immediately captures, crops, saves, and displays a gallery preview of the cutout region.
 - In the Cutout Layout Editor toolbar, these modes are presented on a dedicated interaction mode row with mutually exclusive selection pills.
 
-### FR-M18: Cutout Long Press to Enter Edit Mode
+### FR-M26: Cutout Long Press to Enter Edit Mode
 
 - Long-pressing any mirrored cutout on the secondary display (hold for 450 ms) triggers haptic feedback and immediately enters Screen Mirroring edit mode with that specific cutout pre-selected.
+
 
 ---
 
@@ -269,9 +439,13 @@ The master texture surface buffer allocation matches the source resolution. The 
 ### Custom Background Image & Masking Support
 
 - `EmbeddedMirrorView` collects updates from `MacroPadState.activeLayout` to dynamically react to layout changes.
-- When a layout custom background image is selected, it is decoded asynchronously (`Dispatchers.IO`) as a `Bitmap`.
-- **Background Mode (`useBackgroundImageAsMask = false`)**: The bitmap is applied behind the cutouts. Mirrored cutouts are drawn on top. If no background image is set (or it is removed), the background falls back to the app theme background.
-- **Mask Mode (`useBackgroundImageAsMask = true`)**: The bitmap is passed directly to `MultiCutoutContainer`. Inside `MultiCutoutContainer.dispatchDraw`, the bitmap is drawn *on top* of the rendered mirrored cutouts, serving as an overlay mask. This allows the mirrored screen viewports to show through any transparent regions in the background image.
+- When a layout custom background image (`backgroundImagePath`) and/or mask overlay image (`maskImagePath`) is selected, they are decoded asynchronously (`Dispatchers.IO`) as `Bitmap`s.
+- `MultiCutoutContainer.dispatchDraw` executes a multi-pass drawing architecture:
+  - **Pass 0 (Background Bitmap)**: If `bgBitmap` is present, it is rendered on the canvas behind all cutouts using its layout scaling (`bgScaleMode`), cropping scale (`bgImageScale`), and offsets (`bgImageOffsetX/Y`). If absent, the canvas base remains theme-invariant pitch black (`Color.Black`).
+  - **Pass 1 (Below-Mask Cutouts)**: Mirrored cutouts configured with `renderAboveMask = false` (the default) are drawn above the background bitmap.
+  - **Pass 1.5 (Mask Overlay Bitmap)**: If `maskBitmap` is present, it is rendered directly above the Pass 1 cutouts using its layout scaling (`maskScaleMode`), cropping scale (`maskImageScale`), and offsets (`maskImageOffsetX/Y`). This allows live video streams to shine through transparent mask cutouts.
+  - **Pass 2 (Above-Mask Cutouts)**: Mirrored cutouts configured with `renderAboveMask = true` are drawn above the mask overlay bitmap.
+  - **Pass 3 (Compose UI Buttons)**: Compose MacroPad buttons and HUD elements are rendered on the top-most layer above all cutouts and masks.
 
 ### Ambient Dimming Support
 
@@ -281,6 +455,9 @@ The master texture surface buffer allocation matches the source resolution. The 
 ### Cutout Layout Editor & Viewport Centering
 
 The layout editor (`CutoutLayoutEditor`) and top-screen crop selector (`CropSelectorOverlay`) allow touch interaction for moving and resizing cutouts and crops:
+- **Anti-Occlusion Borders & Clean Interior:** To prevent borders from obscuring or bleeding into the mirrored video stream (especially on small or flat cutouts where bilinear texture filtering magnifies boundary pixels):
+  - On the primary display (`CropSelectorOverlay`), the crop boundary is defined purely by the surrounding dark scrim (`CS_SCRIM_ALPHA = 0.35f`) and the 4 edge/corner pill handles. No border stroke is rendered on Display 0. This guarantees that **0 border pixels** exist on the primary display, completely eliminating border capture and bilinear interpolation bleed into the mirror video stream.
+  - On the secondary display (`CutoutLayoutEditor`), cutouts render a 1px (`1.dp`) outset border (`RectangleShape` for rectangular cutouts, `CircleShape` for circular cutouts) outside the destination bounds with a 100% transparent interior, ensuring clear spatial editing feedback with zero occlusion of the mirrored video content.
 - **Edge Drag Handles**: Resizing cutouts on the secondary display and crops on the primary display is performed via 4 pill-shaped drag handles positioned in parallel to the 4 edges (top, bottom, left, right), centered at the midpoint of each edge, and located outside the rectangle. Dragging an edge handle exclusively adjusts the position of that single edge while keeping opposite and perpendicular dimensions fixed, respecting boundary limits and cutout non-overlap constraints.
 - **Viewport Restoration:** When a layout is loaded, `MirrorViewportController.restoreFromLayout()` computes the initial viewport scale/offset to center the crop of the first cutout, or restores from the layout's saved viewport values.
 - **Debounced Viewport Save:** During follow-touch tracking, viewport offsets mutate dynamically. `MirrorViewportController` debounce-saves the updated viewport parameters (`scale`, `offsetX`, `offsetY`) to the active layout when the "Remember viewport" setting is enabled.
@@ -381,15 +558,15 @@ Three modes govern aspect ratio relations and drag handle visual styles (`FREE`,
    - Touch drag gestures and Gamepad R2 + D-Pad resize actions modify horizontal and vertical extents independently.
    - The cropped texture fills the cutout fully without constraint.
 2. **Top Aspect Ratio Mode (`TOP`)**:
-   - Top source crop uses 4 **Edge Drag Handles** for independent touch/gamepad resizing; changes automatically update destination bounds via `adjustDestSizeToAspectRatio`.
+   - Top source crop uses 4 **Edge Drag Handles** for independent touch/gamepad resizing; changes automatically update destination bounds via `adjustDestSizeToAspectRatio`, with `MIN_GAMEPAD_CUTOUT_SIZE` (1%) clamping to prevent collapse under extreme aspect ratios.
    - Bottom destination cutout switches to 4 **Corner Drag Handles** (`CornerResizeHandleView`), rendering custom diagonal rounded pill bars outside each corner (TL = -45°, TR = 45°, BL = 45°, BR = -45°).
    - Dragging any corner handle in `CutoutLayoutEditor` invokes `clampCutoutResize(..., keepAspectRatio = true, cropRatio = cropRatio)` using dominant axis detection and binary-search collision resolution against screen bounds and neighboring cutouts.
-   - Gamepad R2 + D-Pad resizing on the bottom display calls `calculateProportionalResizedBounds` to expand or shrink the cutout by 1-step increments symmetrically while strictly preserving the top crop's aspect ratio.
+   - Gamepad R2 + D-Pad resizing on the bottom display calls `calculateProportionalResizedBounds` to expand or shrink the cutout by 1-step increments symmetrically while strictly preserving the top crop's aspect ratio, supporting self-healing expansion if starting below minimum size.
 3. **Bottom Aspect Ratio Mode (`BOTTOM`)**:
-   - Bottom destination cutout uses 4 **Edge Drag Handles** for free touch/gamepad resizing; on every change, `adjustSourceCropToAspectRatio` scales the top source crop to match the destination aspect ratio, preserving the original crop center.
+   - Bottom destination cutout uses 4 **Edge Drag Handles** for free touch/gamepad resizing; on every change, `adjustSourceCropToAspectRatio` scales the top source crop to match the destination aspect ratio, preserving the original crop center and clamping both dimensions within `[MIN_GAMEPAD_CUTOUT_SIZE, 1.0f]`.
    - Top source crop switches to 4 **Corner Drag Handles** (`CornerResizeHandleView`), rendering custom diagonal rounded pill bars outside each corner.
    - Dragging any corner handle in `CropSelectorOverlay` invokes `clampCropResizeProportional`, anchoring the opposite corner and scaling width and height uniformly to match the secondary cutout's aspect ratio.
-   - Gamepad R2 + D-Pad resizing on the top display calls `calculateProportionalResizedBounds` to expand or shrink the crop symmetrically while strictly preserving the bottom cutout's aspect ratio.
+   - Gamepad R2 + D-Pad resizing on the top display calls `calculateProportionalResizedBounds` to expand or shrink the crop symmetrically while strictly preserving the bottom cutout's aspect ratio, supporting self-healing expansion if starting below minimum size.
 
 ### Session State Persistence
 
@@ -437,11 +614,14 @@ The auto-start logic in `MainActivity` derives an "effective auto-start" signal 
 
 `ScreenCaptureService` does not write `mirrorAutoStart`; start and teardown only manage runtime capture resources. The persisted layout state is changed only by the user's start/stop/consent decisions.
 
-**Runtime reconciliation.** `MainActivity` combines the prompt, capture, active-layout, and privd-connection `StateFlow`s into a `MirrorRuntimePolicyState`. The active layout's `mirrorAutoStart` flag is evaluated directly on every emission: if it is `false` while a session is running, `MainActivity` stops only the runtime service and does not mutate any layout's remembered state. If it is `true` while no session is running, `MainActivity` starts the mirror flow.
+**Runtime reconciliation.** `MainActivity` combines the prompt, capture, active-layout, profile, companion-view-mode, and privd-connection `StateFlow`s into a `MirrorRuntimePolicyState`. Individual layout mirror preference is governed by `PadLayout.mirrorAutoStart`, supplemented by input overlays and profile-level autonomous layout switching requirements (`autoSwitchWantsMirror`). When autonomous mode (`CompanionViewMode.AUTO`) and profile-level auto layout switching (`PadProfile.autoLayoutSwitching`) are active and the profile contains at least one layout with an enabled visual anchor, `autoSwitchWantsMirror` remains `true`. This prevents un-anchored or newly created layouts from stopping the capture stream, ensuring `AnchorPresenceManager` continuously evaluates candidate layout anchors.
+
+If neither the active layout, active overlay, nor autonomous layout switching wants capture while a session is running, `MainActivity` stops only the runtime service and does not mutate any layout's remembered state. If capture is wanted while no session is running, `MainActivity` starts the mirror flow.
 
 ```
 isOnValidScreen && !promptInFlight && !isCapturing &&
-  activeLayout.mirrorAutoStart && !privdMirrorConnecting
+  (activeLayout.mirrorAutoStart || autoSwitchWantsMirror || overlayActive) &&
+  !privdMirrorConnecting && !tutorialsActive
 ```
 
 `privdMirrorConnecting` is `true` while privd mirror is enabled and the daemon is in a transient state (`CONNECTING`, `BOOTSTRAPPING`, or `OFF` with auto-connect pending). This prevents the policy from selecting the `MEDIA_PROJECTION` consent path on fresh app launch before the privd auto-connect coroutine has had a chance to establish the connection. Once the daemon settles (`RUNNING` → privd path; `FAILED`/`OFF` → consent fallback), the combine re-emits and the policy re-evaluates with the correct strategy.
@@ -478,16 +658,90 @@ To reduce power consumption, CPU/GPU overhead, and memory bandwidth, we support 
 1. **App-Level Rendering Conservation (`ThrottledTextureView`)**:
    Since Android's compositor (SurfaceFlinger) often ignores the `Surface.setFrameRate` hint for virtual displays and pushes frames as fast as they update, we enforce the limit in the application layer. We use `ThrottledTextureView` which overrides `invalidate()` to drop invalidation requests if they arrive faster than the configured `maxFps` interval. This prevents the view hierarchy from redrawing and avoids enqueuing new GPU textures too frequently, directly reducing rendering resource usage.
 
-### Motion Smoothing / Temporal Blending
+### Motion Smoothing & Hardware Stream Delay (`GpuMotionSmoother`)
 
-To stabilize mirrored UI elements against fast-moving backgrounds, we support 100% GPU-accelerated motion smoothing:
+To stabilize mirrored UI elements against fast-moving backgrounds and provide leak-free visual anchor freeze transitions with zero CPU memory overhead, we support a 100% GPU-accelerated temporal blending and stream delay pipeline:
 
 1. **Unified GPU Pipeline (`GpuMotionSmoother`)**:
    Video frames from `DirectMirrorServer` or `MediaProjection` are received on `GpuMotionSmoother.inputSurface`, providing a constant target surface that never changes during profile, layout, or touchpad transitions.
 2. **0% Pass-Through Mode**:
-   When motion smoothing is disabled (0% strength or active Touchpad mode), `GpuMotionSmoother` executes a single-pass 2D quad texture copy (`drawProgram`) directly into `masterSurface`, bypassing FBO blending with ~0.05ms GPU overhead and 0 input latency.
-3. **Temporal FBO Blending (>0%)**:
-   When motion smoothing is active (e.g. 75%, 80%, 85%), `GpuMotionSmoother` blends incoming OES frames with previous frame textures inside GPU VRAM using an OpenGL ES 2.0 ping-pong FBO pipeline before outputting the smoothed result to `masterSurface`.
+   When motion smoothing is disabled (0% strength or active Touchpad mode) and stream delay is 0, `GpuMotionSmoother` executes a single-pass 2D quad texture copy (`drawProgram`) directly into `masterSurface`, bypassing FBO blending with ~0.05ms GPU overhead and 0 input latency.
+3. **Temporal FBO Blending & Circular Delay Queue**:
+   When motion smoothing is active (e.g. 75%, 80%, 85%) or stream delay is configured ($1 \le \text{delay} \le 10$), `GpuMotionSmoother` maintains an OpenGL ES 2.0 FBO circular ring buffer in GPU VRAM (`fboCount = streamDelayFrames + 1`).
+   - **Pass 1 (Input & Blend):** Incoming OES textures are either blended with the previous frame texture (`blendProgram`) or copied (`passthroughProgram`) into `fboFramebuffers[writeIndex]`.
+   - **Pass 2 (GL Live Anchor Evaluation):** Evaluates the active visual reference anchor signature directly from `fboFramebuffers[writeIndex]` on the GL thread using a localized `glReadPixels` crop ($< 0.05\text{ ms}$). If anchor loss is detected, output presentation is frozen immediately on the GPU without rendering the transitional frame to the screen while `AnchorPresenceManager` snapshots the pristine delayed frame for frozen cutouts, after which presentation resumes to allow real-time candidate layout evaluation and automatic switching.
+   - **Pass 3 (Delayed Presentation):** When not frozen, draws `fboTextureIds[delayedIndex]` (`(writeIndex - streamDelayFrames + fboCount) % fboCount`) onto `masterSurface` (`TextureView`). This guarantees smooth 60 FPS presentation without frame drops and with zero menu leakage upon anchor loss.
+
+### Automated HUD / UI Isolation & Hardware Transparency Mask Pipeline
+
+HUD / UI isolation is implemented via hardware-accelerated transparency mask blending and optional static asset pre-rendering:
+
+1. **Hardware-Accelerated Mask Blending (`MultiCutoutContainer.kt`, `CutoutMaskManager.kt`)**:
+   - `CutoutMaskManager` loads the base mask PNG from `context.filesDir/cutout_masks/mask_<cutoutId>.png`, the raw variance map from `mask_<cutoutId>_var.bin`, and the reference freeze frame from `mask_<cutoutId>_freeze.png`.
+   - In `MultiCutoutContainer`, when `cutout.hasTransparencyMask` is true and static asset mode is disabled, the cutout is drawn into a hardware compositing layer (`canvas.saveLayer(...)`).
+   - The transparency mask bitmap is composited directly over the rendered cutout using `Paint` with `PorterDuff.Mode.DST_IN` and bilinear filtering (`isFilterBitmap = true`).
+   - **Dynamic Translucency & Fine-Tuning**: `CutoutMaskManager.getMask(context, cutout.id, cutout.maskTranslucency, cutout.maskSensitivity, cutout.maskCavityHealing)` caches tuned mask variants in memory keyed by `"$cutoutId:$sensitivity:$translucency:$cavityHealing"`. When parameters are customized, `CutoutAutoTuner.buildMask()` generates the tuned mask dynamically from the raw variance map in ~3-5ms on CPU:
+     - **Sensitivity (`maskSensitivity`, 0..255)**: Adjusts the color variance threshold separating stationary foreground from moving background, displayed as percentage and raw value.
+     - **Translucency (`maskTranslucency`, 0..100%)**: Scales allowed variance across the entire crop up to maximum 8-bit variance (`255`) without distance constraints to recover semi-transparent elements, floating sparkles, glass backplates, and glowing icons.
+     - **Cavity & Gauge Healing (`maskCavityHealing`)**: Applies morphological dilation, exterior boundary flood-fill, and erosion to bridge open brackets and preserve internal animated meters/gauges.
+     - **Sub-Pixel Alpha Matting**: Always-on trimap gradient alpha falloff along core foreground boundaries eliminates anti-aliasing artifacts and jagged edges.
+   - **Render as Static UI Asset (`cutout.renderAsStaticAsset`)**:
+     - Pre-renders a 32-bit ARGB static asset image (`CutoutMaskManager.getStaticAsset`) combining the reference freeze frame's RGB colors with the tuned transparency mask's alpha channel.
+     - Bypasses the live video stream entirely during rendering, displaying a clean, pristine UI asset with zero background motion bleed-through or compression noise.
+   - Stationary UI graphics remain 100% visible and render live at 60/120 FPS with zero copy overhead, while moving background pixels become 100% transparent.
+
+### Cutout Rotation and Flip Transformations (`MultiCutoutContainer.kt`, `MirrorCoordinateTransform.kt`)
+
+Mirrored cutouts support discrete 90° orientation changes (`rotation`: 0°, 90°, 180°, 270°) and axial reflections (`flipHorizontal`, `flipVertical`).
+
+1. **Rendering & Compositing (`MultiCutoutContainer.kt`)**:
+   - `MultiCutoutContainer.drawSingleCutout` applies local canvas transformations prior to rendering content:
+     ```kotlin
+     val isQuarterTurn = cutout.rotation == 90 || cutout.rotation == 270
+     val contentW = if (isQuarterTurn) dh else dw
+     val contentH = if (isQuarterTurn) dw else dh
+     canvas.save()
+     canvas.translate(dx + dw / 2f, dy + dh / 2f)
+     if (cutout.rotation != 0) canvas.rotate(cutout.rotation.toFloat())
+     if (cutout.flipHorizontal || cutout.flipVertical) {
+         canvas.scale(
+             if (cutout.flipHorizontal) -1f else 1f,
+             if (cutout.flipVertical) -1f else 1f
+         )
+     }
+     canvas.translate(-contentW / 2f, -contentH / 2f)
+     ```
+   - Content feeds (video stream, frozen frames, delayed frame buffers, static UI assets), frosted blur backgrounds, and `DST_IN` hardware transparency masks render in unrotated content bounds `(contentW, contentH)`. This ensures that transparency masks and blur layers rotate and flip synchronously with the source video.
+   - Screen-space boundary effects (ambient dimming veils and hybrid edge blending gradients) are rendered in unrotated screen bounds `(dw, dh)` outside the transformed canvas scope.
+
+2. **Bounding Box Geometry & Collision Prevention (`MirrorCoordinateTransform.calculateRotatedCutoutBounds`)**:
+   - Swapping between landscape and portrait orientations (0°/180° $\leftrightarrow$ 90°/270°) swaps destination physical pixel dimensions using `newW = (cutout.destHeight * screenH) / screenW` and `newH = (cutout.destWidth * screenW) / screenH`.
+   - The cutout's destination origin `(destX, destY)` is adjusted so that the bounding box expands or contracts symmetrically around its center point: `newX = centerX - newW / 2f`, `newY = centerY - newH / 2f`.
+   - The new bounds are clamped to screen dimensions `[0, screenWidth - newW]`, `[0, screenHeight - newH]`.
+   - If the newly calculated bounds overlap any sibling cutouts (`rectsOverlap`) or if minimum screen dimensions cannot accommodate the rotated footprint, rotation is rejected and the editor notifies the user via toast (`R.string.mirror_editor_rotate_blocked`).
+
+3. **Touch Projection Inversion (`MirrorCoordinateTransform.projectCutoutCoordinates`)**:
+   - Secondary screen touch coordinates `(touchX, touchY)` within `[destX, destX + destWidth]` and `[destY, destY + destHeight]` are normalized into `[0.0, 1.0]` relative to the rotated bounding box.
+   - The normalized coordinate `(nx, ny)` is inverted through the active rotation angle:
+     - 0°: `(nx, ny)`
+     - 90°: `(ny, 1.0 - nx)`
+     - 180°: `(1.0 - nx, 1.0 - ny)`
+     - 270°: `(1.0 - ny, nx)`
+   - Flipping inversions are applied subsequently (`if (flipHorizontal) nx = 1.0 - nx`, `if (flipVertical) ny = 1.0 - ny`).
+   - The resulting un-transformed normalized coordinate maps linearly onto the source crop rectangle `[cropX, cropX + cropWidth]` on the primary screen.
+
+4. **Interactive Gesture Inversion (`InteractiveCutoutController.transformPanDelta`, `transformFocalPoint`)**:
+   - Touch drag deltas `(dx, dy)` from 1-finger viewport panning are inversely transformed by the cutout's rotation and flip flags before being applied to the crop offset, ensuring panning feels natural regardless of cutout orientation.
+   - The 2-finger pinch-to-zoom focal point is transformed through the rotation angle and axial flip mappings into content space, preventing zoom anchor drift.
+
+### Architectural Roadmap: Zero-Copy Hardware & IPC Pipeline
+
+For future iterations of the privileged mirroring backend (`:mirrorserver` / `DirectMirrorServer`), an IPC and hardware-level optimization roadmap is established:
+1. **`AHardwareBuffer` / `ashmem` Shared Memory IPC:**
+   - Replacing local loopback socket byte streaming with UNIX domain socket file descriptor passing (`sendmsg` with `SCM_RIGHTS`).
+   - The standalone DEX process (`DirectMirrorServer`) allocates a ring of 2–3 `AHardwareBuffer` graphics buffers mapped into memory via gralloc.
+   - For each frame produced by SurfaceFlinger / `VirtualDisplay`, `DirectMirrorServer` shares the buffer file descriptor directly across the UNIX socket to `ScreenCaptureService` in the companion app.
+   - `ScreenCaptureService` imports the `AHardwareBuffer` using NDK `AHardwareBuffer_fromHardwareBuffer` and binds it directly to an EGL / OpenGL ES 2D texture, achieving 100% zero-copy GPU video streaming across process boundaries with zero CPU copy and minimal bus bandwidth.
 
 ### Source Files
 
@@ -496,12 +750,26 @@ To stabilize mirrored UI elements against fast-moving backgrounds, we support 10
 | `ScreenCaptureService.kt`             | Foreground service; `MediaProjection` token; `VirtualDisplay` lifecycle                                    |
 | `EmbeddedMirrorView.kt`               | Main Compose embedded mirror view hosting `MultiCutoutContainer`                                           |
 | `MasterSurfaceRegistry.kt`            | Process-wide master surface holder bridging `ThrottledTextureView` to `ScreenCaptureService`               |
-| `MultiCutoutContainer.kt`             | Multi-cutout canvas rendering, clipping, and hybrid edge blending                                          |
+| `MultiCutoutContainer.kt`             | Multi-cutout canvas rendering, clipping, hybrid edge blending, rotation/flip transforms, and PorterDuff DST_IN transparency masking |
+| `MirrorCoordinateTransform.kt`        | Pure coordinate transformations: touch projection inversion, rotated bounds calculation, aspect ratio adjustment |
+| `CutoutMaskManager.kt`                | Manages disk persistence and in-memory bitmap cache for cutout transparency masks                          |
+| `CutoutAutoTuner.kt`                  | Computer vision engine for pixel-level color change detection, despeckling, and Gaussian anti-aliasing      |
+| `VisualAutoTuneCoordinator.kt`        | Orchestrates interactive calibration lifecycle, live preview streaming, overlay suspension, and mask/anchor generation |
+| `AutoTuneCalibrationSheet.kt`         | Secondary screen interactive calibration sheet with live dynamic transparency preview and user Finish/Cancel actions |
 | `ScreenCaptureManager.kt`             | Singleton state: scale, offset, freeze, lock, touch-projection state, frozen bitmap, follow state          |
+| `InteractiveCutoutController.kt`      | Transient interactive cutout viewport controller: pan, pinch-zoom, elastic bounce-back, and snap-back animations |
+| `CutoutGestureMath.kt`                | Shared pure Kotlin math helper in `:shared:core`: pan delta, pinch zoom, bounds clamping, and lerp math   |
 | `TouchScreenObserver.kt`              | Listens to raw `/dev/input/event6` touchscreen events in background thread and maps coordinates            |
 | `CropSelectorOverlay.kt`              | Primary display crop selector overlay Composable UI                                                        |
 | `CropSelectorActivity.kt`             | Translucent Activity hosting CropSelectorOverlay on the primary display                                    |
-| `CutoutLayoutEditor.kt`               | Secondary display cutout placement arrange editor                                                          |
-| `ScreenCutout.kt`                     | Serializable data model representing a crop/placement pair                                                 |
+| `CutoutLayoutEditor.kt`               | Secondary display cutout placement arrange editor and visual alignment guides overlay (`CutoutAlignmentGuidesOverlay`) |
+| `MirrorEditorTopOverlay.kt`           | Top-screen vertical controller toolbox and live crop bounds overlay                                         |
+| `ScreenCutout.kt`                     | Serializable data model representing a crop/placement pair with cutout isolation filter configuration      |
+| `MirrorFrameSampler.kt`               | Low-latency hardware layer TextureView crop extraction for anchor calibration and real-time presence detection |
+| `AnchorPresenceManager.kt`            | Real-time 60 Hz visual anchor presence detection, zero-allocation ring buffers, freeze caching, and layout auto-switching |
+| `VisualAnchorSignature.kt`            | Serializable data model representing visual anchor reference points and color signatures                   |
+| `AnchorPresenceEvaluator.kt`          | Mathematical evaluation of sample frame points against reference signature                                 |
+| `CutoutLostAnchorEffect.kt`           | Serializable enum modeling extensible cutout behavior on visual anchor loss (Freeze, Blur)                 |
+| `../math/AlignmentMath.kt`            | Shared pure Kotlin math helper in `:shared:core`: generalized center snapping, button adapters, cutout adapters (`calculateCutoutAlignmentSnap`, `calculateGamepadCutoutMove`, `findAlignedCutoutCenterGuides`), and grid algorithms |
 | `../input/TouchInjector.kt`           | Shared injection facade (also used by Touchpad)                                                            |
 | `../input/ShellInputInjector.kt`      | Shared native binary lifecycle and command queue                                                           |

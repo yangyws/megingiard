@@ -25,6 +25,37 @@ enum class CutoutMode {
     BOTH,
 }
 
+@Serializable
+enum class CutoutSnapBackMode {
+    OFF,
+    INSTANT,
+}
+
+@Serializable
+enum class CutoutFlipMode(
+    val horizontal: Boolean,
+    val vertical: Boolean,
+) {
+    NONE(horizontal = false, vertical = false),
+    HORIZONTAL(horizontal = true, vertical = false),
+    VERTICAL(horizontal = false, vertical = true),
+    BOTH(horizontal = true, vertical = true),
+    ;
+
+    companion object {
+        fun fromBooleans(
+            horizontal: Boolean,
+            vertical: Boolean,
+        ): CutoutFlipMode =
+            when {
+                horizontal && vertical -> BOTH
+                horizontal -> HORIZONTAL
+                vertical -> VERTICAL
+                else -> NONE
+            }
+    }
+}
+
 /**
  * Represents a single cropped section of the primary display (source)
  * that is displayed and positioned on the secondary display (destination).
@@ -46,6 +77,17 @@ enum class CutoutMode {
  * @param aspectRatioMode The mode specifying how aspect ratio is locked between top crop and bottom bounds.
  * @param cutoutMode  The active operation mode (MIRROR, TOUCH_PROJECTION, TRANSLATION, SCREENSHOT, BOTH).
  * @param targetTranslationCutoutId Optional ID of another cutout to route translated subtitles into.
+ * @param hasTransparencyMask Whether an auto-tuned transparency mask bitmap is present for this cutout.
+ * @param maskTranslucency Semi-transparent foreground capture sensitivity level (0..100%), preserving dials and glows.
+ * @param maskSensitivity Color variance threshold (0..255, default 14) for background detection.
+ * @param maskCavityHealing Whether morphological closing bridges gaps to protect internal animated meters and widgets.
+ * @param renderAsStaticAsset Whether this isolated cutout renders as a clean pre-rendered static RGBA asset bypassing live stream.
+ * @param renderAboveMask Whether this cutout is composited above layout background masks while remaining below MacroPad buttons.
+ * @param interactivePanZoom Whether this cutout supports on-the-fly gesture pan and pinch-to-zoom manipulation on the secondary screen.
+ * @param snapBackMode Defines whether the interactive viewport snaps back on release (INSTANT) or stays panned until double-tapped (OFF).
+ * @param rotation Clockwise rotation angle in degrees (0, 90, 180, 270).
+ * @param flipHorizontal Whether this cutout is mirrored horizontally across its vertical axis.
+ * @param flipVertical Whether this cutout is mirrored vertically across its horizontal axis.
  */
 @Serializable
 data class ScreenCutout(
@@ -70,10 +112,23 @@ data class ScreenCutout(
     val cutoutMode: CutoutMode = if (touchProjectionEnabled) CutoutMode.TOUCH_PROJECTION else CutoutMode.MIRROR,
     val targetTranslationCutoutId: String? = null,
     val sourceLanguage: String = "ja",
+    val hasTransparencyMask: Boolean = false,
+    val maskTranslucency: Int = 0,
+    val maskSensitivity: Int = 14,
+    val maskCavityHealing: Boolean = true,
+    val renderAsStaticAsset: Boolean = false,
+    val renderAboveMask: Boolean = false,
+    val interactivePanZoom: Boolean = false,
+    val snapBackMode: CutoutSnapBackMode = CutoutSnapBackMode.OFF,
+    val rotation: Int = 0,
+    val flipHorizontal: Boolean = false,
+    val flipVertical: Boolean = false,
 ) {
     val isTranslationEnabled: Boolean get() = cutoutMode == CutoutMode.TRANSLATION || cutoutMode == CutoutMode.BOTH
     val isScreenshotEnabled: Boolean get() = cutoutMode == CutoutMode.SCREENSHOT
     val isTouchProjectionActive: Boolean get() = cutoutMode == CutoutMode.TOUCH_PROJECTION || cutoutMode == CutoutMode.BOTH || touchProjectionEnabled
+    val flipMode: CutoutFlipMode
+        get() = CutoutFlipMode.fromBooleans(flipHorizontal, flipVertical)
     companion object {
         val FULLSCREEN =
             ScreenCutout(

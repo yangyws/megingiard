@@ -66,6 +66,10 @@ fun EmbeddedMirrorView(
         mutableStateOf<Bitmap?>(null)
     }
 
+    var maskBitmap by remember(layout?.maskImagePath, layout?.maskImageVersion, effectiveShowLayoutBackground) {
+        mutableStateOf<Bitmap?>(null)
+    }
+
     LaunchedEffect(layout?.backgroundImagePath, layout?.backgroundImageVersion, effectiveShowLayoutBackground) {
         if (!effectiveShowLayoutBackground) {
             bgBitmap = null
@@ -83,6 +87,26 @@ fun EmbeddedMirrorView(
             }
         } else {
             bgBitmap = null
+        }
+    }
+
+    LaunchedEffect(layout?.maskImagePath, layout?.maskImageVersion, effectiveShowLayoutBackground) {
+        if (!effectiveShowLayoutBackground) {
+            maskBitmap = null
+            return@LaunchedEffect
+        }
+        val path = layout?.maskImagePath
+        if (path != null) {
+            withContext(Dispatchers.IO) {
+                try {
+                    maskBitmap = MacroPadMediaRepository.loadScaledBitmap(context, path)
+                } catch (e: Exception) {
+                    AppLog.e(TAG, "Failed to load mask image for EmbeddedMirrorView", e)
+                    maskBitmap = null
+                }
+            }
+        } else {
+            maskBitmap = null
         }
     }
 
@@ -105,23 +129,42 @@ fun EmbeddedMirrorView(
                     val smoothingCutout = if (!isMouseActive) activeCutouts.firstOrNull { it.motionSmoothing } else null
                     val effectiveStrength = smoothingCutout?.motionSmoothingStrength ?: 0
 
+                    val activeLayout = MacroPadState.activeLayout.value
+                    val streamDelay =
+                        if (activeLayout?.visualAnchor?.enabled == true) {
+                            activeLayout.visualAnchor.streamDelayFrames
+                        } else {
+                            0
+                        }
+
+                    val wantsSmoother = surfaceOwner == MasterSurfaceRegistry.OWNER_MACROPAD
                     var smoother = gpuMotionSmoother
-                    if (smoother == null && width > 0 && height > 0) {
+                    if (smoother == null && width > 0 && height > 0 && wantsSmoother) {
                         AppLog.i(
                             TAG,
-                            "[$surfaceOwner] Initializing GpuMotionSmoother unified pipeline for master Surface (strength=$effectiveStrength)",
+                            "[$surfaceOwner] Initializing GpuMotionSmoother unified pipeline for master Surface (strength=$effectiveStrength, delay=$streamDelay)",
                         )
-                        smoother = GpuMotionSmoother(master, width, height, effectiveStrength)
+                        smoother = GpuMotionSmoother(master, width, height, effectiveStrength, streamDelay)
                         gpuMotionSmoother = smoother
+                        AnchorPresenceManager.registerGpuMotionSmoother(smoother)
                         val inSurface = smoother.inputSurface
-                        if (inSurface != null) {
+                        if (inSurface != null && inSurface.isValid) {
                             currentRoutedSurface = inSurface
                             MasterSurfaceRegistry.registerMasterSurface(surfaceOwner, inSurface, surfacePriority)
+                        } else {
+                            AppLog.w(
+                                TAG,
+                                "[$surfaceOwner] GpuMotionSmoother failed to initialize; falling back to direct master surface",
+                            )
+                            currentRoutedSurface = master
+                            MasterSurfaceRegistry.registerMasterSurface(surfaceOwner, master, surfacePriority)
                         }
                     } else if (smoother != null) {
                         smoother.updateStrength(effectiveStrength)
+                        smoother.updateStreamDelay(streamDelay)
+                        AnchorPresenceManager.registerGpuMotionSmoother(smoother)
                         val inSurface = smoother.inputSurface
-                        if (inSurface != null && currentRoutedSurface != inSurface) {
+                        if (inSurface != null && inSurface.isValid && currentRoutedSurface != inSurface) {
                             currentRoutedSurface = inSurface
                             MasterSurfaceRegistry.registerMasterSurface(surfaceOwner, inSurface, surfacePriority)
                         }
@@ -172,18 +215,32 @@ fun EmbeddedMirrorView(
         } else if (!isFrozen) {
             mcc?.isFrozen = false
             mcc?.frozenBitmap = null
+            ScreenCaptureManager.setFrozenBitmap(null)
+        }
+    }
+
+    // React to visual anchor presence state changes (instant freeze / unfreeze transition)
+    LaunchedEffect(Unit) {
+        AnchorPresenceManager.presenceRevision.collect {
+            containerHolder.container?.postInvalidateOnAnimation()
         }
     }
 
     DisposableEffect(surfaceOwner, surfacePriority) {
+        InteractiveCutoutController.onCropUpdated = {
+            containerHolder.container?.postInvalidateOnAnimation()
+        }
         onDispose {
+            InteractiveCutoutController.onCropUpdated = null
             val surfaceToClear = containerHolder.currentRoutedSurface ?: containerHolder.masterSurface
+            AnchorPresenceManager.unregisterGpuMotionSmoother(containerHolder.gpuMotionSmoother)
             containerHolder.gpuMotionSmoother?.release()
             containerHolder.gpuMotionSmoother = null
             containerHolder.currentRoutedSurface = null
             MasterSurfaceRegistry.unregisterMasterSurface(surfaceOwner, surfaceToClear)
             containerHolder.masterSurface?.release()
             containerHolder.masterSurface = null
+            containerHolder.textureView?.let { MirrorFrameSampler.unregisterTextureView(it) }
         }
     }
 
@@ -241,6 +298,7 @@ fun EmbeddedMirrorView(
                         st.setDefaultBufferSize(currentSrcW, currentSrcH)
                         val surface = Surface(st)
                         containerHolder.masterSurface = surface
+                        MirrorFrameSampler.registerTextureView(tv, surface)
                         try {
                             val fps = ScreenCaptureManager.maxFps.value
                             AppLog.i(TAG, "Setting initial surface frame rate to $fps FPS")
@@ -265,7 +323,9 @@ fun EmbeddedMirrorView(
 
                     override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
                         AppLog.d(TAG, "master TextureView surface destroyed for $surfaceOwner")
+                        MirrorFrameSampler.unregisterTextureView(tv)
                         val surfaceToClear = containerHolder.currentRoutedSurface ?: containerHolder.masterSurface
+                        AnchorPresenceManager.unregisterGpuMotionSmoother(containerHolder.gpuMotionSmoother)
                         containerHolder.gpuMotionSmoother?.release()
                         containerHolder.gpuMotionSmoother = null
                         containerHolder.currentRoutedSurface = null
@@ -291,18 +351,26 @@ fun EmbeddedMirrorView(
         update = { mcc ->
             mcc.cutouts = effectiveCutouts
             mcc.isFrozen = isFrozen
+            mcc.isViewportEditActive = isViewportEditActive
             mcc.frozenBitmap = frozenBitmap
             mcc.viewportScale = if (overrideCutouts != null) 1f else scale
             mcc.viewportOffsetX = if (overrideCutouts != null) 0f else offsetX
             mcc.viewportOffsetY = if (overrideCutouts != null) 0f else offsetY
             mcc.bgBitmap = bgBitmap
-            mcc.useAsMask = effectiveShowLayoutBackground && layout?.useBackgroundImageAsMask == true
             mcc.bgImageScale = if (effectiveShowLayoutBackground) layout?.bgImageScale ?: 1f else 1f
             mcc.bgImageOffsetX = if (effectiveShowLayoutBackground) layout?.bgImageOffsetX ?: 0f else 0f
             mcc.bgImageOffsetY = if (effectiveShowLayoutBackground) layout?.bgImageOffsetY ?: 0f else 0f
             mcc.bgImageDim = if (effectiveShowLayoutBackground) layout?.backgroundImageDim ?: 0f else 0f
             mcc.bgScaleMode =
                 if (effectiveShowLayoutBackground) layout?.bgScaleMode ?: BackgroundScaleMode.FILL else BackgroundScaleMode.FILL
+
+            mcc.maskBitmap = maskBitmap
+            mcc.maskImageScale = if (effectiveShowLayoutBackground) layout?.maskImageScale ?: 1f else 1f
+            mcc.maskImageOffsetX = if (effectiveShowLayoutBackground) layout?.maskImageOffsetX ?: 0f else 0f
+            mcc.maskImageOffsetY = if (effectiveShowLayoutBackground) layout?.maskImageOffsetY ?: 0f else 0f
+            mcc.maskImageDim = if (effectiveShowLayoutBackground) layout?.maskImageDim ?: 0f else 0f
+            mcc.maskScaleMode =
+                if (effectiveShowLayoutBackground) layout?.maskScaleMode ?: BackgroundScaleMode.FILL else BackgroundScaleMode.FILL
             mcc.ambientDim = if (overrideCutouts == null) layout?.ambientDim ?: 0f else 0f
 
             val tv = containerHolder.textureView

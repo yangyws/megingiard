@@ -202,7 +202,7 @@ internal fun EditButtonSubPageContent(
     DisposableEffect(stableButtonId) {
         MacroPadState.setSelectedButtonId(stableButtonId)
         onDispose {
-            // Lifecycle is centrally managed by MacroPadEditor subPageStack to maintain highlights during subpage pickers
+            MacroPadState.setPreviewButton(null)
         }
     }
 
@@ -394,7 +394,7 @@ internal fun EditButtonSubPageContent(
     val isConfirmEnabled =
         when {
             action is PadAction.ScrollWheel || action is PadAction.TrackpointMove -> true
-            action is PadAction.AppLauncher -> (action as PadAction.AppLauncher).packageName.isNotBlank()
+            action is PadAction.AppLauncher -> (action as PadAction.AppLauncher).packageName.isNotBlank() && label.isNotBlank()
             action is PadAction.Macro -> label.isNotBlank() && macros.any { it.id == (action as PadAction.Macro).macroId }
             else -> label.isNotBlank()
         }
@@ -420,7 +420,8 @@ internal fun EditButtonSubPageContent(
     val currentBorder = resolveColorOption(effectiveBorderOpt, globalAccentColor, MP_AMBIENT_NEUTRAL_BORDER)
     val currentBg = resolveBgColorOption(effectiveBgOpt, globalAccentColor)
 
-    val showLabelAndIcon = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher
+    val showLabel = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove
+    val showIconPicker = action !is PadAction.ScrollWheel && action !is PadAction.TrackpointMove && action !is PadAction.AppLauncher
 
     val promptState =
         rememberSaveExitPromptState(
@@ -435,7 +436,7 @@ internal fun EditButtonSubPageContent(
         )
 
     // Label & Icon input
-    if (showLabelAndIcon) {
+    if (showLabel) {
         GamepadTextFieldCard(
             title = stringResource(R.string.macropad_editor_button_label),
             description = stringResource(R.string.macropad_editor_button_label_desc),
@@ -445,10 +446,12 @@ internal fun EditButtonSubPageContent(
             icon = Icons.Rounded.Edit,
             modifier = Modifier.firstDeckItem(),
         )
+    }
 
-        val hasCustomImage = imageAssetId != null
-        val hasIcon = iconName != null
+    val hasCustomImage = imageAssetId != null
+    val hasIcon = iconName != null
 
+    if (showIconPicker) {
         // 1. 選擇圖示 (Select Icon)
         GamepadActionCard(
             title = stringResource(R.string.macropad_icon_picker_title),
@@ -582,7 +585,7 @@ internal fun EditButtonSubPageContent(
 
     ActionPicker(
         current = action,
-        isFirstItem = false,
+        isFirstItem = !showLabel,
         onOpenMacroPicker = {
             onOpenMacroPicker?.invoke(currentButton)
         },
@@ -777,220 +780,220 @@ internal fun EditButtonSubPageContent(
                 },
             )
         }
+    }
 
-        GamepadSectionHeader(
-            text = stringResource(R.string.macropad_editor_section_button_colors),
-            color = accentColor,
-        )
+    GamepadSectionHeader(
+        text = stringResource(R.string.macropad_editor_section_button_colors),
+        color = accentColor,
+    )
 
-        val previewLabel = stringResource(R.string.macropad_editor_button_preview_text)
-        val buttonPreviewLeading: (textColor: Color, borderColor: Color, bgColor: Color, isIconOnly: Boolean) -> @Composable () -> Unit =
-            { tColor, bColor, bgCol, iconOnly ->
-                @Composable {
-                    val isTable = activeLayout?.isGridMode == true || activeLayout?.layoutMode == PadLayoutMode.GRID
-                    val (previewWidth, previewHeight) =
-                        if (isTable) {
-                            val cellAspect =
-                                GridLayoutMath.cellAspectRatio(
-                                    cols = activeLayout?.effectiveGridCols ?: 1,
-                                    rows = activeLayout?.effectiveGridRows ?: 1,
-                                    colSpan = colSpan,
-                                    rowSpan = rowSpan,
-                                )
-                            val baseHeight = 28.dp
-                            val w = (baseHeight.value * cellAspect).coerceIn(28f, 56f).dp
-                            w to baseHeight
-                        } else {
-                            val w = PBD_COLOR_PREVIEW_SIZE * buttonSize.cols
-                            val h = PBD_COLOR_PREVIEW_SIZE * buttonSize.rows
-                            w to h
-                        }
-                    val previewFaceSize = minOf(previewWidth, previewHeight)
-                    val shape =
-                        if (isTable) {
-                            RoundedCornerShape(PBD_CORNER_RADIUS_DP)
-                        } else if (buttonShape == ButtonShape.CIRCLE) {
-                            CircleShape
-                        } else {
-                            RoundedCornerShape(PBD_CORNER_RADIUS_DP)
-                        }
+    val previewLabel = stringResource(R.string.macropad_editor_button_preview_text)
+    val buttonPreviewLeading: (textColor: Color, borderColor: Color, bgColor: Color, isIconOnly: Boolean) -> @Composable () -> Unit =
+        { tColor, bColor, bgCol, iconOnly ->
+            @Composable {
+                val isTable = activeLayout?.isGridMode == true || activeLayout?.layoutMode == PadLayoutMode.GRID
+                val (previewWidth, previewHeight) =
+                    if (isTable) {
+                        val cellAspect =
+                            GridLayoutMath.cellAspectRatio(
+                                cols = activeLayout?.effectiveGridCols ?: 1,
+                                rows = activeLayout?.effectiveGridRows ?: 1,
+                                colSpan = colSpan,
+                                rowSpan = rowSpan,
+                            )
+                        val baseHeight = 28.dp
+                        val w = (baseHeight.value * cellAspect).coerceIn(28f, 56f).dp
+                        w to baseHeight
+                    } else {
+                        val w = PBD_COLOR_PREVIEW_SIZE * buttonSize.cols
+                        val h = PBD_COLOR_PREVIEW_SIZE * buttonSize.rows
+                        w to h
+                    }
+                val previewFaceSize = minOf(previewWidth, previewHeight)
+                val shape =
+                    if (isTable) {
+                        RoundedCornerShape(PBD_CORNER_RADIUS_DP)
+                    } else if (buttonShape == ButtonShape.CIRCLE) {
+                        CircleShape
+                    } else {
+                        RoundedCornerShape(PBD_CORNER_RADIUS_DP)
+                    }
 
-                    PadButtonFace(
-                        width = previewWidth,
-                        height = previewHeight,
-                        shape = shape,
-                        isIconOnly = iconOnly || (!isTable && buttonShape == ButtonShape.ICON_ONLY),
-                        isDeviceDisabled = false,
-                        borderColor = bColor,
-                        bgColor = bgCol,
-                    ) {
-                        if (iconName != null) {
-                            val previewIconSize =
-                                PadGlyphRules.glyphSizeDp(
-                                    defaultSizeDp = if (isTable) (previewFaceSize.value * 0.5f).coerceIn(14f, 24f) else MP_BTN_ICON_UNIT.value,
-                                    faceSizeDp = previewFaceSize.value,
-                                    enlarge = enlargeIcon,
-                                    fullBleed = fullBleedIcon,
-                                    isTableLayout = isTable,
-                                ).dp
-                            val stretchModifier =
-                                if (fullBleedIcon && previewWidth.value > 0f && previewHeight.value > 0f) {
-                                    val minDim = minOf(previewWidth.value, previewHeight.value)
-                                    if (minDim > 0f && (previewWidth.value != previewHeight.value)) {
-                                        Modifier.graphicsLayer {
-                                            scaleX = previewWidth.value / minDim
-                                            scaleY = previewHeight.value / minDim
-                                        }
-                                    } else {
-                                        Modifier
+                PadButtonFace(
+                    width = previewWidth,
+                    height = previewHeight,
+                    shape = shape,
+                    isIconOnly = iconOnly || (!isTable && buttonShape == ButtonShape.ICON_ONLY),
+                    isDeviceDisabled = false,
+                    borderColor = bColor,
+                    bgColor = bgCol,
+                ) {
+                    if (iconName != null) {
+                        val previewIconSize =
+                            PadGlyphRules.glyphSizeDp(
+                                defaultSizeDp = if (isTable) (previewFaceSize.value * 0.5f).coerceIn(14f, 24f) else MP_BTN_ICON_UNIT.value,
+                                faceSizeDp = previewFaceSize.value,
+                                enlarge = enlargeIcon,
+                                fullBleed = fullBleedIcon,
+                                isTableLayout = isTable,
+                            ).dp
+                        val stretchModifier =
+                            if (fullBleedIcon && previewWidth.value > 0f && previewHeight.value > 0f) {
+                                val minDim = minOf(previewWidth.value, previewHeight.value)
+                                if (minDim > 0f && (previewWidth.value != previewHeight.value)) {
+                                    Modifier.graphicsLayer {
+                                        scaleX = previewWidth.value / minDim
+                                        scaleY = previewHeight.value / minDim
                                     }
                                 } else {
                                     Modifier
                                 }
-                            MaterialSymbol(
-                                name = iconName!!,
-                                size = previewIconSize,
-                                tint = tColor,
-                                filled = iconFilled,
-                                modifier = stretchModifier,
-                            )
-                        } else {
-                            val effectiveLabel = label.ifBlank { previewLabel }
-                            val dynamicFontSize = (previewFaceSize.value * 0.35f).coerceIn(10f, 16f).sp
-                            Text(
-                                text = effectiveLabel,
-                                color = tColor,
-                                style = MaterialTheme.typography.titleMedium.copy(fontSize = dynamicFontSize),
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                softWrap = false,
-                            )
-                        }
+                            } else {
+                                Modifier
+                            }
+                        MaterialSymbol(
+                            name = iconName!!,
+                            size = previewIconSize,
+                            tint = tColor,
+                            filled = iconFilled,
+                            modifier = stretchModifier,
+                        )
+                    } else {
+                        val effectiveLabel = label.ifBlank { previewLabel }
+                        val dynamicFontSize = (previewFaceSize.value * 0.35f).coerceIn(10f, 16f).sp
+                        Text(
+                            text = effectiveLabel,
+                            color = tColor,
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = dynamicFontSize),
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                        )
                     }
                 }
             }
-
-        listOf(
-            Triple(
-                ButtonColorTarget.TEXT,
-                Icons.Rounded.FormatColorText,
-                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
-                    describeButtonColorOption(buttonTextColor, currentText),
-            ),
-            Triple(
-                ButtonColorTarget.BORDER,
-                Icons.Rounded.Palette,
-                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
-                    describeButtonColorOption(buttonBorderColor, currentBorder),
-            ),
-            Triple(
-                ButtonColorTarget.BG,
-                Icons.Rounded.FormatColorFill,
-                buttonPreviewLeading(currentText, currentBorder, currentBg, false) to
-                    describeButtonColorOption(buttonBgColor, currentBg),
-            ),
-        ).forEach { (colorTarget, colorIcon, previewAndDesc) ->
-            val (preview, desc) = previewAndDesc
-            GamepadActionCard(
-                title = stringResource(colorTarget.titleResId),
-                description = desc,
-                icon = colorIcon,
-                actionLeadingContent = preview,
-                onClick = { onOpenColorSubMenu(currentButton, colorTarget) },
-            )
         }
 
-        if (activeLayout?.isGridMode != true) {
-            GamepadSectionHeader(
-                text = stringResource(R.string.macropad_editor_section_visibility_behavior),
-                color = accentColor,
-            )
+    listOf(
+        Triple(
+            ButtonColorTarget.TEXT,
+            Icons.Rounded.FormatColorText,
+            buttonPreviewLeading(currentText, Color.Transparent, Color.Transparent, true) to
+                describeButtonColorOption(buttonTextColor, currentText),
+        ),
+        Triple(
+            ButtonColorTarget.BORDER,
+            Icons.Rounded.Palette,
+            buttonPreviewLeading(Color.Transparent, currentBorder, Color.Transparent, false) to
+                describeButtonColorOption(buttonBorderColor, currentBorder),
+        ),
+        Triple(
+            ButtonColorTarget.BG,
+            Icons.Rounded.FormatColorFill,
+            buttonPreviewLeading(Color.Transparent, Color.Transparent, currentBg, false) to
+                describeButtonColorOption(buttonBgColor, currentBg),
+        ),
+    ).forEach { (colorTarget, colorIcon, previewAndDesc) ->
+        val (preview, desc) = previewAndDesc
+        GamepadActionCard(
+            title = stringResource(colorTarget.titleResId),
+            description = desc,
+            icon = colorIcon,
+            actionLeadingContent = preview,
+            onClick = { onOpenColorSubMenu(currentButton, colorTarget) },
+        )
+    }
 
-            GamepadToggleCard(
-                title = stringResource(R.string.layout_settings_invisible_buttons),
-                description = stringResource(R.string.layout_settings_invisible_buttons_desc),
-                checked = invisible,
-                icon = Icons.Rounded.VisibilityOff,
-                onCheckedChange = { invisible = it },
-            )
-        }
-
-        if (button != null) {
-            GamepadSectionHeader(
-                text = stringResource(R.string.macropad_editor_manage_buttons),
-                color = accentColor,
-            )
-
-            if (onDuplicate != null) {
-                GamepadActionCard(
-                    title = stringResource(R.string.macropad_editor_copy_button_duplicate),
-                    description = stringResource(R.string.macropad_editor_duplicate_button_desc),
-                    icon = Icons.Rounded.ContentCopy,
-                    onClick = { onDuplicate(button) },
-                )
-            }
-
-            if (onCopyToLayout != null) {
-                GamepadActionCard(
-                    title = stringResource(R.string.macropad_editor_copy_to_layout),
-                    description = stringResource(R.string.macropad_editor_copy_button_to_layout_desc),
-                    icon = Icons.Rounded.Share,
-                    onClick = { onCopyToLayout(button) },
-                )
-            }
-        }
-
-        // ── Save / Save & Delete Section ─────────────────────────────────
-        val hasDelete = button != null && onDelete != null
+    if (button != null) {
         GamepadSectionHeader(
-            text =
-                stringResource(
-                    if (hasDelete) {
-                        R.string.macropad_editor_section_save_and_delete
-                    } else {
-                        R.string.macropad_editor_section_save
-                    },
-                ),
+            text = stringResource(R.string.macropad_editor_manage_buttons),
             color = accentColor,
         )
 
-        // ── Save & Exit Action Row ───────────────────────────────────────
-        GamepadSaveExitActionRow(
-            title = stringResource(if (isNew) R.string.macropad_editor_create_button_title else R.string.macropad_editor_save_button_title),
-            description =
-                stringResource(
-                    if (isNew) R.string.macropad_editor_create_button_desc else R.string.macropad_editor_save_button_desc,
-                ),
-            pulseOnChanges = hasChanges,
-            saveActionText = stringResource(if (isNew) R.string.gamepad_action_create else R.string.gamepad_action_save),
-            saveIcon = Icons.Rounded.Save,
-            enabled = isConfirmEnabled,
-            showExitPrompt = promptState.showExitPrompt,
-            onDismissPrompt = promptState.dismissPrompt,
-            saveFocusRequester = promptState.focusRequester,
-            bringIntoViewRequester = promptState.bringIntoViewRequester,
-            onSave = promptState.onSave,
-            onDiscard = promptState.onDiscard,
-        )
-
-        // ── Button Deletion (Last Item) ──────────────────────────────────
-        if (button != null && onDelete != null) {
-            GamepadTwoStepConfirmCard(
-                title = stringResource(R.string.macropad_editor_delete_button),
-                confirmTitle = stringResource(R.string.macropad_button_delete_confirm_title),
-                description =
-                    stringResource(
-                        R.string.macropad_editor_delete_button_desc,
-                        button.label.ifBlank { button.action.displayLabel() },
-                    ),
-                actionText = stringResource(R.string.gamepad_action_delete),
-                confirmActionText = stringResource(R.string.gamepad_action_confirm),
-                icon = Icons.Rounded.Delete,
-                isDestructive = true,
-                onConfirm = { onDelete(button) },
+        if (onDuplicate != null) {
+            GamepadActionCard(
+                title = stringResource(R.string.macropad_editor_copy_button_duplicate),
+                description = stringResource(R.string.macropad_editor_duplicate_button_desc),
+                icon = Icons.Rounded.ContentCopy,
+                onClick = { onDuplicate(button) },
             )
         }
+
+        if (onCopyToLayout != null) {
+            GamepadActionCard(
+                title = stringResource(R.string.macropad_editor_copy_to_layout),
+                description = stringResource(R.string.macropad_editor_copy_button_to_layout_desc),
+                icon = Icons.Rounded.Share,
+                onClick = { onCopyToLayout(button) },
+            )
+        }
+    }
+
+    if (activeLayout?.isGridMode != true) {
+        GamepadSectionHeader(
+            text = stringResource(R.string.macropad_editor_section_visibility_behavior),
+            color = accentColor,
+        )
+
+        GamepadToggleCard(
+            title = stringResource(R.string.layout_settings_invisible_buttons),
+            description = stringResource(R.string.layout_settings_invisible_buttons_desc),
+            checked = invisible,
+            icon = Icons.Rounded.VisibilityOff,
+            onCheckedChange = { invisible = it },
+        )
+    }
+
+    // ── Save / Save & Delete Section ─────────────────────────────────
+    val hasDelete = button != null && onDelete != null
+    GamepadSectionHeader(
+        text =
+            stringResource(
+                if (hasDelete) {
+                    R.string.macropad_editor_section_save_and_delete
+                } else {
+                    R.string.macropad_editor_section_save
+                },
+            ),
+        color = accentColor,
+    )
+
+    // ── Save & Exit Action Row ───────────────────────────────────────
+    GamepadSaveExitActionRow(
+        title = stringResource(if (isNew) R.string.macropad_editor_create_button_title else R.string.macropad_editor_save_button_title),
+        description =
+            stringResource(
+                if (isNew) R.string.macropad_editor_create_button_desc else R.string.macropad_editor_save_button_desc,
+            ),
+        pulseOnChanges = hasChanges,
+        saveActionText = stringResource(if (isNew) R.string.gamepad_action_create else R.string.gamepad_action_save),
+        saveIcon = Icons.Rounded.Save,
+        enabled = isConfirmEnabled,
+        showExitPrompt = promptState.showExitPrompt,
+        onDismissPrompt = promptState.dismissPrompt,
+        saveFocusRequester = promptState.focusRequester,
+        bringIntoViewRequester = promptState.bringIntoViewRequester,
+        onSave = promptState.onSave,
+        onDiscard = promptState.onDiscard,
+    )
+
+    // ── Button Deletion (Last Item) ──────────────────────────────────
+    if (button != null && onDelete != null) {
+        GamepadTwoStepConfirmCard(
+            title = stringResource(R.string.macropad_editor_delete_button),
+            confirmTitle = stringResource(R.string.macropad_button_delete_confirm_title),
+            description =
+                stringResource(
+                    R.string.macropad_editor_delete_button_desc,
+                    button.label.ifBlank { button.action.displayLabel() },
+                ),
+            actionText = stringResource(R.string.gamepad_action_delete),
+            confirmActionText = stringResource(R.string.gamepad_action_confirm),
+            icon = Icons.Rounded.Delete,
+            isDestructive = true,
+            onConfirm = { onDelete(button) },
+        )
     }
 
 @Composable

@@ -1,6 +1,5 @@
 package com.stormpanda.megingiard.macropad
 
-import com.stormpanda.megingiard.macropad.ProfileAssociation
 import com.stormpanda.megingiard.mirror.ScreenCutout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,16 +69,24 @@ class MacroPadStateTest {
         backgroundTouchpad: BackgroundTouchpadConfig = BackgroundTouchpadConfig(),
         mirrorCutouts: List<ScreenCutout> = emptyList(),
         backgroundImagePath: String? = null,
+        maskImagePath: String? = null,
         useBackgroundImageAsMask: Boolean = false,
         backgroundImageDim: Float = 0f,
+        maskImageDim: Float = 0f,
         ambientDim: Float = 0f,
         bgImageScale: Float = 1f,
         bgImageOffsetX: Float = 0f,
         bgImageOffsetY: Float = 0f,
+        maskImageScale: Float = 1f,
+        maskImageOffsetX: Float = 0f,
+        maskImageOffsetY: Float = 0f,
+        bgScaleMode: BackgroundScaleMode = BackgroundScaleMode.FILL,
+        maskScaleMode: BackgroundScaleMode = BackgroundScaleMode.FILL,
         buttonTextColor: ColorOption = ColorOption.Neutral,
         buttonBgColor: ColorOption = ColorOption.Neutral,
         mirrorEdgeBlendWidth: Float = 0f,
         mirrorConfigured: Boolean = false,
+        visualAnchor: LayoutVisualAnchor = LayoutVisualAnchor(),
     ) = PadLayout(
         id = id,
         name = name,
@@ -87,16 +94,24 @@ class MacroPadStateTest {
         backgroundTouchpad = backgroundTouchpad,
         mirrorCutouts = mirrorCutouts,
         backgroundImagePath = backgroundImagePath,
+        maskImagePath = maskImagePath,
         useBackgroundImageAsMask = useBackgroundImageAsMask,
         backgroundImageDim = backgroundImageDim,
+        maskImageDim = maskImageDim,
         ambientDim = ambientDim,
         bgImageScale = bgImageScale,
         bgImageOffsetX = bgImageOffsetX,
         bgImageOffsetY = bgImageOffsetY,
+        maskImageScale = maskImageScale,
+        maskImageOffsetX = maskImageOffsetX,
+        maskImageOffsetY = maskImageOffsetY,
+        bgScaleMode = bgScaleMode,
+        maskScaleMode = maskScaleMode,
         buttonTextColor = buttonTextColor,
         buttonBgColor = buttonBgColor,
         mirrorEdgeBlendWidth = mirrorEdgeBlendWidth,
         mirrorConfigured = mirrorConfigured,
+        visualAnchor = visualAnchor,
     )
 
     private fun testProfile(
@@ -348,18 +363,28 @@ class MacroPadStateTest {
     fun `copyLayoutToProfile duplicates layout and maps referenced macros when cross-profile`() {
         val m1 = Macro(id = "macro-1", name = "Fire", steps = emptyList())
         val btn = testButton(id = "btn-1", action = PadAction.Macro("macro-1"))
-        val l1 = testLayout(id = "layout-1", name = "Lay1", buttons = listOf(btn))
+        val l1 =
+            testLayout(
+                id = "layout-1",
+                name = "Lay1",
+                buttons = listOf(btn),
+                visualAnchor = LayoutVisualAnchor(enabled = true, srcY = 0.3f),
+            )
         val p1 = testProfile(id = "p1", layouts = listOf(l1), macros = listOf(m1))
         val p2 = testProfile(id = "p2", layouts = listOf(testLayout(id = "layout-2", name = "Lay2")))
         loadProfiles(p1, p2, activeId = "p1")
 
-        MacroPadState.copyLayoutToProfile(l1, "p1", "p2")
+        val newId = MacroPadState.copyLayoutToProfile(l1, "p1", "p2")
+        assertNotNull(newId)
 
         val targetProfile = MacroPadState.profiles.value.first { it.id == "p2" }
         assertEquals(2, targetProfile.layouts.size)
         val copiedLayout = targetProfile.layouts.first { it.id != "layout-2" }
+        assertEquals(newId, copiedLayout.id)
         assertEquals("Lay1", copiedLayout.name)
         assertEquals(1, copiedLayout.buttons.size)
+        assertTrue(copiedLayout.visualAnchor.enabled)
+        assertEquals(0.3f, copiedLayout.visualAnchor.srcY, 0.001f)
 
         assertEquals(1, targetProfile.macros.size)
         val copiedMacro = targetProfile.macros.first()
@@ -437,6 +462,7 @@ class MacroPadStateTest {
                 buttons = listOf(btn),
                 mirrorEdgeBlendWidth = 25f,
                 mirrorCutouts = listOf(cutout),
+                visualAnchor = LayoutVisualAnchor(enabled = true, srcX = 0.2f),
             )
         loadProfiles(testProfile(id = "p1", layouts = listOf(l1), activeLayoutId = "layout-1"))
 
@@ -459,6 +485,8 @@ class MacroPadStateTest {
         assertTrue(dupCutout.touchProjectionEnabled)
         assertTrue(dupCutout.motionSmoothing)
         assertEquals(75, dupCutout.motionSmoothingStrength)
+        assertTrue(duplicated.visualAnchor.enabled)
+        assertEquals(0.2f, duplicated.visualAnchor.srcX, 0.001f)
     }
 
     @Test
@@ -503,14 +531,69 @@ class MacroPadStateTest {
     }
 
     @Test
-    fun `updateLayout preserves and updates useBackgroundImageAsMask`() {
-        val l1 = testLayout(id = "layout-1", name = "Lay1", useBackgroundImageAsMask = false)
+    fun `loadFrom migrates legacy useBackgroundImageAsMask into maskImagePath and mask properties`() {
+        val legacyLayout =
+            testLayout(
+                id = "layout-1",
+                name = "LegacyMask",
+                backgroundImagePath = "backgrounds/bg_layout-1",
+                useBackgroundImageAsMask = true,
+                backgroundImageDim = 0.3f,
+                bgImageScale = 1.5f,
+                bgImageOffsetX = 0.1f,
+                bgImageOffsetY = -0.2f,
+                bgScaleMode = BackgroundScaleMode.FIT,
+            )
+        loadProfiles(testProfile(id = "p1", layouts = listOf(legacyLayout), activeLayoutId = "layout-1"))
+
+        val active = MacroPadState.activeLayout.value
+        assertEquals(null, active?.backgroundImagePath)
+        assertEquals("backgrounds/bg_layout-1", active?.maskImagePath)
+        assertEquals(false, active?.useBackgroundImageAsMask)
+        assertEquals(0.3f, active?.maskImageDim ?: 0f, 0.001f)
+        assertEquals(1.5f, active?.maskImageScale ?: 1f, 0.001f)
+        assertEquals(0.1f, active?.maskImageOffsetX ?: 0f, 0.001f)
+        assertEquals(-0.2f, active?.maskImageOffsetY ?: 0f, 0.001f)
+        assertEquals(BackgroundScaleMode.FIT, active?.maskScaleMode)
+    }
+
+    @Test
+    fun `updateLayout preserves and updates maskImagePath and mask properties`() {
+        val l1 = testLayout(id = "layout-1", name = "Lay1", maskImagePath = null)
         loadProfiles(testProfile(id = "p1", layouts = listOf(l1), activeLayoutId = "layout-1"))
 
-        assertEquals(false, MacroPadState.activeLayout.value?.useBackgroundImageAsMask)
+        assertEquals(null, MacroPadState.activeLayout.value?.maskImagePath)
 
-        MacroPadState.updateLayout(l1.copy(useBackgroundImageAsMask = true))
-        assertEquals(true, MacroPadState.activeLayout.value?.useBackgroundImageAsMask)
+        MacroPadState.updateLayout(
+            l1.copy(
+                maskImagePath = "masks/mask_layout-1",
+                maskImageDim = 0.4f,
+                maskScaleMode = BackgroundScaleMode.STRETCH,
+            ),
+        )
+        val updated = MacroPadState.activeLayout.value
+        assertEquals("masks/mask_layout-1", updated?.maskImagePath)
+        assertEquals(0.4f, updated?.maskImageDim ?: 0f, 0.001f)
+        assertEquals(BackgroundScaleMode.STRETCH, updated?.maskScaleMode)
+    }
+
+    @Test
+    fun `isCroppingMask state and updatePreviewMaskCrop work correctly`() {
+        val l1 = testLayout(id = "layout-1", name = "Lay1", maskImagePath = "masks/mask_layout-1")
+        loadProfiles(testProfile(id = "p1", layouts = listOf(l1), activeLayoutId = "layout-1"))
+
+        MacroPadState.setCroppingMask(true)
+        assertEquals(true, MacroPadState.isCroppingMask.value)
+
+        MacroPadState.updatePreviewMaskCrop(scale = 2.5f, offsetX = 0.15f, offsetY = -0.25f)
+        val preview = MacroPadState.previewLayout.value
+        assertEquals(2.5f, preview?.maskImageScale ?: 1f, 0.001f)
+        assertEquals(0.15f, preview?.maskImageOffsetX ?: 0f, 0.001f)
+        assertEquals(-0.25f, preview?.maskImageOffsetY ?: 0f, 0.001f)
+
+        MacroPadState.clearPreviewLayout()
+        assertEquals(null, MacroPadState.previewLayout.value)
+        assertEquals(false, MacroPadState.isCroppingMask.value)
     }
 
     @Test
@@ -820,6 +903,51 @@ class MacroPadStateTest {
     }
 
     @Test
+    fun `deleteProfile with multiple profiles removes target profile, switches active profile, and returns true`() {
+        val p1 = testProfile(id = "p1", name = "Profile 1")
+        val p2 = testProfile(id = "p2", name = "Profile 2")
+        loadProfiles(p1, p2, activeId = "p1")
+
+        assertTrue(MacroPadState.deleteProfile("p1"))
+        assertEquals(1, MacroPadState.profiles.value.size)
+        assertEquals(
+            "p2",
+            MacroPadState.profiles.value
+                .first()
+                .id,
+        )
+        assertEquals("p2", MacroPadState.activeProfileId.value)
+        assertEquals("p2", MacroPadState.activeProfile.value?.id)
+    }
+
+    @Test
+    fun `deleteProfile with single profile returns false and preserves profile`() {
+        val p1 = testProfile(id = "p1", name = "Only Profile")
+        loadProfiles(p1, activeId = "p1")
+
+        assertFalse(MacroPadState.deleteProfile("p1"))
+        assertEquals(1, MacroPadState.profiles.value.size)
+        assertEquals(
+            "p1",
+            MacroPadState.profiles.value
+                .first()
+                .id,
+        )
+        assertEquals("p1", MacroPadState.activeProfileId.value)
+    }
+
+    @Test
+    fun `deleteProfile with non-existent profile returns false`() {
+        val p1 = testProfile(id = "p1", name = "Profile 1")
+        val p2 = testProfile(id = "p2", name = "Profile 2")
+        loadProfiles(p1, p2, activeId = "p1")
+
+        assertFalse(MacroPadState.deleteProfile("non-existent-id"))
+        assertEquals(2, MacroPadState.profiles.value.size)
+        assertEquals("p1", MacroPadState.activeProfileId.value)
+    }
+
+    @Test
     fun `nextLayout and previousLayout cycle through layouts correctly`() {
         val l1 = testLayout(id = "l1", name = "Layout 1")
         val l2 = testLayout(id = "l2", name = "Layout 2")
@@ -1023,6 +1151,54 @@ class MacroPadStateTest {
 
         val result = MacroPadState.getDefaultOrFirstProfile()
         assertEquals(p1.id, result?.id)
+    }
+
+    @Test
+    fun `updateCutout updates existing cutout in active layout`() {
+        val cutout1 =
+            ScreenCutout(
+                id = "c1",
+                name = "Map",
+                srcX = 0f,
+                srcY = 0f,
+                srcWidth = 0.5f,
+                srcHeight = 0.5f,
+                destX = 0f,
+                destY = 0f,
+                destWidth = 0.5f,
+                destHeight = 0.5f,
+                hasTransparencyMask = false,
+            )
+        val cutout2 =
+            ScreenCutout(
+                id = "c2",
+                name = "HP",
+                srcX = 0.5f,
+                srcY = 0.5f,
+                srcWidth = 0.5f,
+                srcHeight = 0.5f,
+                destX = 0.5f,
+                destY = 0.5f,
+                destWidth = 0.5f,
+                destHeight = 0.5f,
+                hasTransparencyMask = false,
+            )
+        val layout = testLayout(id = "l1", mirrorCutouts = listOf(cutout1, cutout2))
+        val profile = testProfile(id = "p1", layouts = listOf(layout), activeLayoutId = "l1")
+        loadProfiles(profile)
+
+        val updatedCutout = cutout1.copy(hasTransparencyMask = true, opacity = 0.85f)
+        MacroPadState.updateCutout(updatedCutout)
+
+        val cutouts = MacroPadState.activeLayout.value?.mirrorCutouts
+        assertNotNull(cutouts)
+        assertEquals(2, cutouts?.size)
+        val resultCutout = cutouts?.first { it.id == "c1" }
+        assertEquals(true, resultCutout?.hasTransparencyMask)
+        assertEquals(0.85f, resultCutout?.opacity)
+        // Verify untouched cutout2 is preserved
+        val untouched = cutouts?.first { it.id == "c2" }
+        assertEquals(false, untouched?.hasTransparencyMask)
     }
 }
 

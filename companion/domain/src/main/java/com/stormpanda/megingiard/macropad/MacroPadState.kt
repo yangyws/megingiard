@@ -169,6 +169,7 @@ object MacroPadState {
         AppLog.d(TAG, "clearPreviewLayout()")
         _previewLayout.value = null
         _isCroppingBackground.value = false
+        _isCroppingMask.value = false
         recomputeActiveState()
     }
 
@@ -198,12 +199,27 @@ object MacroPadState {
         offsetX: Float,
         offsetY: Float,
     ) {
-        val current = _previewLayout.value ?: return
+        val current = _previewLayout.value ?: activeLayout.value ?: return
         _previewLayout.value =
             current.copy(
                 bgImageScale = scale,
                 bgImageOffsetX = offsetX,
                 bgImageOffsetY = offsetY,
+            )
+        recomputeActiveState()
+    }
+
+    fun updatePreviewMaskCrop(
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+    ) {
+        val current = _previewLayout.value ?: activeLayout.value ?: return
+        _previewLayout.value =
+            current.copy(
+                maskImageScale = scale,
+                maskImageOffsetX = offsetX,
+                maskImageOffsetY = offsetY,
             )
         recomputeActiveState()
     }
@@ -260,6 +276,14 @@ object MacroPadState {
     fun updateCroppingButtonScaleMode(scaleMode: BackgroundScaleMode) {
         val current = _croppingButtonState.value ?: return
         _croppingButtonState.value = current.copy(scaleMode = scaleMode, scale = 1.0f, offsetX = 0f, offsetY = 0f)
+    }
+
+    private val _isCroppingMask = MutableStateFlow(false)
+    val isCroppingMask: StateFlow<Boolean> = _isCroppingMask.asStateFlow()
+
+    fun setCroppingMask(cropping: Boolean) {
+        AppLog.d(TAG, "setCroppingMask($cropping)")
+        _isCroppingMask.value = cropping
     }
 
     private val _gridMode = MutableStateFlow(GridMode.OFF)
@@ -379,6 +403,27 @@ object MacroPadState {
                                         buttonColorMirror = null,
                                     )
                             }
+                            @Suppress("DEPRECATION")
+                            if (current.useBackgroundImageAsMask) {
+                                needsSave = true
+                                changed = true
+                                current =
+                                    current.copy(
+                                        maskImagePath = current.backgroundImagePath,
+                                        maskImageScale = current.bgImageScale,
+                                        maskImageOffsetX = current.bgImageOffsetX,
+                                        maskImageOffsetY = current.bgImageOffsetY,
+                                        maskImageDim = current.backgroundImageDim,
+                                        maskScaleMode = current.bgScaleMode,
+                                        backgroundImagePath = null,
+                                        bgImageScale = 1f,
+                                        bgImageOffsetX = 0f,
+                                        bgImageOffsetY = 0f,
+                                        backgroundImageDim = 0f,
+                                        bgScaleMode = BackgroundScaleMode.FILL,
+                                        useBackgroundImageAsMask = false,
+                                    )
+                            }
                             val migratedBg = migrateButtonBgColorOption(current.buttonBgColor) ?: current.buttonBgColor
                             if (migratedBg != current.buttonBgColor) {
                                 needsSave = true
@@ -466,7 +511,16 @@ object MacroPadState {
         MacroPadSettings.saveMacroPadData()
     }
 
-    fun deleteProfile(profileId: String) {
+    fun deleteProfile(profileId: String): Boolean {
+        if (_profiles.value.size <= 1) {
+            AppLog.w(TAG, "deleteProfile id=$profileId rejected: must keep at least one profile")
+            return false
+        }
+        val target = _profiles.value.firstOrNull { it.id == profileId }
+        if (target == null) {
+            AppLog.w(TAG, "deleteProfile id=$profileId not found")
+            return false
+        }
         val remaining = _profiles.value.filter { it.id != profileId }
         _profiles.value = remaining
         if (_activeProfileId.value == profileId) {
@@ -475,6 +529,7 @@ object MacroPadState {
         recomputeActiveState()
         AppLog.d(TAG, "deleteProfile id=$profileId → activeId=${_activeProfileId.value}")
         MacroPadSettings.saveMacroPadData()
+        return true
     }
 
     fun renameProfile(
@@ -570,6 +625,8 @@ object MacroPadState {
                     buttons = layout.buttons.cloneWithMacroMapping(macroMapping),
                     backgroundImagePath = layout.backgroundImagePath?.let { "backgrounds/bg_$targetLayoutId" },
                     backgroundImageVersion = 0,
+                    maskImagePath = layout.maskImagePath?.let { "masks/mask_$targetLayoutId" },
+                    maskImageVersion = 0,
                 )
             }
 
@@ -637,6 +694,15 @@ object MacroPadState {
         )
     }
 
+    fun updateCutout(updatedCutout: ScreenCutout) {
+        val layout = activeLayout.value ?: return
+        val updatedList =
+            layout.mirrorCutouts.map {
+                if (it.id == updatedCutout.id) updatedCutout else it
+            }
+        updateLayout(layout.copy(mirrorCutouts = updatedList))
+    }
+
     fun deleteLayout(layoutId: String): Boolean {
         val profile = activeProfile.value ?: return false
         val layoutExists = profile.layouts.any { it.id == layoutId }
@@ -691,6 +757,9 @@ object MacroPadState {
                 mirrorCutouts = copiedCutouts,
                 backgroundImagePath = layout.backgroundImagePath?.let { "backgrounds/bg_$newLayoutId" },
                 backgroundImageVersion = 0,
+                maskImagePath = layout.maskImagePath?.let { "masks/mask_$newLayoutId" },
+                maskImageVersion = 0,
+                visualAnchor = layout.visualAnchor,
             )
 
         AppLog.d(TAG, "duplicateLayout layoutId=$layoutId newId=${duplicatedLayout.id} name='$uniqueName' in profile=${profile.id}")
@@ -811,9 +880,9 @@ object MacroPadState {
         layout: PadLayout,
         sourceProfileId: String,
         targetProfileId: String,
-    ) {
-        val sourceProfile = _profiles.value.firstOrNull { it.id == sourceProfileId } ?: return
-        val targetProfile = _profiles.value.firstOrNull { it.id == targetProfileId } ?: return
+    ): String? {
+        val sourceProfile = _profiles.value.firstOrNull { it.id == sourceProfileId } ?: return null
+        val targetProfile = _profiles.value.firstOrNull { it.id == targetProfileId } ?: return null
 
         val existingNames = targetProfile.layouts.map { it.name }
         val desiredName = layout.name
@@ -850,17 +919,24 @@ object MacroPadState {
                 cutout.copy(id = UUID.randomUUID().toString())
             }
 
+        val newLayoutId = UUID.randomUUID().toString()
         val copiedLayout =
             layout.copy(
-                id = UUID.randomUUID().toString(),
+                id = newLayoutId,
                 name = uniqueName,
                 buttons = layout.buttons.cloneWithMacroMapping(macroMapping),
                 mirrorCutouts = copiedCutouts,
+                backgroundImagePath = layout.backgroundImagePath?.let { "backgrounds/bg_$newLayoutId" },
+                backgroundImageVersion = 0,
+                maskImagePath = layout.maskImagePath?.let { "masks/mask_$newLayoutId" },
+                maskImageVersion = 0,
+                visualAnchor = layout.visualAnchor,
             )
 
         AppLog.d(TAG, "copyLayoutToProfile layoutId=${layout.id} name='$uniqueName' to profileId=$targetProfileId")
         updatedTargetProfile = updatedTargetProfile.copy(layouts = updatedTargetProfile.layouts + copiedLayout)
         updateProfile(updatedTargetProfile)
+        return newLayoutId
     }
 
     /** Copy a single button to a layout in any profile, copying its referenced macro if cross-profile. */

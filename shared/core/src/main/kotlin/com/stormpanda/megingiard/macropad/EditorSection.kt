@@ -7,8 +7,10 @@ enum class EditorSection {
     QUICK_ACTIONS,
     PROFILES,
     LAYOUTS,
+    AUTOMATION,
     MIRROR,
     BACKGROUND,
+    MASK,
     BUTTONS,
     MACROS,
 }

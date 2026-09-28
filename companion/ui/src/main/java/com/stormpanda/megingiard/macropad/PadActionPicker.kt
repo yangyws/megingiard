@@ -38,7 +38,6 @@ internal fun ActionPicker(
 
         is PadAction.MouseButton,
         is PadAction.ScrollWheel,
-        is PadAction.TrackpointMove,
         -> {
             GamepadActionCard(
                 title = stringResource(R.string.macropad_action_group_mouse),
@@ -47,6 +46,15 @@ internal fun ActionPicker(
                 icon = Icons.Rounded.Mouse,
                 onClick = onOpenMousePicker,
                 modifier = Modifier.firstDeckItem(isFirstItem),
+            )
+        }
+
+        is PadAction.TrackpointMove -> {
+            TrackpointPicker(
+                current = current,
+                onOpenPicker = onOpenMousePicker,
+                onChange = onChange,
+                isFirstItem = isFirstItem,
             )
         }
 
@@ -76,9 +84,16 @@ internal fun ActionPicker(
             )
         }
 
-        is PadAction.FullScreenMouse,
-        is PadAction.FullScreenKeyboard,
-        -> {
+        is PadAction.FullScreenMouse -> {
+            FullScreenMousePicker(
+                current = current,
+                onOpenPicker = onOpenOverlayPicker,
+                onChange = onChange,
+                isFirstItem = isFirstItem,
+            )
+        }
+
+        is PadAction.FullScreenKeyboard -> {
             GamepadActionCard(
                 title = stringResource(R.string.macropad_action_group_other),
                 description = stringResource(R.string.macropad_action_group_other_desc),
@@ -134,4 +149,5 @@ internal val MODIFIER_PRESETS: List<Pair<Int, String>> =
         LinuxKeycodes.KEY_LEFTALT to "Alt",
         LinuxKeycodes.KEY_RIGHTALT to "AltGr",
         LinuxKeycodes.KEY_LEFTMETA to "Meta/Win",
+        LinuxKeycodes.KEY_FN to "Fn",
     )

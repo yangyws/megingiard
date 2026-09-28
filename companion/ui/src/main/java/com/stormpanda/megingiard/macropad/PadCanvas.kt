@@ -60,8 +60,11 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -77,9 +80,15 @@ import com.stormpanda.megingiard.AppLog
 import com.stormpanda.megingiard.AppStateManager
 import com.stormpanda.megingiard.BitmapUtils
 import com.stormpanda.megingiard.R
+import com.stormpanda.megingiard.math.BUTTON_ALIGNMENT_VISUAL_TOLERANCE_PX
 import com.stormpanda.megingiard.math.ViewportMath
+import com.stormpanda.megingiard.math.calculateButtonAlignmentSnap
+import com.stormpanda.megingiard.math.findAlignedCenterGuides
+import com.stormpanda.megingiard.math.radialPointCount
+import com.stormpanda.megingiard.math.snapPosition
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdState
+import com.stormpanda.megingiard.settings.MacroPadSettings
 import com.stormpanda.megingiard.ui.LocalAppColors
 import com.stormpanda.megingiard.ui.MaterialSymbol
 import com.stormpanda.megingiard.ui.dimColorFilter
@@ -89,12 +98,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import kotlin.math.PI
-import kotlin.math.atan2
+import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.round
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 private const val TAG = "PadCanvas"
 
@@ -149,6 +156,16 @@ private const val PC_POINTER_ROTATION_BOTTOM = 180f
 private const val PC_POINTER_ROTATION_LEFT = 270f
 private const val PC_POINTER_ROTATION_RIGHT = 90f
 
+// Smart alignment guide line styling (PowerPoint-style)
+private const val PC_ALIGNMENT_GUIDE_LINE_ALPHA = 0.85f
+private const val PC_ALIGNMENT_GUIDE_RING_ALPHA = 0.35f
+private val PC_ALIGNMENT_GUIDE_STROKE_WIDTH = 1.5.dp
+private const val PC_ALIGNMENT_GUIDE_DASH_ON = 8f
+private const val PC_ALIGNMENT_GUIDE_DASH_OFF = 6f
+private val PC_ALIGNMENT_DOT_RADIUS = 3.5.dp
+private val PC_ALIGNMENT_DOT_RING_RADIUS = 6.5.dp
+private val PC_ALIGNMENT_DOT_RING_STROKE = 1.5.dp
+
 private data class HandlePosition(
     val leftPx: Float,
     val topPx: Float,
@@ -166,7 +183,8 @@ internal fun PadCanvas(
     accentColor: Color,
     gridMode: GridMode,
     isLocked: Boolean,
-    isCropping: Boolean = false,
+    isCroppingBackground: Boolean = false,
+    isCroppingMask: Boolean = false,
     transparentBackground: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -183,6 +201,7 @@ internal fun PadCanvas(
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val selectedButtonId by MacroPadState.selectedButtonId.collectAsStateWithLifecycle()
+    val buttonAlignmentSnapping by MacroPadSettings.buttonAlignmentSnapping.collectAsStateWithLifecycle()
     val isMirrorEditorBackgroundHidden by AppStateManager.isMirrorEditorBackgroundHidden.collectAsStateWithLifecycle()
     val isViewportEditActive by AppStateManager.isViewportEditActive.collectAsStateWithLifecycle()
     val shouldHideBackground = isViewportEditActive && isMirrorEditorBackgroundHidden
@@ -211,9 +230,40 @@ internal fun PadCanvas(
         }
     }
 
+    var maskBitmap by remember(layout?.maskImagePath, layout?.maskImageVersion) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(layout?.maskImagePath, layout?.maskImageVersion) {
+        val path = layout?.maskImagePath
+        if (path != null) {
+            try {
+                val decoded = MacroPadMediaRepository.loadScaledBitmap(context, path)
+                maskBitmap = decoded?.asImageBitmap()
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Failed to decode mask image $path", e)
+                maskBitmap = null
+            }
+        } else {
+            maskBitmap = null
+        }
+    }
+
     val bgImageDimFilter =
         remember(effectiveLayout?.backgroundImageDim) {
             dimColorFilter(effectiveLayout?.backgroundImageDim ?: 0f)
+        }
+
+    val maskImageDimFilter =
+        remember(layout?.maskImageDim) {
+            dimColorFilter(layout?.maskImageDim ?: 0f)
+        }
+
+    val isCropping = isCroppingBackground || isCroppingMask
+    val activeCropBitmap =
+        if (isCroppingBackground) {
+            bgBitmap
+        } else if (isCroppingMask) {
+            maskBitmap
+        } else {
+            null
         }
 
     var lockSymbolVisible by remember { mutableStateOf(false) }
@@ -263,20 +313,30 @@ internal fun PadCanvas(
     }
 
     val cropModifier =
-        if (isCropping && bgBitmap != null && canvasSize.width > 0 && canvasSize.height > 0) {
-            Modifier.pointerInput(canvasSize, isCropping, bgBitmap != null) {
+        if (isCropping && activeCropBitmap != null && canvasSize.width > 0 && canvasSize.height > 0) {
+            Modifier.pointerInput(canvasSize, isCroppingBackground, isCroppingMask, activeCropBitmap) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val cw = canvasSize.width.toFloat()
                     val ch = canvasSize.height.toFloat()
-                    val bitmap = bgBitmap ?: return@detectTransformGestures
+                    val bitmap = activeCropBitmap
                     val iw = bitmap.width.toFloat()
                     val ih = bitmap.height.toFloat()
                     if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                        val currentLayout = currentEffectiveLayout.value ?: return@detectTransformGestures
-                        val mode = currentLayout.bgScaleMode
+                        val currentLayout = MacroPadState.previewLayout.value ?: layout
+                        val mode =
+                            if (isCroppingBackground) {
+                                currentLayout?.bgScaleMode ?: BackgroundScaleMode.FILL
+                            } else {
+                                currentLayout?.maskScaleMode ?: BackgroundScaleMode.FILL
+                            }
                         if (mode != BackgroundScaleMode.STRETCH) {
-                            val newScale = (accumScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
-                            accumScale = newScale
+                            val currentScale =
+                                if (isCroppingBackground) {
+                                    currentLayout?.bgImageScale ?: 1f
+                                } else {
+                                    currentLayout?.maskImageScale ?: 1f
+                                }
+                            val newScale = (currentScale * zoom).coerceIn(PC_CROP_MIN_SCALE, PC_CROP_MAX_SCALE)
 
                             val scaleBase =
                                 if (mode == BackgroundScaleMode.FIT) {
@@ -288,18 +348,21 @@ internal fun PadCanvas(
                             val hs = ih * scaleBase
 
                             val (maxTx, maxTy) = ViewportMath.getMaxOffsets(cw, ch, ws, hs, newScale)
-                            val currentPixelX = accumOffsetX * cw + pan.x
-                            val currentPixelY = accumOffsetY * ch + pan.y
-                            val clampedX = if (maxTx > 0f) currentPixelX.coerceIn(-maxTx, maxTx) else 0f
-                            val clampedY = if (maxTy > 0f) currentPixelY.coerceIn(-maxTy, maxTy) else 0f
+                            val currentPixelX =
+                                ((if (isCroppingBackground) currentLayout?.bgImageOffsetX else currentLayout?.maskImageOffsetX) ?: 0f) * cw
+                            val currentPixelY =
+                                ((if (isCroppingBackground) currentLayout?.bgImageOffsetY else currentLayout?.maskImageOffsetY) ?: 0f) * ch
+                            val clampedX = (currentPixelX + pan.x).coerceIn(-maxTx, maxTx)
+                            val clampedY = (currentPixelY + pan.y).coerceIn(-maxTy, maxTy)
 
                             val normX = if (cw > 0f) clampedX / cw else 0f
                             val normY = if (ch > 0f) clampedY / ch else 0f
 
-                            accumOffsetX = normX
-                            accumOffsetY = normY
-
-                            MacroPadState.updatePreviewBackgroundCrop(newScale, normX, normY)
+                            if (isCroppingBackground) {
+                                MacroPadState.updatePreviewBackgroundCrop(newScale, normX, normY)
+                            } else {
+                                MacroPadState.updatePreviewMaskCrop(newScale, normX, normY)
+                            }
                         }
                     }
                 }
@@ -309,54 +372,36 @@ internal fun PadCanvas(
         }
 
     Box(modifier = padModifier.then(cropModifier)) {
-        if (!shouldHideBackground && !transparentBackground && bgBitmap != null) {
+        if (!shouldHideBackground && !transparentBackground && (bgBitmap != null || maskBitmap != null)) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val cw = size.width
-                val ch = size.height
-                val bitmap = bgBitmap ?: return@Canvas
-                val iw = bitmap.width.toFloat()
-                val ih = bitmap.height.toFloat()
-                if (cw > 0f && ch > 0f && iw > 0f && ih > 0f) {
-                    val mode = effectiveLayout?.bgScaleMode ?: BackgroundScaleMode.FILL
-                    val (dstOffset, dstSize) =
-                        when (mode) {
-                            BackgroundScaleMode.STRETCH -> {
-                                IntOffset.Zero to IntSize(cw.toInt().coerceAtLeast(1), ch.toInt().coerceAtLeast(1))
-                            }
-
-                            BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
-                                val scale = (effectiveLayout?.bgImageScale ?: 1f).coerceAtLeast(0.01f)
-                                val scaleBase =
-                                    if (mode == BackgroundScaleMode.FIT) {
-                                        ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
-                                    } else {
-                                        ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
-                                    }
-                                val ws = iw * scaleBase
-                                val hs = ih * scaleBase
-
-                                val targetW = (ws * scale).toInt().coerceAtLeast(1)
-                                val targetH = (hs * scale).toInt().coerceAtLeast(1)
-
-                                val maxTx = ((targetW - cw) / 2f).coerceAtLeast(0f)
-                                val maxTy = ((targetH - ch) / 2f).coerceAtLeast(0f)
-                                val clampedX = if (maxTx > 0f) ((effectiveLayout?.bgImageOffsetX ?: 0f) * cw).coerceIn(-maxTx, maxTx) else 0f
-                                val clampedY = if (maxTy > 0f) ((effectiveLayout?.bgImageOffsetY ?: 0f) * ch).coerceIn(-maxTy, maxTy) else 0f
-
-                                IntOffset(
-                                    ((cw - targetW) / 2f + clampedX).toInt(),
-                                    ((ch - targetH) / 2f + clampedY).toInt(),
-                                ) to IntSize(targetW, targetH)
-                            }
-                        }
-                    if (dstSize.width > 0 && dstSize.height > 0) {
-                        drawImage(
-                            image = bitmap,
-                            dstOffset = dstOffset,
-                            dstSize = dstSize,
-                            colorFilter = bgImageDimFilter,
-                        )
-                    }
+                val currentLayout = MacroPadState.previewLayout.value ?: layout
+                if (bgBitmap != null) {
+                    val mode = currentLayout?.bgScaleMode ?: layout?.bgScaleMode ?: BackgroundScaleMode.FILL
+                    val scale = currentLayout?.bgImageScale ?: layout?.bgImageScale ?: 1f
+                    val offX = currentLayout?.bgImageOffsetX ?: layout?.bgImageOffsetX ?: 0f
+                    val offY = currentLayout?.bgImageOffsetY ?: layout?.bgImageOffsetY ?: 0f
+                    drawAdjustedBitmap(
+                        bitmap = bgBitmap!!,
+                        scaleMode = mode,
+                        userScale = scale,
+                        offsetX = offX,
+                        offsetY = offY,
+                        colorFilter = bgImageDimFilter,
+                    )
+                }
+                if (maskBitmap != null) {
+                    val mode = currentLayout?.maskScaleMode ?: layout?.maskScaleMode ?: BackgroundScaleMode.FILL
+                    val scale = currentLayout?.maskImageScale ?: layout?.maskImageScale ?: 1f
+                    val offX = currentLayout?.maskImageOffsetX ?: layout?.maskImageOffsetX ?: 0f
+                    val offY = currentLayout?.maskImageOffsetY ?: layout?.maskImageOffsetY ?: 0f
+                    drawAdjustedBitmap(
+                        bitmap = maskBitmap!!,
+                        scaleMode = mode,
+                        userScale = scale,
+                        offsetX = offX,
+                        offsetY = offY,
+                        colorFilter = maskImageDimFilter,
+                    )
                 }
             }
         }
@@ -428,6 +473,7 @@ internal fun PadCanvas(
                     accentColor = accentColor,
                     gridMode = gridMode,
                     gridStepPx = gridStepPx,
+                    alignmentSnapping = buttonAlignmentSnapping,
                     isLocked = isLocked || isCropping,
                     isSelected = selectedButtonId == btn.id,
                     isPrivdRunning = isPrivdRunning,
@@ -453,6 +499,33 @@ internal fun PadCanvas(
                     },
                 )
             }
+        }
+
+        // Discover active alignment guides
+        val (alignedXs, alignedYs) =
+            remember(selectedButtonId, layout?.buttons, canvasSize) {
+                if (!isLocked && !isCropping && selectedButtonId != null && layout != null && canvasSize.width > 0 &&
+                    canvasSize.height > 0
+                ) {
+                    findAlignedCenterGuides(
+                        activeButtonId = selectedButtonId,
+                        buttons = layout.buttons,
+                        canvasW = canvasSize.width.toFloat(),
+                        canvasH = canvasSize.height.toFloat(),
+                    )
+                } else {
+                    emptyList<Float>() to emptyList<Float>()
+                }
+            }
+
+        // PowerPoint-style Smart Alignment Guides overlay
+        if (!isLocked && !isCropping && (alignedXs.isNotEmpty() || alignedYs.isNotEmpty())) {
+            AlignmentGuidesOverlay(
+                alignedXs = alignedXs,
+                alignedYs = alignedYs,
+                buttons = layout?.buttons ?: emptyList(),
+                accentColor = accentColor,
+            )
         }
 
         // Render handles or highlight pointers for the active button
@@ -529,6 +602,7 @@ internal fun PadCanvas(
                         h = h,
                         gridMode = gridMode,
                         gridStepPx = gridStepPx,
+                        alignmentSnapping = buttonAlignmentSnapping,
                         layoutId = layout?.id,
                         accentColor = accentColor,
                     )
@@ -589,6 +663,7 @@ private fun DraggableButton(
     accentColor: Color,
     gridMode: GridMode,
     gridStepPx: Float,
+    alignmentSnapping: Boolean,
     isLocked: Boolean,
     isSelected: Boolean = false,
     isPrivdRunning: Boolean,
@@ -633,6 +708,7 @@ private fun DraggableButton(
     val currentOnPositionChanged = rememberUpdatedState(onPositionChanged)
     val currentGridMode = rememberUpdatedState(gridMode)
     val currentGridStepPx = rememberUpdatedState(gridStepPx)
+    val currentAlignmentSnapping = rememberUpdatedState(alignmentSnapping)
     // Anchor position captured at the moment the finger goes down.
     var startPosX by remember(btn.id) { mutableFloatStateOf(btn.posX) }
     var startPosY by remember(btn.id) { mutableFloatStateOf(btn.posY) }
@@ -724,18 +800,21 @@ private fun DraggableButton(
                                     dragOffsetY += drag.y
                                     val rawX = (startPosX + dragOffsetX / w).coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN)
                                     val rawY = (startPosY + dragOffsetY / h).coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN)
-                                    val (snappedX, snappedY) =
-                                        snapPosition(
-                                            rawX,
-                                            rawY,
-                                            w,
-                                            h,
-                                            currentGridMode.value,
-                                            currentGridStepPx.value,
+                                    val result =
+                                        calculateButtonAlignmentSnap(
+                                            rawNormX = rawX,
+                                            rawNormY = rawY,
+                                            movingButtonId = btn.id,
+                                            otherButtons = layout.buttons,
+                                            canvasW = w,
+                                            canvasH = h,
+                                            alignmentSnappingEnabled = currentAlignmentSnapping.value,
+                                            gridMode = currentGridMode.value,
+                                            gridStepPx = currentGridStepPx.value,
                                         )
                                     currentOnPositionChanged.value(
-                                        snappedX.coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN),
-                                        snappedY.coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN),
+                                        result.snappedNormX,
+                                        result.snappedNormY,
                                     )
                                 },
                             )
@@ -907,134 +986,76 @@ private fun GridOverlay(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Snap helpers
+// PowerPoint-Style Smart Alignment Guides Overlay
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Snap a normalised position to the active grid. Returns the (possibly unchanged)
- * normalised coordinates.
- */
-private fun snapPosition(
-    rawNormX: Float,
-    rawNormY: Float,
-    canvasW: Float,
-    canvasH: Float,
-    gridMode: GridMode,
-    gridStepPx: Float,
-): Pair<Float, Float> =
-    when (gridMode) {
-        GridMode.OFF -> rawNormX to rawNormY
-        GridMode.RECTANGULAR -> snapRectangular(rawNormX, rawNormY, canvasW, canvasH, gridStepPx)
-        GridMode.RADIAL -> snapRadial(rawNormX, rawNormY, canvasW, canvasH, gridStepPx)
+@Composable
+private fun AlignmentGuidesOverlay(
+    alignedXs: List<Float>,
+    alignedYs: List<Float>,
+    buttons: List<PadButton>,
+    accentColor: Color,
+) {
+    val density = LocalDensity.current
+    val strokeWidthPx = with(density) { PC_ALIGNMENT_GUIDE_STROKE_WIDTH.toPx() }
+    val dotRadiusPx = with(density) { PC_ALIGNMENT_DOT_RADIUS.toPx() }
+    val ringRadiusPx = with(density) { PC_ALIGNMENT_DOT_RING_RADIUS.toPx() }
+    val ringStrokePx = with(density) { PC_ALIGNMENT_DOT_RING_STROKE.toPx() }
+    val dashEffect =
+        remember {
+            PathEffect.dashPathEffect(floatArrayOf(PC_ALIGNMENT_GUIDE_DASH_ON, PC_ALIGNMENT_GUIDE_DASH_OFF), 0f)
+        }
+    val guideColor = accentColor.copy(alpha = PC_ALIGNMENT_GUIDE_LINE_ALPHA)
+    val ringColor = accentColor.copy(alpha = PC_ALIGNMENT_GUIDE_RING_ALPHA)
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        // Draw vertical alignment guide lines
+        alignedXs.forEach { normX ->
+            val xPx = normX * w
+            drawLine(
+                color = guideColor,
+                start = Offset(xPx, 0f),
+                end = Offset(xPx, h),
+                strokeWidth = strokeWidthPx,
+                pathEffect = dashEffect,
+            )
+        }
+
+        // Draw horizontal alignment guide lines
+        alignedYs.forEach { normY ->
+            val yPx = normY * h
+            drawLine(
+                color = guideColor,
+                start = Offset(0f, yPx),
+                end = Offset(w, yPx),
+                strokeWidth = strokeWidthPx,
+                pathEffect = dashEffect,
+            )
+        }
+
+        // Draw indicator dots/rings at matching button centers
+        buttons.forEach { btn ->
+            val matchesX = alignedXs.any { abs(btn.posX - it) * w <= BUTTON_ALIGNMENT_VISUAL_TOLERANCE_PX }
+            val matchesY = alignedYs.any { abs(btn.posY - it) * h <= BUTTON_ALIGNMENT_VISUAL_TOLERANCE_PX }
+            if (matchesX || matchesY) {
+                val center = Offset(btn.posX * w, btn.posY * h)
+                drawCircle(
+                    color = ringColor,
+                    radius = ringRadiusPx,
+                    center = center,
+                    style = Stroke(ringStrokePx),
+                )
+                drawCircle(
+                    color = guideColor,
+                    radius = dotRadiusPx,
+                    center = center,
+                )
+            }
+        }
     }
-
-/**
- * Round to nearest grid intersection. The grid is centred on the canvas midpoint
- * (same origin as the radial circles) so the centre is always a cross-point.
- */
-private fun snapRectangular(
-    rawNormX: Float,
-    rawNormY: Float,
-    canvasW: Float,
-    canvasH: Float,
-    gridStepPx: Float,
-): Pair<Float, Float> {
-    val rawPxX = rawNormX * canvasW
-    val rawPxY = rawNormY * canvasH
-    val cx = canvasW * PC_RADIAL_CENTER_X
-    val cy = canvasH * PC_RADIAL_CENTER_Y
-    val snappedPxX = cx + ((rawPxX - cx) / gridStepPx).roundToInt() * gridStepPx
-    val snappedPxY = cy + ((rawPxY - cy) / gridStepPx).roundToInt() * gridStepPx
-    return (snappedPxX / canvasW) to (snappedPxY / canvasH)
-}
-
-/**
- * Snap to the nearest evenly-distributed point on a concentric circle, or to the
- * center point. Circles alternate phase:
- *   odd  (1, 3, 5 …) → 45° offset → diagonal anchors
- *   even (2, 4, 6 …) → 0° offset  → cardinal anchors
- */
-private fun snapRadial(
-    rawNormX: Float,
-    rawNormY: Float,
-    canvasW: Float,
-    canvasH: Float,
-    gridStepPx: Float,
-): Pair<Float, Float> {
-    val rawPxX = rawNormX * canvasW
-    val rawPxY = rawNormY * canvasH
-    val cx = canvasW * PC_RADIAL_CENTER_X
-    val cy = canvasH * PC_RADIAL_CENTER_Y
-
-    val dx = rawPxX - cx
-    val dy = rawPxY - cy
-    val rawRadius = sqrt(dx * dx + dy * dy)
-
-    // Grid step is always half the button unit
-    val buttonUnitPx = gridStepPx * 2f
-
-    // Snap radius to nearest circle (or 0 = center)
-    val snappedRadius = (round(rawRadius / gridStepPx) * gridStepPx)
-
-    // Center snap
-    if (snappedRadius < gridStepPx * 0.5f) {
-        return (cx / canvasW) to (cy / canvasH)
-    }
-
-    // Determine phase offset for this circle
-    val circleIndex = round(snappedRadius / gridStepPx).toInt()
-    val phaseOffset = if (circleIndex % 2 == 1) PI / 4.0 else 0.0
-
-    val n = radialPointCount(snappedRadius, buttonUnitPx)
-    val angleStep = 2.0 * PI / n
-
-    // Snap to nearest point: work in phase-relative angle space
-    val rawAngle = atan2(dy.toDouble(), dx.toDouble()) // −π..π
-    val relAngle = rawAngle - phaseOffset // shift to phase origin
-    val relAnglePos = if (relAngle < 0) relAngle + 2 * PI else relAngle // 0..2π
-    val nearestIndex = round(relAnglePos / angleStep).toInt() % n
-    val snappedAngle = phaseOffset + nearestIndex * angleStep
-
-    val snappedPxX = cx + snappedRadius * cos(snappedAngle).toFloat()
-    val snappedPxY = cy + snappedRadius * sin(snappedAngle).toFloat()
-
-    // Also consider the center point — pick whichever is closer
-    val distToCircle = dist(rawPxX, rawPxY, snappedPxX, snappedPxY)
-    val distToCenter = dist(rawPxX, rawPxY, cx, cy)
-    return if (distToCenter < distToCircle) {
-        (cx / canvasW) to (cy / canvasH)
-    } else {
-        (snappedPxX / canvasW) to (snappedPxY / canvasH)
-    }
-}
-
-/** Euclidean distance between two points. */
-private fun dist(
-    x1: Float,
-    y1: Float,
-    x2: Float,
-    y2: Float,
-): Float {
-    val dx = x1 - x2
-    val dy = y1 - y2
-    return sqrt(dx * dx + dy * dy)
-}
-
-/**
- * How many evenly-distributed snap points to place on a circle of the given radius.
- * Scales with circumference — roughly one point per [buttonUnitPx] of arc length.
- * Always rounded to the nearest multiple of 4 (minimum 4) so the 4 phase-anchor
- * points (cardinal or diagonal) land at exact positions.
- */
-private fun radialPointCount(
-    radiusPx: Float,
-    buttonUnitPx: Float,
-): Int {
-    val circumference = (2.0 * PI * radiusPx).toFloat()
-    val raw = round(circumference / buttonUnitPx).toInt().coerceAtLeast(1)
-    // Round to nearest multiple of 4, minimum 4
-    val rounded4 = ((raw + 2) / 4) * 4
-    return maxOf(PC_RADIAL_MIN_POINTS, rounded4)
 }
 
 @Composable
@@ -1049,6 +1070,7 @@ private fun DragHandle(
     h: Float,
     gridMode: GridMode,
     gridStepPx: Float,
+    alignmentSnapping: Boolean,
     layoutId: String?,
     accentColor: Color,
 ) {
@@ -1077,35 +1099,41 @@ private fun DragHandle(
                             dragOffsetY += drag.y
                             val rawX = (startPosX + dragOffsetX / w).coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN)
                             val rawY = (startPosY + dragOffsetY / h).coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN)
-                            val (snappedX, snappedY) =
-                                snapPosition(
-                                    rawX,
-                                    rawY,
-                                    w,
-                                    h,
-                                    gridMode,
-                                    gridStepPx,
-                                )
                             val activeProfile = MacroPadState.activeProfile.value
-                            if (layoutId != null && activeProfile != null) {
-                                val currentLayout = activeProfile.layouts.firstOrNull { it.id == layoutId }
-                                if (currentLayout != null) {
-                                    MacroPadState.updateLayout(
-                                        currentLayout.copy(
-                                            buttons =
-                                                currentLayout.buttons.map { b ->
-                                                    if (b.id == buttonId) {
-                                                        b.copy(
-                                                            posX = snappedX.coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN),
-                                                            posY = snappedY.coerceIn(ED_EDGE_MARGIN, 1f - ED_EDGE_MARGIN),
-                                                        )
-                                                    } else {
-                                                        b
-                                                    }
-                                                },
-                                        ),
-                                    )
+                            val currentLayout =
+                                if (layoutId != null && activeProfile != null) {
+                                    activeProfile.layouts.firstOrNull { it.id == layoutId }
+                                } else {
+                                    null
                                 }
+                            val result =
+                                calculateButtonAlignmentSnap(
+                                    rawNormX = rawX,
+                                    rawNormY = rawY,
+                                    movingButtonId = buttonId,
+                                    otherButtons = currentLayout?.buttons ?: emptyList(),
+                                    canvasW = w,
+                                    canvasH = h,
+                                    alignmentSnappingEnabled = alignmentSnapping,
+                                    gridMode = gridMode,
+                                    gridStepPx = gridStepPx,
+                                )
+                            if (currentLayout != null) {
+                                MacroPadState.updateLayout(
+                                    currentLayout.copy(
+                                        buttons =
+                                            currentLayout.buttons.map { b ->
+                                                if (b.id == buttonId) {
+                                                    b.copy(
+                                                        posX = result.snappedNormX,
+                                                        posY = result.snappedNormY,
+                                                    )
+                                                } else {
+                                                    b
+                                                }
+                                            },
+                                    ),
+                                )
                             }
                         },
                     )
@@ -1375,3 +1403,50 @@ internal fun ButtonCropCanvas(
     }
 }
 
+
+internal fun DrawScope.drawAdjustedBitmap(
+    bitmap: ImageBitmap,
+    scaleMode: BackgroundScaleMode,
+    userScale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    colorFilter: ColorFilter?,
+) {
+    val cw = size.width
+    val ch = size.height
+    val iw = bitmap.width.toFloat()
+    val ih = bitmap.height.toFloat()
+    if (cw <= 0f || ch <= 0f || iw <= 0f || ih <= 0f) return
+
+    val (dstOffset, dstSize) =
+        when (scaleMode) {
+            BackgroundScaleMode.STRETCH -> {
+                IntOffset.Zero to IntSize(cw.toInt(), ch.toInt())
+            }
+
+            BackgroundScaleMode.FIT, BackgroundScaleMode.FILL -> {
+                val scaleBase =
+                    if (scaleMode == BackgroundScaleMode.FIT) {
+                        ViewportMath.calculateAspectFitScale(cw, ch, iw, ih)
+                    } else {
+                        ViewportMath.calculateAspectFillScale(cw, ch, iw, ih)
+                    }
+                val ws = iw * scaleBase
+                val hs = ih * scaleBase
+                val maxTx = ((ws * userScale - cw) / 2f).coerceAtLeast(0f)
+                val maxTy = ((hs * userScale - ch) / 2f).coerceAtLeast(0f)
+                val clampedX = (offsetX * cw).coerceIn(-maxTx, maxTx)
+                val clampedY = (offsetY * ch).coerceIn(-maxTy, maxTy)
+                IntOffset(
+                    ((cw - ws * userScale) / 2f + clampedX).toInt(),
+                    ((ch - hs * userScale) / 2f + clampedY).toInt(),
+                ) to IntSize((ws * userScale).toInt(), (hs * userScale).toInt())
+            }
+        }
+    drawImage(
+        image = bitmap,
+        dstOffset = dstOffset,
+        dstSize = dstSize,
+        colorFilter = colorFilter,
+    )
+}

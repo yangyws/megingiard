@@ -83,8 +83,14 @@ import com.stormpanda.megingiard.macropad.TouchRecordingManager
 import com.stormpanda.megingiard.macropad.TouchRecordingSheet
 import com.stormpanda.megingiard.macropad.TouchRecordingState
 import com.stormpanda.megingiard.macropad.triggerHapticFeedback
+import com.stormpanda.megingiard.mirror.AnchorPositioningCoordinator
+import com.stormpanda.megingiard.mirror.AnchorPositioningSheet
+import com.stormpanda.megingiard.mirror.AnchorTestCoordinator
+import com.stormpanda.megingiard.mirror.AnchorTestingSheet
+import com.stormpanda.megingiard.mirror.AutoTuneCalibrationSheet
 import com.stormpanda.megingiard.mirror.CutoutLayoutEditor
 import com.stormpanda.megingiard.mirror.ScreenCaptureManager
+import com.stormpanda.megingiard.mirror.VisualAutoTuneCoordinator
 import com.stormpanda.megingiard.onboarding.OnboardingWizardManager
 import com.stormpanda.megingiard.privd.PrivdManager
 import com.stormpanda.megingiard.privd.PrivdSetupWizardDialog
@@ -96,6 +102,8 @@ import com.stormpanda.megingiard.ui.AppAlertDialog
 import com.stormpanda.megingiard.ui.AppColors
 import com.stormpanda.megingiard.ui.IntegrationHomeScreen
 import com.stormpanda.megingiard.ui.LocalAppColors
+import com.stormpanda.megingiard.ui.PrimaryModalPayload
+import com.stormpanda.megingiard.ui.PrimaryModalType
 import com.stormpanda.megingiard.ui.PrivdReconnectPromptDialog
 import com.stormpanda.megingiard.ui.QuickMenuBar
 import com.stormpanda.megingiard.ui.QuickMenuBarLayout
@@ -134,6 +142,7 @@ fun MainAppScreen() {
     val isGesturesEnabled = !isAnyMenuOpen && !isFullscreenKeyboardActive && !isFullscreenMouseActive && !isViewportEditActive
 
     val showPromptDialog by AppStateManager.isPrivdPromptActive.collectAsStateWithLifecycle()
+    val showEmptyCutoutsDialog by AppStateManager.showEmptyCutoutsDialog.collectAsStateWithLifecycle()
     val physicalRecordingState by PhysicalGamepadRecordingManager.state.collectAsStateWithLifecycle()
     val swapFaceButtons by MacroPadSettings.gamepadSwapFaceButtons.collectAsStateWithLifecycle()
     val welcomeTourCompletedVersion by SettingsManager.welcomeTourCompletedVersion.collectAsStateWithLifecycle()
@@ -442,9 +451,47 @@ fun MainAppScreen() {
                 )
             }
 
+            val isAutoTuning by VisualAutoTuneCoordinator.isCalibrating.collectAsStateWithLifecycle()
+            if (isAutoTuning) {
+                AutoTuneCalibrationSheet(
+                    onCancel = {
+                        VisualAutoTuneCoordinator.cancelCalibration()
+                    },
+                    onFinish = {
+                        VisualAutoTuneCoordinator.finishCalibration()
+                    },
+                )
+            }
+
+            val activePrimaryModal by AppStateManager.activePrimaryModal.collectAsStateWithLifecycle()
+            val isAnchorPositioning = activePrimaryModal?.type == PrimaryModalType.ANCHOR_SELECTOR
+            if (isAnchorPositioning) {
+                val payload = activePrimaryModal?.payload as? PrimaryModalPayload.AnchorSelector
+                if (payload != null) {
+                    AnchorPositioningSheet(
+                        layoutId = payload.layoutId,
+                        onDone = {
+                            AnchorPositioningCoordinator.requestDone()
+                        },
+                    )
+                }
+            }
+
+            val isAnchorTesting by AnchorTestCoordinator.isTesting.collectAsStateWithLifecycle()
+            if (isAnchorTesting) {
+                AnchorTestingSheet(
+                    onDone = {
+                        AnchorTestCoordinator.stopTesting()
+                    },
+                )
+            }
+
             // Quick Menu Bar + Quick Menu overlay — rendered on secondary display,
-            // suppressed only when fullscreen keyboard/mouse is active.
-            if (!isFullscreenKeyboardActive && !isFullscreenMouseActive) {
+            // suppressed only when fullscreen keyboard/mouse is active, auto-tuning is active,
+            // anchor positioning is active, or anchor testing is active.
+            if (!isFullscreenKeyboardActive && !isFullscreenMouseActive && !isAutoTuning &&
+                !isAnchorPositioning && !isAnchorTesting
+            ) {
                 QuickMenuBar()
             }
 
@@ -568,6 +615,29 @@ fun MainAppScreen() {
                 dismissButton = {
                     TextButton(onClick = { showExitDialog = false }) {
                         Text(stringResource(R.string.exit_dialog_cancel), color = colors.accent)
+                    }
+                },
+            )
+        }
+
+        if (showEmptyCutoutsDialog && !isViewportEditActive) {
+            AppAlertDialog(
+                onDismissRequest = { AppStateManager.setShowEmptyCutoutsDialog(false) },
+                title = { Text(stringResource(R.string.mirror_empty_cutouts_dialog_title), color = colors.onSurface) },
+                text = { Text(stringResource(R.string.mirror_empty_cutouts_dialog_text), color = colors.onSurface) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            AppStateManager.setShowEmptyCutoutsDialog(false)
+                            AppStateManager.setViewportEditActive(true)
+                        },
+                    ) {
+                        Text(stringResource(R.string.mirror_empty_cutouts_dialog_confirm), color = colors.accent)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { AppStateManager.setShowEmptyCutoutsDialog(false) }) {
+                        Text(stringResource(R.string.mirror_empty_cutouts_dialog_dismiss), color = colors.accent)
                     }
                 },
             )

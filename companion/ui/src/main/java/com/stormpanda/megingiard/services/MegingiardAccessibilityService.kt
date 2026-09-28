@@ -145,7 +145,7 @@ class MegingiardAccessibilityService : AccessibilityService() {
             } else if (eventPackage != null && !isSelfPackage(eventPackage)) {
                 AppLog.d(
                     TAG,
-                    "onAccessibilityEvent: Ignoring window state change on secondary display (displayId=$displayId, package=$eventPackage)",
+                    "onAccessibilityEvent: Secondary display ($displayId) window state changed, package=$eventPackage",
                 )
             }
         }
@@ -171,12 +171,12 @@ class MegingiardAccessibilityService : AccessibilityService() {
                     val isEditable = source.isEditable
                     val isFocused = source.isFocused
                     if (isEditable && isFocused) {
-                        val windowId = source.windowId
-                        val viewResId = source.viewIdResourceName ?: "unknown"
-                        val fieldId = "$windowId:$viewResId:${source.hashCode()}"
+                        val stableId = source.uniqueId ?: "${source.windowId}:${source.viewIdResourceName ?: source.className ?: "field"}"
+                        val fieldId = "$eventPackage:$stableId"
                         val isClicked = event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
                         AutoKeyboardFocusCoordinator.onTextFieldFocused(
                             fieldId = fieldId,
+                            packageName = eventPackage,
                             isClicked = isClicked,
                         )
                     } else if (event.eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED && !isEditable) {
@@ -188,7 +188,7 @@ class MegingiardAccessibilityService : AccessibilityService() {
             }
 
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
-                AutoKeyboardFocusCoordinator.onWindowStateChanged()
+                AutoKeyboardFocusCoordinator.onWindowStateChanged(eventPackage)
             }
         }
     }

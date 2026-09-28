@@ -126,7 +126,7 @@ object SettingsManager {
     private val _logLevel = MutableStateFlow(AppLog.Level.WARN)
     val logLevel: StateFlow<AppLog.Level> = _logLevel.asStateFlow()
 
-    internal fun resetForTesting(
+    fun resetForTesting(
         context: Context? = null,
         testScope: CoroutineScope? = null,
     ) {
@@ -146,6 +146,9 @@ object SettingsManager {
         _welcomeTourCompletedVersion.value = 0
         _showMacroEditorTutorial.value = true
         _internalBackups.value = emptyList()
+        MacroPadSettings.resetForTesting()
+        KeyboardSettings.resetForTesting()
+        UpdateManager.resetForTesting()
         if (::dataStore.isInitialized) {
             runBlocking {
                 try {

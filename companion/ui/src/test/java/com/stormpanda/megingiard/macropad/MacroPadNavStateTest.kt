@@ -205,14 +205,19 @@ class MacroPadNavStateTest {
     }
 
     @Test
-    fun `MirrorAdvancedSettings has correct parentSection MIRROR`() {
+    fun `MirrorAdvancedSettings and CutoutAdvancedSettings have correct parentSection MIRROR`() {
         val advancedSubPage = MacroPadSubPage.MirrorAdvancedSettings(layoutId = "layout-123")
         assertEquals(EditorSection.MIRROR, advancedSubPage.parentSection)
         assertEquals("layout-123", advancedSubPage.layoutId)
 
+        val cutoutAdvancedSubPage = MacroPadSubPage.CutoutAdvancedSettings(cutoutId = "cutout-abc")
+        assertEquals(EditorSection.MIRROR, cutoutAdvancedSubPage.parentSection)
+        assertEquals("cutout-abc", cutoutAdvancedSubPage.cutoutId)
+
         MacroPadNavState.selectSection(EditorSection.MIRROR)
         MacroPadNavState.push(advancedSubPage)
-        assertNav(EditorSection.MIRROR, listOf(advancedSubPage))
+        MacroPadNavState.push(cutoutAdvancedSubPage)
+        assertNav(EditorSection.MIRROR, listOf(advancedSubPage, cutoutAdvancedSubPage))
     }
 
     @Test
@@ -316,6 +321,113 @@ class MacroPadNavStateTest {
         assertEquals("grid-btn-1", (activeSubPage as MacroPadSubPage.EditButton).button?.id)
         assertEquals(1, activeSubPage.button?.gridCol)
         assertEquals(2, activeSubPage.button?.gridRow)
+    fun `AutomaticLayoutSwitching defaults to parentSection AUTOMATION but respects section parameter`() {
+        val defaultAutoSwitch = MacroPadSubPage.AutomaticLayoutSwitching(layoutId = "lay-auto-1")
+        assertEquals(EditorSection.AUTOMATION, defaultAutoSwitch.parentSection)
+        assertEquals("lay-auto-1", defaultAutoSwitch.layoutId)
+
+        val layoutsAutoSwitch =
+            MacroPadSubPage.AutomaticLayoutSwitching(layoutId = "lay-auto-2", section = EditorSection.LAYOUTS)
+        assertEquals(EditorSection.LAYOUTS, layoutsAutoSwitch.parentSection)
+        assertEquals("lay-auto-2", layoutsAutoSwitch.layoutId)
+
+        MacroPadNavState.selectSection(EditorSection.AUTOMATION)
+        MacroPadNavState.push(defaultAutoSwitch)
+        assertNav(EditorSection.AUTOMATION, listOf(defaultAutoSwitch))
+    }
+
+    @Test
+    fun `CopyButton and CopyLayout have correct parentSection and stack behavior`() {
+        val testButton =
+            PadButton(
+                id = "btn-1",
+                label = "A",
+                posX = 0.5f,
+                posY = 0.5f,
+                action = PadAction.KeyboardKey(keycode = 30, label = "A"),
+            )
+        val copyButton = MacroPadSubPage.CopyButton(button = testButton)
+        assertEquals(EditorSection.BUTTONS, copyButton.parentSection)
+        assertEquals(testButton, copyButton.button)
+
+        val copyLayout = MacroPadSubPage.CopyLayout(layoutId = "layout-1")
+        assertEquals(EditorSection.LAYOUTS, copyLayout.parentSection)
+        assertEquals("layout-1", copyLayout.layoutId)
+
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(copyButton)
+        assertNav(EditorSection.BUTTONS, listOf(copyButton))
+        assertTrue(MacroPadNavState.pop())
+        assertNav(EditorSection.BUTTONS)
+    }
+
+    @Test
+    fun `ChooseMouseAction and EditButton stack flow preserves draft with ScrollWheel and Trackpoint`() {
+        val initialDraft =
+            PadButton(
+                id = "btn-mouse-1",
+                label = "Mouse Button",
+                posX = 0.5f,
+                posY = 0.5f,
+                action = PadAction.MouseButton(MouseButton.LEFT),
+            )
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(MacroPadSubPage.EditButton(button = null, draftButton = initialDraft))
+        assertNav(EditorSection.BUTTONS, listOf(MacroPadSubPage.EditButton(button = null, draftButton = initialDraft)))
+
+        val mouseSubPage = MacroPadSubPage.ChooseMouseAction(button = null, draftButton = initialDraft)
+        assertEquals(EditorSection.BUTTONS, mouseSubPage.parentSection)
+        MacroPadNavState.push(mouseSubPage)
+
+        val updatedDraft =
+            initialDraft.copy(
+                action = PadAction.ScrollWheel,
+                buttonSize = ButtonSize.SIZE_1X2,
+            )
+        MacroPadNavState.setStack(listOf(MacroPadSubPage.EditButton(button = null, draftButton = updatedDraft)))
+
+        assertNav(EditorSection.BUTTONS, listOf(MacroPadSubPage.EditButton(button = null, draftButton = updatedDraft)))
+        assertEquals(PadAction.ScrollWheel, (MacroPadNavState.subPageStack.value.first() as MacroPadSubPage.EditButton).draftButton?.action)
+        assertEquals(
+            ButtonSize.SIZE_1X2,
+            (MacroPadNavState.subPageStack.value.first() as MacroPadSubPage.EditButton).draftButton?.buttonSize,
+        )
+    }
+
+    @Test
+    fun `AppPicker and EditButton stack flow preserves custom label on app launcher`() {
+        val initialDraft =
+            PadButton(
+                id = "btn-app-1",
+                label = "RetroArch",
+                posX = 0.5f,
+                posY = 0.5f,
+                action = PadAction.AppLauncher(packageName = "com.retroarch"),
+            )
+        MacroPadNavState.selectSection(EditorSection.BUTTONS)
+        MacroPadNavState.push(MacroPadSubPage.EditButton(button = null, draftButton = initialDraft))
+        MacroPadNavState.push(MacroPadSubPage.AppPicker)
+
+        assertEquals(EditorSection.BUTTONS, MacroPadSubPage.AppPicker.parentSection)
+        assertNav(
+            EditorSection.BUTTONS,
+            listOf(
+                MacroPadSubPage.EditButton(button = null, draftButton = initialDraft),
+                MacroPadSubPage.AppPicker,
+            ),
+        )
+
+        val updatedDraft =
+            initialDraft.copy(
+                label = "My Custom App",
+                action = PadAction.AppLauncher(packageName = "com.custom.app"),
+            )
+        MacroPadNavState.setStack(listOf(MacroPadSubPage.EditButton(button = null, draftButton = updatedDraft)))
+
+        assertNav(EditorSection.BUTTONS, listOf(MacroPadSubPage.EditButton(button = null, draftButton = updatedDraft)))
+        val currentEditButton = MacroPadNavState.subPageStack.value.first() as MacroPadSubPage.EditButton
+        assertEquals("My Custom App", currentEditButton.draftButton?.label)
+        assertEquals(PadAction.AppLauncher("com.custom.app"), currentEditButton.draftButton?.action)
     }
 }
 
